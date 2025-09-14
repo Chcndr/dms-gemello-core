@@ -47,11 +47,44 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/dms-core.js"></script>
-  <script src="js/dms-areas.js?v=mod2"></script>
+  <script src="libs/turf.min.js?v=mod23-001"></script>
+  <script src="js/dms-core.js?v=mod23-001"></script>
+  <script src="js/dms-areas.js?v=mod23-001"></script>
+  <script src="js/dms-checkin.js?v=mod23-001"></script>
   <script>
+    // Demo aree per test
+    window.DMS_DEMO = {
+      areas: [
+        {
+          type: 'Feature',
+          properties: { code: 'TR01', name: 'Mercato Tripoli', category: 'mercato', tolerance_m: 10 },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [11.1094, 42.7598], [11.1104, 42.7598], [11.1104, 42.7588], [11.1094, 42.7588], [11.1094, 42.7598]
+            ]]
+          }
+        },
+        {
+          type: 'Feature', 
+          properties: { code: 'ES01', name: 'Mercato Esperanto', category: 'mercato', tolerance_m: 15 },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [11.1124, 42.7578], [11.1134, 42.7578], [11.1134, 42.7568], [11.1124, 42.7568], [11.1124, 42.7578]
+            ]]
+          }
+        }
+      ]
+    };
+
     window.addEventListener('DOMContentLoaded', () => {
-      if (window.DMS && DMS.Map) DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+      if (window.DMS && DMS.Map) {
+        DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+        DMS.Checkin.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+        // Vista Italia all'avvio
+        DMS.Core.fitItaly();
+      }
     });
   </script>
 </body>

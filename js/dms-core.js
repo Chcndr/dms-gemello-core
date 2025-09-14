@@ -68,16 +68,37 @@
       if(ev.key==='Enter'){ geocode(); }
     });
 
-    // Expose DMS API for modules after map initialization
+    // === PATCH ESPOSIZIONE API GLOBALE DMS (mod23) ===
     window.DMS = window.DMS || {};
+    // Event bus leggero
+    (function(){
+      const _ev = {};
+      window.DMS.Bus = {
+        on(evt, fn){ (_ev[evt] = _ev[evt] || []).push(fn); },
+        emit(evt, payload){ (_ev[evt]||[]).forEach(fn => { try{ fn(payload); }catch(e){} }); }
+      };
+    })();
+
+    // Stato & API core
+    window.DMS.Core = window.DMS.Core || {};
+    window.DMS.Core.state = window.DMS.Core.state || { map: state.map, layers:{}, cfg:{ r_global:8, hysteresis_m:2 } };
     window.DMS.Map = state.map;
-    window.DMS.Core = {
-      state: state,
-      toggleLayer: toggleLayer,
-      renderMarkets: renderMarkets,
-      fitToData: fitToData,
-      geocode: geocode
+
+    // Helper: fit Italia e fit su dati
+    window.DMS.Core.fitItaly = function(){
+      // bbox Italia approssimato
+      const b = [[47.1,6.6],[36.6,18.6]]; // [lat,lon] [N,O]/[S,E] — swap sotto
+      state.map.fitBounds(L.latLngBounds([ [b[1][0], b[0][1]],[b[0][0], b[1][1]] ]), { padding:[20,20] });
     };
+    window.DMS.Core.fitData = function(){
+      const g = window.DMS.Core._dataBounds;
+      if(g) state.map.fitBounds(g, { padding:[20,20] });
+    };
+
+    // Aggancio bounds demo se già calcolati
+    if(!window.DMS.Core._dataBounds && typeof L!=='undefined'){
+      // verrà settato da moduli quando aggiungono layer
+    }
   }
 
   function toggleLayer(name, on){
