@@ -67,6 +67,17 @@
     document.getElementById('addr').addEventListener('keydown', (ev)=>{
       if(ev.key==='Enter'){ geocode(); }
     });
+
+    // Expose DMS API for modules after map initialization
+    window.DMS = window.DMS || {};
+    window.DMS.Map = state.map;
+    window.DMS.Core = {
+      state: state,
+      toggleLayer: toggleLayer,
+      renderMarkets: renderMarkets,
+      fitToData: fitToData,
+      geocode: geocode
+    };
   }
 
   function toggleLayer(name, on){
