@@ -48,5 +48,11 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/dms-core.js"></script>
+  <script src="js/dms-areas.js?v=mod2"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.DMS && DMS.Map) DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+    });
+  </script>
 </body>
 </html>
