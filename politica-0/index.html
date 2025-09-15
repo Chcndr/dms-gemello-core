@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Politica 0 — Visione DMS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #fff; }
+    
+    .header { padding: 2rem; text-align: center; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); }
+    .header h1 { font-size: 2.5rem; font-weight: 300; margin-bottom: 1rem; }
+    .header p { font-size: 1.2rem; opacity: 0.8; }
+    .back-link { position: absolute; top: 2rem; left: 2rem; color: #fff; text-decoration: none; opacity: 0.7; transition: opacity 0.3s; }
+    .back-link:hover { opacity: 1; }
+    
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; padding: 3rem; max-width: 1400px; margin: 0 auto; }
+    .card { background: #1a1a1a; border-radius: 12px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .card img { width: 100%; height: 200px; object-fit: cover; }
+    .card figcaption { padding: 1.5rem; font-size: 0.9rem; line-height: 1.4; }
+    
+    /* Lightbox */
+    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .lightbox.active { display: flex; }
+    .lightbox-content { position: relative; max-width: 90vw; max-height: 90vh; }
+    .lightbox img { max-width: 100%; max-height: 90vh; object-fit: contain; }
+    .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); color: white; border: none; font-size: 2rem; padding: 1rem; cursor: pointer; transition: background 0.3s; }
+    .lightbox-nav:hover { background: rgba(0,0,0,0.9); }
+    .lightbox-prev { left: -4rem; }
+    .lightbox-next { right: -4rem; }
+    .lightbox-close { position: absolute; top: -3rem; right: 0; background: none; color: white; border: none; font-size: 2rem; cursor: pointer; }
+    
+    @media (max-width: 768px) {
+      .gallery { grid-template-columns: 1fr; gap: 1.5rem; padding: 2rem 1rem; }
+      .header h1 { font-size: 2rem; }
+      .lightbox-nav { font-size: 1.5rem; padding: 0.5rem; }
+      .lightbox-prev { left: -2rem; }
+      .lightbox-next { right: -2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="../orologio/" class="back-link">← Torna all'orologio</a>
+    <h1>Politica 0 — Visione DMS</h1>
+    <p>Sistema di Governance per il Commercio Digitale</p>
+  </div>
+  
+  <div class="gallery" id="gallery"></div>
+  
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-content">
+      <button class="lightbox-close" onclick="closeLightbox()">×</button>
+      <button class="lightbox-nav lightbox-prev" onclick="prevSlide()">‹</button>
+      <img id="lightbox-img" src="" alt="">
+      <button class="lightbox-nav lightbox-next" onclick="nextSlide()">›</button>
+    </div>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const totalSlides = 47;
+    
+    const slideNames = [
+      'ITALIA — Emergenza Commercio',
+      'DMS — Gemello Digitale del Commercio', 
+      'Governance • Bandi • Criteri Bolkestein',
+      'Crediti di Carbonio — Univoco Doganale',
+      'Indicatori Economici',
+      'DMS al Centro di Tutto',
+      'GIS del Commercio — DMS',
+      'Gettito Progressivo — Strategia Carbon Credit',
+      'Redistribuzione Benefici — Famiglia Italiana',
+      'Impatti Economici — PMI e Posti Lavoro',
+      'Timeline Implementazione — DMS + UE',
+      'Confronto Scenari — Attuale vs DMS 2030'
+    ];
+    
+    // Genera griglia
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = Array.from({length: totalSlides}, (_, i) => {
+      const n = String(i + 1).padStart(2, '0');
+      const src = `slides/${n}.jpg`;
+      const title = slideNames[i] || `Slide ${n}`;
+      return `
+        <figure class="card" onclick="openLightbox(${i})">
+          <img src="${src}" alt="${title}" loading="lazy">
+          <figcaption>${title}</figcaption>
+        </figure>`;
+    }).join('');
+    
+    function openLightbox(index) {
+      currentSlide = index;
+      updateLightboxImage();
+      document.getElementById('lightbox').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+    
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % totalSlides;
+      updateLightboxImage();
+    }
+    
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+      updateLightboxImage();
+    }
+    
+    function updateLightboxImage() {
+      const n = String(currentSlide + 1).padStart(2, '0');
+      const src = `slides/${n}.jpg`;
+      const title = slideNames[currentSlide] || `Slide ${n}`;
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox-img').alt = title;
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('lightbox').classList.contains('active')) {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'ArrowRight') nextSlide();
+      }
+    });
+    
+    // Close on click outside
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if (e.target.id === 'lightbox') closeLightbox();
+    });
+  </script>
+</body>
+</html>
+
