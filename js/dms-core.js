@@ -131,26 +131,47 @@
       poly.addTo(state.layers.areas);
     });
 
-    // slot rectangles as divIcon
+    // slot circles - scalable with map zoom
     slots.forEach(f=>{
       const p = f.geometry.coordinates; // [lon,lat]
       const latlng = L.latLng(p[1], p[0]);
       const num = f.properties.number;
       const status = f.properties.status || 'free'; // free | busy | taken
-      const icon = L.divIcon({
-        className:'',
-        html:`<div class="dms-slot ${status}">${num}</div>`,
-        iconSize:null
-      });
-      const m = L.marker(latlng, {icon});
       const width = f.properties.width_m || 3;
       const length = f.properties.length_m || 6;
       const codInt = f.properties.cod_int || `POST-${num}`;
       const statusText = status === 'free' ? 'Libero' : status === 'busy' ? 'Occupato' : 'Prenotato';
       
-      m.bindPopup(`
+      // Color based on status
+      const colors = {
+        free: '#4CAF50',
+        busy: '#FFC107',
+        taken: '#F44336'
+      };
+      
+      // Create circle with radius based on slot dimensions (average of width/length)
+      const radius = (width + length) / 4; // meters
+      const circle = L.circle(latlng, {
+        radius: radius,
+        color: colors[status],
+        fillColor: colors[status],
+        fillOpacity: 0.7,
+        weight: 2
+      });
+      
+      // Add number label as tooltip that's always visible
+      const label = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'slot-number-label',
+          html: `<div style="background:${colors[status]};color:white;border:2px solid white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${num}</div>`,
+          iconSize: [28, 28]
+        }),
+        interactive: false
+      });
+      
+      circle.bindPopup(`
         <div style="font-family: system-ui; padding: 4px;">
-          <h3 style="margin: 0 0 8px; color: #4CAF50;">Posteggio ${num}</h3>
+          <h3 style="margin: 0 0 8px; color: ${colors[status]};">Posteggio ${num}</h3>
           <p style="margin: 4px 0;"><b>Mercato:</b> ${f.properties.market || 'Esperanto Settimanale'}</p>
           <p style="margin: 4px 0;"><b>Dimensioni:</b> ${width}m × ${length}m</p>
           <p style="margin: 4px 0;"><b>Stato:</b> ${statusText}</p>
@@ -158,8 +179,9 @@
           <p style="margin: 4px 0; font-style: italic; color: #666;">Posteggio ${statusText.toLowerCase()}</p>
         </div>
       `);
-      m.bindTooltip(`Posteggio ${num}`, {direction:'top', offset:[0,-16]});
-      m.addTo(state.layers.slots);
+      
+      circle.addTo(state.layers.slots);
+      label.addTo(state.layers.slots);
     });
 
     state.data.areas = areas; state.data.slots = slots;
