@@ -61,7 +61,40 @@
     window.addEventListener('DOMContentLoaded', () => {
       // Aspetta 1 secondo per essere sicuri che dms-core.js abbia finito
       setTimeout(() => {
-        // Carica dati reali Grosseto
+        // Carica area disegnata dall'utente
+        fetch('data/grosseto_area_disegnata.geojson')
+          .then(response => response.json())
+          .then(areaData => {
+            console.log('Area disegnata caricata:', areaData);
+            
+            // Renderizza area mercato
+            const areaFeature = areaData.features[0]; // Primo poligono (quello grande)
+            
+            if (areaFeature && window.DMS && DMS.Map) {
+              L.geoJSON(areaFeature, {
+                style: {
+                  color: areaFeature.properties.stroke_color || '#2E7D32',
+                  fillColor: areaFeature.properties.fill_color || '#4CAF50',
+                  fillOpacity: 0.15,
+                  weight: 3
+                }
+              }).addTo(DMS.Map).bindPopup(`
+                <div style="font-family:sans-serif">
+                  <h4 style="margin:0 0 8px 0">${areaFeature.properties.name}</h4>
+                  <p style="margin:4px 0"><strong>Tipo:</strong> ${areaFeature.properties.tipo || 'Settimanale'}</p>
+                  <p style="margin:4px 0"><strong>Orario:</strong> ${areaFeature.properties.orario || 'Giovedì 07:00-14:00'}</p>
+                  <p style="margin:4px 0"><strong>Posteggi totali:</strong> ${areaFeature.properties.total_posteggi || '180'}</p>
+                </div>
+              `);
+              
+              // Fit sulla mappa
+              const bounds = L.geoJSON(areaFeature).getBounds();
+              DMS.Map.fitBounds(bounds, {padding: [50, 50]});
+            }
+          })
+          .catch(error => console.error('Errore caricamento area:', error));
+        
+        // Carica posteggi
         fetch('data/grosseto_mercato_esperanto.geojson')
           .then(response => response.json())
           .then(data => {
@@ -144,17 +177,8 @@
                 weight: 2
               }).addTo(DMS.Map);
               
-              // Aggiungi numero al centro
-              L.marker([lat, lon], {
-                icon: L.divIcon({
-                  className: 'slot-label',
-                  html: `<div style="background:white; border:1px solid ${color}; border-radius:3px; padding:2px 4px; font-size:10px; font-weight:bold; color:${color}">${props.number}</div>`,
-                  iconSize: null
-                })
-              }).addTo(DMS.Map);
-              
-              // Popup con dati
-              rect.bindPopup(`
+              // POPUP con dati posteggio
+              const popupContent = `
                 <div style="font-family:sans-serif">
                   <h4 style="margin:0 0 8px 0">Posteggio ${props.number}</h4>
                   <p style="margin:4px 0"><strong>Mercato:</strong> ${props.market}</p>
@@ -167,7 +191,18 @@
                     <p style="margin:4px 0"><strong>P.IVA:</strong> ${props.operator.piva}</p>
                   ` : '<p style="margin:4px 0; font-style:italic">Posteggio libero</p>'}
                 </div>
-              `);
+              `;
+              rect.bindPopup(popupContent);
+              
+              // Aggiungi numero al centro (con stesso popup)
+              const label = L.marker([lat, lon], {
+                icon: L.divIcon({
+                  className: 'slot-label',
+                  html: `<div style="background:white; border:1px solid ${color}; border-radius:3px; padding:2px 4px; font-size:10px; font-weight:bold; color:${color}">${props.number}</div>`,
+                  iconSize: null
+                })
+              }).addTo(DMS.Map);
+              label.bindPopup(popupContent);
             });
             
             // Fit sulla mappa di Grosseto
