@@ -301,6 +301,14 @@
     // TODO: Integrare con sistema vetrine DMS
   };
 
+  // Export API pubblica
+  window.DMSCore = {
+    renderMarkets: renderMarkets,
+    fitToBounds: fitToData,
+    state: state,
+    init: init
+  };
+
   document.addEventListener('DOMContentLoaded', init);
 })();
 
