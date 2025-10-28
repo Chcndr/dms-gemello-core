@@ -149,17 +149,24 @@
         taken: '#F44336'
       };
       
-      // Create circle with radius based on slot dimensions (average of width/length)
-      const radius = (width + length) / 4; // meters
-      const circle = L.circle(latlng, {
-        radius: radius,
+      // Create rectangle with geographic bounds (scalable with zoom)
+      // Calculate offset in degrees (approximate: 1 degree lat ~ 111km, 1 degree lon ~ 111km * cos(lat))
+      const latOffset = (length / 2) / 111000; // meters to degrees
+      const lonOffset = (width / 2) / (111000 * Math.cos(latlng.lat * Math.PI / 180));
+      
+      const bounds = [
+        [latlng.lat - latOffset, latlng.lng - lonOffset],
+        [latlng.lat + latOffset, latlng.lng + lonOffset]
+      ];
+      
+      const rect = L.rectangle(bounds, {
         color: colors[status],
         fillColor: colors[status],
-        fillOpacity: 0.7,
+        fillOpacity: 0.6,
         weight: 2
       });
       
-      // Add number label as tooltip that's always visible
+      // Add number label at center
       const label = L.marker(latlng, {
         icon: L.divIcon({
           className: 'slot-number-label',
@@ -169,7 +176,7 @@
         interactive: false
       });
       
-      circle.bindPopup(`
+      rect.bindPopup(`
         <div style="font-family: system-ui; padding: 4px;">
           <h3 style="margin: 0 0 8px; color: ${colors[status]};">Posteggio ${num}</h3>
           <p style="margin: 4px 0;"><b>Mercato:</b> ${f.properties.market || 'Esperanto Settimanale'}</p>
@@ -180,7 +187,7 @@
         </div>
       `);
       
-      circle.addTo(state.layers.slots);
+      rect.addTo(state.layers.slots);
       label.addTo(state.layers.slots);
     });
 
