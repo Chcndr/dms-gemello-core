@@ -57,67 +57,140 @@
   <script src="js/dms-areas.js?v=mod23-001"></script>
   <script src="js/dms-checkin.js?v=mod23-001"></script>
   <script>
-    // Carica dati reali Grosseto invece dei demo
-    fetch('data/grosseto_mercato_esperanto.geojson')
-      .then(response => response.json())
-      .then(data => {
-        console.log('Dati Grosseto caricati:', data);
-        
-        // Estrai area mercato e posteggi dal GeoJSON
-        const areaFeature = data.features.find(f => f.properties.kind === 'area');
-        const slotFeatures = data.features.filter(f => f.properties.kind === 'slot');
-        
-        // Converti in formato DMS_DEMO
-        window.DMS_DEMO = {
-          areas: areaFeature ? [{
-            type: 'Feature',
-            properties: {
-              code: 'ESP01',
-              name: areaFeature.properties.name || 'Mercato Esperanto',
-              category: 'mercato',
-              tolerance_m: 15
-            },
-            geometry: areaFeature.geometry
-          }] : [],
-          
-          slots: slotFeatures.map(f => ({
-            type: 'Feature',
-            properties: {
-              number: f.properties.number,
-              status: f.properties.status || 'free',
-              market: f.properties.market,
-              width_m: f.properties.width_m || 3,
-              length_m: f.properties.length_m || 6,
-              operator: f.properties.operator || null
-            },
-            geometry: f.geometry
-          }))
-        };
-        
-        console.log('DMS_DEMO preparato:', window.DMS_DEMO);
-        
-        // Monta i moduli
-        if (window.DMS && DMS.Map) {
+    // Aspetta che DMS Core abbia finito di caricare i dati sample
+    window.addEventListener('DOMContentLoaded', () => {
+      // Aspetta 1 secondo per essere sicuri che dms-core.js abbia finito
+      setTimeout(() => {
+        // Carica dati reali Grosseto
+        fetch('data/grosseto_mercato_esperanto.geojson')
+          .then(response => response.json())
+          .then(data => {
+            console.log('Dati Grosseto caricati:', data);
+            
+            // PULISCI i layer esistenti (rimuovi i 30 posteggi sample)
+            if (window.DMS && DMS.Map) {
+              const map = DMS.Map;
+              
+              // Pulisci layer areas e slots
+              map.eachLayer(layer => {
+                // Rimuovi tutti i marker e poligoni tranne le tiles
+                if (layer instanceof L.Marker || layer instanceof L.Polygon || layer instanceof L.Circle) {
+                  map.removeLayer(layer);
+                }
+              });
+              
+              console.log('Layer sample puliti');
+            }
+            
+            // Estrai area mercato e posteggi dal GeoJSON
+            const areaFeature = data.features.find(f => f.properties.kind === 'area');
+            const slotFeatures = data.features.filter(f => f.properties.kind === 'slot');
+            
+            console.log('Area trovata:', areaFeature);
+            console.log('Posteggi trovati:', slotFeatures.length);
+            
+            // Renderizza area mercato (poligono verde)
+            if (areaFeature && window.DMS && DMS.Map) {
+              L.geoJSON(areaFeature, {
+                style: {
+                  color: areaFeature.properties.stroke_color || '#2E7D32',
+                  fillColor: areaFeature.properties.fill_color || '#4CAF50',
+                  fillOpacity: areaFeature.properties.fill_opacity || 0.15,
+                  weight: areaFeature.properties.stroke_width || 3
+                }
+              }).addTo(DMS.Map).bindPopup(`
+                <div style="font-family:sans-serif">
+                  <h4 style="margin:0 0 8px 0">${areaFeature.properties.name}</h4>
+                  <p style="margin:4px 0"><strong>Tipo:</strong> ${areaFeature.properties.tipo || 'N/D'}</p>
+                  <p style="margin:4px 0"><strong>Orario:</strong> ${areaFeature.properties.orario || 'N/D'}</p>
+                  <p style="margin:4px 0"><strong>Posteggi totali:</strong> ${areaFeature.properties.total_posteggi || 'N/D'}</p>
+                </div>
+              `);
+            }
+            
+            // Renderizza posteggi (rettangoli verdi)
+            slotFeatures.forEach(slot => {
+              const [lon, lat] = slot.geometry.coordinates;
+              const props = slot.properties;
+              
+              // Calcola bounds del rettangolo (3m x 6m)
+              const widthM = props.width_m || 3;
+              const lengthM = props.length_m || 6;
+              
+              // Conversione approssimata metri -> gradi (1 grado ≈ 111km)
+              const latDelta = (lengthM / 1000) / 111;
+              const lonDelta = (widthM / 1000) / (111 * Math.cos(lat * Math.PI / 180));
+              
+              const bounds = [
+                [lat - latDelta/2, lon - lonDelta/2],
+                [lat + latDelta/2, lon + lonDelta/2]
+              ];
+              
+              // Colore in base allo stato
+              const colors = {
+                'free': '#9E9E9E',
+                'busy': '#4CAF50',
+                'taken': '#F44336',
+                'checked': '#FFC107',
+                'reserved': '#2196F3'
+              };
+              const color = colors[props.status] || '#2196F3';
+              
+              // Crea rettangolo
+              const rect = L.rectangle(bounds, {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.7,
+                weight: 2
+              }).addTo(DMS.Map);
+              
+              // Aggiungi numero al centro
+              L.marker([lat, lon], {
+                icon: L.divIcon({
+                  className: 'slot-label',
+                  html: `<div style="background:white; border:1px solid ${color}; border-radius:3px; padding:2px 4px; font-size:10px; font-weight:bold; color:${color}">${props.number}</div>`,
+                  iconSize: null
+                })
+              }).addTo(DMS.Map);
+              
+              // Popup con dati
+              rect.bindPopup(`
+                <div style="font-family:sans-serif">
+                  <h4 style="margin:0 0 8px 0">Posteggio ${props.number}</h4>
+                  <p style="margin:4px 0"><strong>Mercato:</strong> ${props.market}</p>
+                  <p style="margin:4px 0"><strong>Dimensioni:</strong> ${widthM}m × ${lengthM}m</p>
+                  <p style="margin:4px 0"><strong>Stato:</strong> <span style="color:${color}">${props.status}</span></p>
+                  <p style="margin:4px 0"><strong>Codice:</strong> ${props.cod_int || 'N/D'}</p>
+                  ${props.operator ? `
+                    <hr style="margin:8px 0">
+                    <p style="margin:4px 0"><strong>Operatore:</strong> ${props.operator.nome}</p>
+                    <p style="margin:4px 0"><strong>P.IVA:</strong> ${props.operator.piva}</p>
+                  ` : '<p style="margin:4px 0; font-style:italic">Posteggio libero</p>'}
+                </div>
+              `);
+            });
+            
+            // Fit sulla mappa di Grosseto
+            if (window.DMS && DMS.Map && areaFeature) {
+              const bounds = L.geoJSON(areaFeature).getBounds();
+              DMS.Map.fitBounds(bounds, {padding: [50, 50]});
+              console.log('Mappa centrata su Grosseto');
+            }
+          })
+          .catch(error => {
+            console.error('Errore caricamento dati Grosseto:', error);
+            alert('Errore caricamento dati: ' + error.message);
+          });
+      }, 1500); // Aspetta 1.5 secondi
+      
+      // Monta i moduli GPS check-in
+      if (window.DMS && DMS.Map) {
+        setTimeout(() => {
           DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
           DMS.Checkin.mount(DMS.Map, { sidebarSelector:'.sidebar' });
-          
-          // Fit sui dati Grosseto
-          setTimeout(() => {
-            if (DMS.Core && DMS.Core.fitToData) {
-              DMS.Core.fitToData();
-            }
-          }, 500);
-        }
-      })
-      .catch(error => {
-        console.error('Errore caricamento dati Grosseto:', error);
-        alert('Errore caricamento dati: ' + error.message);
-        
-        // Fallback: carica vista Italia
-        if (window.DMS && DMS.Core) {
-          DMS.Core.fitItaly();
-        }
-      });
+        }, 100);
+      }
+    });
   </script>
 </body>
 </html>
