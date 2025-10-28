@@ -1,326 +1,124 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DMS Gemello Digitale - Mercato Grosseto</title>
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  
-  <!-- App CSS -->
-  <link rel="stylesheet" href="css/app-v2.css">
-  
-  <style>
-    /* Import Panel Styles */
-    .dms-import-panel {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      max-width: 600px;
-      margin: 20px auto;
-    }
-    
-    .dms-import-panel h3 {
-      margin-top: 0;
-      color: #001b1c;
-      border-bottom: 2px solid #4CAF50;
-      padding-bottom: 10px;
-    }
-    
-    .import-option {
-      margin: 20px 0;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    
-    .import-option h4 {
-      margin-top: 0;
-      color: #2196F3;
-    }
-    
-    .import-option p {
-      color: #666;
-      font-size: 14px;
-      margin: 10px 0;
-    }
-    
-    .import-option input[type="text"],
-    .import-option input[type="file"] {
-      width: 100%;
-      padding: 8px;
-      margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    
-    .import-option .btn {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    
-    .import-option .btn:hover {
-      background: #45a049;
-    }
-    
-    .import-option .btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    
-    .status-message {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 14px;
-      display: none;
-    }
-    
-    .status-message.loading {
-      display: block;
-      background: #E3F2FD;
-      color: #1976D2;
-    }
-    
-    .status-message.success {
-      display: block;
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
-    
-    .status-message.error {
-      display: block;
-      background: #FFEBEE;
-      color: #C62828;
-    }
-    
-    .status-message.warning {
-      display: block;
-      background: #FFF3E0;
-      color: #E65100;
-    }
-    
-    .info-panel {
-      background: #E3F2FD;
-      padding: 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-    
-    .info-panel h4 {
-      margin-top: 0;
-      color: #1976D2;
-    }
-    
-    .info-panel ul {
-      margin: 10px 0;
-      padding-left: 20px;
-    }
-    
-    .info-panel li {
-      margin: 5px 0;
-    }
-    
-    #sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 350px;
-      height: 100vh;
-      background: #f5f5f5;
-      overflow-y: auto;
-      z-index: 1000;
-      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
-    }
-    
-    #map {
-      position: fixed;
-      top: 0;
-      left: 350px;
-      right: 0;
-      bottom: 0;
-    }
-    
-    .sidebar-header {
-      background: #4CAF50;
-      color: white;
-      padding: 20px;
-    }
-    
-    .sidebar-header h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-    
-    .sidebar-content {
-      padding: 20px;
-    }
-    
-    .legend {
-      background: white;
-      padding: 15px;
-      border-radius: 4px;
-      margin-top: 20px;
-    }
-    
-    .legend h4 {
-      margin-top: 0;
-      color: #001b1c;
-    }
-    
-    .legend-item {
-      display: flex;
-      align-items: center;
-      margin: 8px 0;
-    }
-    
-    .legend-color {
-      width: 30px;
-      height: 20px;
-      border-radius: 3px;
-      margin-right: 10px;
-      border: 1px solid #333;
-    }
-    
-    .legend-label {
-      font-size: 14px;
-      color: #333;
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>DMS • Mercato Esperanto - Grosseto</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>/* fallback minimal if css fails */ .app{display:flex;height:100vh}.sidebar{width:320px;background:#0f2830;color:#d5f0e6}#map{flex:1}</style>
 </head>
 <body>
-  
-  <!-- Sidebar -->
-  <div id="sidebar">
-    <div class="sidebar-header">
-      <h2>🗺️ DMS Gemello Digitale</h2>
-      <p style="margin: 5px 0 0 0; font-size: 14px;">Mercato Esperanto - Grosseto</p>
-    </div>
-    
-    <div class="sidebar-content">
-      <!-- Info Panel -->
-      <div class="info-panel">
-        <h4>ℹ️ Stato Sistema</h4>
-        <ul>
-          <li><strong>Mercato:</strong> Esperanto Settimanale</li>
-          <li><strong>Posteggi totali:</strong> ~180</li>
-          <li><strong>Posteggi caricati:</strong> <span id="loaded-count">10</span> (sample)</li>
-          <li><strong>Stato:</strong> <span style="color: #FF9800;">Dati demo</span></li>
-        </ul>
-        <p style="font-size: 13px; color: #666; margin-top: 10px;">
-          Sistema predisposto per import automatico di tutti i posteggi quando disponibile accesso al database.
-        </p>
+  <header class="topbar">
+    <div class="brand">DMS • GEMELLO DIGITALE — Mercato Esperanto Grosseto</div>
+    <div class="ver" id="ver">Grosseto v1</div>
+  </header>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="section">
+        <h3>Ricerca indirizzo</h3>
+        <div class="row">
+          <input id="addr" type="text" placeholder="Es. Grosseto, Via X">
+          <button id="go">Cerca</button>
+        </div>
+        <div id="msg" class="msg"></div>
       </div>
-      
-      <!-- Import Panel -->
-      <div id="import-container"></div>
-      
-      <!-- Legend -->
-      <div class="legend">
-        <h4>Legenda Stati Posteggi</h4>
-        <div class="legend-item">
-          <div class="legend-color" style="background: #4CAF50;"></div>
-          <span class="legend-label">Occupato (busy)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background: #9E9E9E;"></div>
-          <span class="legend-label">Libero (free)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background: #FFC107;"></div>
-          <span class="legend-label">Spunta (checked)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background: #F44336;"></div>
-          <span class="legend-label">Assente (taken)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background: #2196F3;"></div>
-          <span class="legend-label">Riservato (reserved)</span>
-        </div>
+
+      <div class="section">
+        <h3>Layer</h3>
+        <label><input type="checkbox" id="chkAreas" checked> Aree Mercato</label><br>
+        <label><input type="checkbox" id="chkSlots" checked> Posteggi</label><br>
+        <label><input type="checkbox" id="chkItaly" checked> Italia (confini)</label>
       </div>
-    </div>
+
+      <div class="section">
+        <h3>Azioni</h3>
+        <button id="fit">Fit su dati</button>
+        <button id="reset">Vista Italia</button>
+      </div>
+
+      <div class="section">
+        <h3>Politiche</h3>
+        <a href="politica-0/" style="display: block; padding: 0.5rem; background: #1a4a5a; color: #d5f0e6; text-decoration: none; border-radius: 4px; text-align: center; margin-bottom: 0.5rem;">Vedi 'Politica 0' →</a>
+      </div>
+
+      <div class="section small">
+        <p>Mercato Esperanto Settimanale - Grosseto. Sistema predisposto per caricamento automatico di tutti i 180+ posteggi quando disponibile accesso al database.</p>
+      </div>
+    </aside>
+
+    <main id="map"></main>
   </div>
-  
-  <!-- Map -->
-  <div id="map"></div>
-  
-  <!-- Leaflet JS -->
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- DMS Core v2 -->
-  <script src="js/dms-core-v2.js"></script>
-  
-  <!-- DMS Import Module -->
-  <script src="js/dms-import.js"></script>
-  
-  <!-- Init -->
+  <script src="libs/turf.min.js?v=mod23-001"></script>
+  <script src="js/dms-core.js?v=mod23-001"></script>
+  <script src="js/dms-areas.js?v=mod23-001"></script>
+  <script src="js/dms-checkin.js?v=mod23-001"></script>
   <script>
-    // Aspetta che DOM sia pronto
-    document.addEventListener('DOMContentLoaded', function() {
-      // Inizializza mappa manualmente (senza caricare dati sample)
-      const map = L.map('map', {
-        zoomControl: true,
-        attributionControl: true
+    // Carica dati reali Grosseto invece dei demo
+    fetch('data/grosseto_mercato_esperanto.geojson')
+      .then(response => response.json())
+      .then(data => {
+        console.log('Dati Grosseto caricati:', data);
+        
+        // Estrai area mercato e posteggi dal GeoJSON
+        const areaFeature = data.features.find(f => f.properties.kind === 'area');
+        const slotFeatures = data.features.filter(f => f.properties.kind === 'slot');
+        
+        // Converti in formato DMS_DEMO
+        window.DMS_DEMO = {
+          areas: areaFeature ? [{
+            type: 'Feature',
+            properties: {
+              code: 'ESP01',
+              name: areaFeature.properties.name || 'Mercato Esperanto',
+              category: 'mercato',
+              tolerance_m: 15
+            },
+            geometry: areaFeature.geometry
+          }] : [],
+          
+          slots: slotFeatures.map(f => ({
+            type: 'Feature',
+            properties: {
+              number: f.properties.number,
+              status: f.properties.status || 'free',
+              market: f.properties.market,
+              width_m: f.properties.width_m || 3,
+              length_m: f.properties.length_m || 6,
+              operator: f.properties.operator || null
+            },
+            geometry: f.geometry
+          }))
+        };
+        
+        console.log('DMS_DEMO preparato:', window.DMS_DEMO);
+        
+        // Monta i moduli
+        if (window.DMS && DMS.Map) {
+          DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+          DMS.Checkin.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+          
+          // Fit sui dati Grosseto
+          setTimeout(() => {
+            if (DMS.Core && DMS.Core.fitToData) {
+              DMS.Core.fitToData();
+            }
+          }, 500);
+        }
+      })
+      .catch(error => {
+        console.error('Errore caricamento dati Grosseto:', error);
+        alert('Errore caricamento dati: ' + error.message);
+        
+        // Fallback: carica vista Italia
+        if (window.DMS && DMS.Core) {
+          DMS.Core.fitItaly();
+        }
       });
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(map);
-      
-      // Start on Italy
-      const italyBounds = L.latLngBounds([[36.6,6.6],[47.2,18.8]]);
-      map.fitBounds(italyBounds, {padding:[20,20]});
-      
-      // Sovrascrivi lo state di DMSCore con la nostra mappa
-      if (window.DMSCore && window.DMSCore.state) {
-        window.DMSCore.state.map = map;
-        window.DMSCore.state.layers.areas.addTo(map);
-        window.DMSCore.state.layers.slots.addTo(map);
-        window.DMSCore.state.layers.slotLabels.addTo(map);
-      }
-      
-      // Crea UI import
-      DMSImport.createImportUI(document.getElementById('import-container'));
-      
-      // Carica dati Grosseto
-      fetch('data/grosseto_mercato_esperanto.geojson')
-        .then(response => response.json())
-        .then(data => {
-          console.log('Dati Grosseto caricati:', data);
-          
-          // Renderizza sulla mappa
-          DMSCore.renderMarkets(data);
-          
-          // Fit sulla mappa
-          DMSCore.fitToBounds();
-          
-          // Aggiorna contatore
-          const slotsCount = data.features.filter(f => f.properties.kind === 'slot').length;
-          document.getElementById('loaded-count').textContent = slotsCount;
-        })
-        .catch(error => {
-          console.error('Errore caricamento dati:', error);
-          alert('Errore caricamento dati Grosseto: ' + error.message);
-        });
-    });
-    
-    // Funzione per aprire vetrina (placeholder)
-    window.openVetrina = function(operatorId) {
-      alert(`Apertura vetrina operatore ID: ${operatorId}\n\nFunzionalità da implementare con WebApp Negozianti.`);
-    };
   </script>
-  
 </body>
 </html>
 
