@@ -19,9 +19,10 @@ button{background:var(--accent);border:none;color:#001b1c;padding:8px 10px;borde
 button:disabled{opacity:.5;cursor:not-allowed}
 #map{flex:1}
 /* slot style */
-.dms-slot{display:flex;align-items:center;justify-content:center;width:28px;height:18px;border-radius:3px;background:#2ea24f;border:1px solid #116b30;color:#001b1c;font-weight:800;font-size:11px}
-.dms-slot.busy{background:#f0c040;border-color:#9a7a1c}
-.dms-slot.taken{background:#e45a5a;border-color:#8d2a2a}
+.dms-slot{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#4CAF50;border:2px solid white;color:white;font-weight:bold;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:pointer;transition:transform 0.2s}
+.dms-slot:hover{transform:scale(1.1)}
+.dms-slot.busy{background:#FFC107;border-color:white}
+.dms-slot.taken{background:#F44336;border-color:white}
 /* polygon area */
 .dms-area{fill:#0FA3A3; fill-opacity:0.14; stroke:#0FA3A3; stroke-width:2}
 /* mobile tweaks */

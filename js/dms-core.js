@@ -143,7 +143,22 @@
         iconSize:null
       });
       const m = L.marker(latlng, {icon});
-      m.bindTooltip(`<b>Posteggio ${num}</b><br>Stato: ${status}<br>Mercato: ${f.properties.market || '-'}`, {direction:'top', offset:[0,-10]});
+      const width = f.properties.width_m || 3;
+      const length = f.properties.length_m || 6;
+      const codInt = f.properties.cod_int || `POST-${num}`;
+      const statusText = status === 'free' ? 'Libero' : status === 'busy' ? 'Occupato' : 'Prenotato';
+      
+      m.bindPopup(`
+        <div style="font-family: system-ui; padding: 4px;">
+          <h3 style="margin: 0 0 8px; color: #4CAF50;">Posteggio ${num}</h3>
+          <p style="margin: 4px 0;"><b>Mercato:</b> ${f.properties.market || 'Esperanto Settimanale'}</p>
+          <p style="margin: 4px 0;"><b>Dimensioni:</b> ${width}m × ${length}m</p>
+          <p style="margin: 4px 0;"><b>Stato:</b> ${statusText}</p>
+          <p style="margin: 4px 0;"><b>Codice:</b> ${codInt}</p>
+          <p style="margin: 4px 0; font-style: italic; color: #666;">Posteggio ${statusText.toLowerCase()}</p>
+        </div>
+      `);
+      m.bindTooltip(`Posteggio ${num}`, {direction:'top', offset:[0,-16]});
       m.addTo(state.layers.slots);
     });
 

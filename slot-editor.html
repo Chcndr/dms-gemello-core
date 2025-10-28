@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DMS • Slot Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    .container { display: flex; height: 100vh; }
+    
+    .sidebar {
+      width: 320px;
+      background: #0f2830;
+      color: #d5f0e6;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    
+    .sidebar h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #4CAF50; }
+    .sidebar h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem; color: #81C784; }
+    
+    .section { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #1a4a5a; }
+    
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.25rem 0;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    button:hover { background: #45a049; }
+    button:disabled { background: #666; cursor: not-allowed; }
+    button.secondary { background: #2196F3; }
+    button.danger { background: #F44336; }
+    
+    input[type="text"], input[type="number"], input[type="file"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: #1a4a5a;
+      color: #d5f0e6;
+      border: 1px solid #2a5a6a;
+      border-radius: 4px;
+    }
+    
+    label { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
+    
+    .info { 
+      background: #1a4a5a; 
+      padding: 0.75rem; 
+      border-radius: 4px; 
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+    }
+    
+    .slot-list {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #1a4a5a;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    
+    .slot-item {
+      padding: 0.25rem;
+      margin: 0.25rem 0;
+      background: #0f2830;
+      border-radius: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .slot-item button {
+      width: auto;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      margin: 0;
+    }
+    
+    #map { flex: 1; }
+    
+    .leaflet-overlay-pane img {
+      opacity: 0.7;
+    }
+    
+    .slot-marker {
+      background: #4CAF50;
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <h1>🎯 Slot Editor</h1>
+      <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem;">
+        Digitalizza i posteggi dalla pianta PDF
+      </p>
+      
+      <div class="section">
+        <h2>1. Carica Area Mercato</h2>
+        <input type="file" id="area-file" accept=".geojson,.json">
+        <button id="load-area" disabled>Carica Area</button>
+        <div class="info" id="area-info">Nessuna area caricata</div>
+      </div>
+      
+      <div class="section">
+        <h2>2. Sovrapponi Pianta PDF</h2>
+        <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+          Posiziona i 4 angoli della pianta sulla mappa
+        </p>
+        <button id="start-overlay">Inizia Posizionamento</button>
+        <button id="load-pdf" disabled>Carica PDF</button>
+        <input type="file" id="pdf-file" accept=".pdf" style="display: none;">
+        <div class="info" id="overlay-info">Clicca "Inizia Posizionamento"</div>
+      </div>
+      
+      <div class="section">
+        <h2>3. Aggiungi Posteggi</h2>
+        <button id="start-adding">Inizia Aggiunta Posteggi</button>
+        <button id="stop-adding" disabled>Stop Aggiunta</button>
+        <div class="info" id="adding-info">Pronto</div>
+        
+        <label>Numero Posteggio Corrente:</label>
+        <input type="number" id="slot-number" value="1" min="1">
+        
+        <label>Incremento Automatico:</label>
+        <input type="checkbox" id="auto-increment" checked style="width: auto; margin-left: 0.5rem;">
+      </div>
+      
+      <div class="section">
+        <h2>4. Posteggi Aggiunti (<span id="slot-count">0</span>)</h2>
+        <div class="slot-list" id="slot-list"></div>
+        <button id="clear-all" class="danger">Cancella Tutti</button>
+      </div>
+      
+      <div class="section">
+        <h2>5. Esporta</h2>
+        <button id="export" class="secondary">💾 Esporta GeoJSON</button>
+        <div class="info" style="font-size: 0.75rem; margin-top: 0.5rem;">
+          Il file conterrà area + posteggi pronti per l'uso
+        </div>
+      </div>
+    </aside>
+    
+    <main id="map"></main>
+  </div>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script>
+    // State
+    const state = {
+      map: null,
+      areaData: null,
+      slots: [],
+      overlayCorners: [],
+      overlayMode: false,
+      addingMode: false,
+      pdfImageUrl: null
+    };
+    
+    // Initialize map
+    state.map = L.map('map').setView([42.759, 11.114], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(state.map);
+    
+    // Load area file
+    document.getElementById('area-file').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('load-area').disabled = false;
+      }
+    });
+    
+    document.getElementById('load-area').addEventListener('click', () => {
+      const file = document.getElementById('area-file').files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          state.areaData = JSON.parse(e.target.result);
+          L.geoJSON(state.areaData, {
+            style: { color: '#4CAF50', fillOpacity: 0.1, weight: 3 }
+          }).addTo(state.map);
+          
+          const bounds = L.geoJSON(state.areaData).getBounds();
+          state.map.fitBounds(bounds);
+          
+          document.getElementById('area-info').textContent = '✅ Area caricata';
+          document.getElementById('start-overlay').disabled = false;
+        } catch (err) {
+          alert('Errore caricamento area: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+    
+    // Start overlay positioning
+    document.getElementById('start-overlay').addEventListener('click', () => {
+      state.overlayMode = true;
+      state.overlayCorners = [];
+      document.getElementById('overlay-info').textContent = 'Clicca sui 4 angoli della pianta (in senso orario da NW)';
+      
+      state.map.on('click', handleOverlayClick);
+    });
+    
+    function handleOverlayClick(e) {
+      if (!state.overlayMode) return;
+      
+      state.overlayCorners.push([e.latlng.lat, e.latlng.lng]);
+      
+      L.marker(e.latlng, {
+        icon: L.divIcon({
+          html: `<div style="background:red;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">${state.overlayCorners.length}</div>`,
+          iconSize: [30, 30]
+        })
+      }).addTo(state.map);
+      
+      if (state.overlayCorners.length === 4) {
+        state.overlayMode = false;
+        state.map.off('click', handleOverlayClick);
+        document.getElementById('overlay-info').textContent = '✅ 4 angoli posizionati. Ora carica il PDF.';
+        document.getElementById('load-pdf').disabled = false;
+      } else {
+        document.getElementById('overlay-info').textContent = `Angolo ${state.overlayCorners.length}/4 posizionato`;
+      }
+    }
+    
+    // Load PDF
+    document.getElementById('load-pdf').addEventListener('click', () => {
+      document.getElementById('pdf-file').click();
+    });
+    
+    document.getElementById('pdf-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        // Convert PDF to image
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const page = pdfDoc.getPage(0);
+        
+        // For now, just show message - full PDF rendering requires additional library
+        alert('Funzionalità in sviluppo. Per ora, usa lo screenshot del PDF come immagine.');
+        
+      } catch (err) {
+        alert('Errore caricamento PDF: ' + err.message);
+      }
+    });
+    
+    // Start adding slots
+    document.getElementById('start-adding').addEventListener('click', () => {
+      state.addingMode = true;
+      document.getElementById('start-adding').disabled = true;
+      document.getElementById('stop-adding').disabled = false;
+      document.getElementById('adding-info').textContent = '🎯 Clicca sulla mappa per aggiungere posteggi';
+      
+      state.map.on('click', handleSlotClick);
+    });
+    
+    document.getElementById('stop-adding').addEventListener('click', () => {
+      state.addingMode = false;
+      document.getElementById('start-adding').disabled = false;
+      document.getElementById('stop-adding').disabled = true;
+      document.getElementById('adding-info').textContent = 'Pronto';
+      
+      state.map.off('click', handleSlotClick);
+    });
+    
+    function handleSlotClick(e) {
+      if (!state.addingMode) return;
+      
+      const slotNumber = parseInt(document.getElementById('slot-number').value);
+      const autoIncrement = document.getElementById('auto-increment').checked;
+      
+      const slot = {
+        type: 'Feature',
+        properties: {
+          kind: 'slot',
+          number: slotNumber,
+          market: 'Esperanto Settimanale',
+          status: 'free',
+          width_m: 3,
+          length_m: 6,
+          cod_int: `ESP-${String(slotNumber).padStart(3, '0')}`
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [e.latlng.lng, e.latlng.lat]
+        }
+      };
+      
+      state.slots.push(slot);
+      
+      // Add marker
+      L.marker(e.latlng, {
+        icon: L.divIcon({
+          html: `<div class="slot-marker">${slotNumber}</div>`,
+          iconSize: [30, 30],
+          className: ''
+        })
+      }).addTo(state.map).bindPopup(`Posteggio ${slotNumber}`);
+      
+      // Update list
+      updateSlotList();
+      
+      // Auto increment
+      if (autoIncrement) {
+        document.getElementById('slot-number').value = slotNumber + 1;
+      }
+    });
+    
+    function updateSlotList() {
+      const list = document.getElementById('slot-list');
+      const count = document.getElementById('slot-count');
+      
+      count.textContent = state.slots.length;
+      
+      list.innerHTML = state.slots.map((slot, idx) => `
+        <div class="slot-item">
+          <span>Posteggio ${slot.properties.number}</span>
+          <button onclick="removeSlot(${idx})">❌</button>
+        </div>
+      `).join('');
+    }
+    
+    window.removeSlot = function(idx) {
+      state.slots.splice(idx, 1);
+      updateSlotList();
+      // Reload map to remove marker
+      location.reload();
+    };
+    
+    // Clear all
+    document.getElementById('clear-all').addEventListener('click', () => {
+      if (confirm('Cancellare tutti i posteggi?')) {
+        state.slots = [];
+        updateSlotList();
+        location.reload();
+      }
+    });
+    
+    // Export
+    document.getElementById('export').addEventListener('click', () => {
+      if (state.slots.length === 0) {
+        alert('Nessun posteggio da esportare!');
+        return;
+      }
+      
+      const features = [];
+      
+      // Add area if loaded
+      if (state.areaData) {
+        features.push(...state.areaData.features);
+      }
+      
+      // Add slots
+      features.push(...state.slots);
+      
+      const geojson = {
+        type: 'FeatureCollection',
+        features: features
+      };
+      
+      const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mercato_${Date.now()}.geojson`;
+      a.click();
+      
+      alert(`✅ Esportati ${state.slots.length} posteggi!`);
+    });
+  </script>
+</body>
+</html>
+
