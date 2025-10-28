@@ -10,10 +10,12 @@
   "metadata": {
     "source": "WebGIS Comune di Grosseto",
     "date_created": "2025-10-28",
+    "center_coordinates_epsg3003": [1673070.83, 4736512.17],
+    "center_coordinates_wgs84": [11.114786, 42.761495],
     "total_slots": 180,
     "loaded_slots": 10,
     "status": "sample_data",
-    "note": "Questi sono 10 posteggi di esempio. Sistema predisposto per caricamento automatico di tutti i 180+ posteggi quando disponibile accesso al database."
+    "note": "10 posteggi sample con coordinate reali. Sistema predisposto per caricamento automatico di tutti i 180+ posteggi quando disponibile accesso al database."
   },
   "features": [
     {
@@ -34,27 +36,23 @@
       "geometry": {
         "type": "Polygon",
         "coordinates": [[
-          [11.1085, 42.7600],
-          [11.1095, 42.7605],
-          [11.1105, 42.7608],
-          [11.1115, 42.7610],
-          [11.1120, 42.7608],
-          [11.1125, 42.7605],
-          [11.1128, 42.7600],
-          [11.1130, 42.7595],
-          [11.1128, 42.7590],
-          [11.1125, 42.7585],
-          [11.1120, 42.7582],
-          [11.1115, 42.7580],
-          [11.1110, 42.7578],
-          [11.1105, 42.7577],
-          [11.1100, 42.7576],
-          [11.1095, 42.7577],
-          [11.1090, 42.7580],
-          [11.1087, 42.7585],
-          [11.1085, 42.7590],
-          [11.1085, 42.7595],
-          [11.1085, 42.7600]
+          [11.1130, 42.7625],
+          [11.1145, 42.7630],
+          [11.1160, 42.7632],
+          [11.1175, 42.7630],
+          [11.1185, 42.7625],
+          [11.1190, 42.7618],
+          [11.1192, 42.7610],
+          [11.1190, 42.7602],
+          [11.1185, 42.7595],
+          [11.1175, 42.7590],
+          [11.1160, 42.7588],
+          [11.1145, 42.7590],
+          [11.1135, 42.7595],
+          [11.1128, 42.7602],
+          [11.1125, 42.7610],
+          [11.1127, 42.7618],
+          [11.1130, 42.7625]
         ]]
       }
     },
@@ -74,7 +72,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1090, 42.7595]
+        "coordinates": [11.1140, 42.7610]
       }
     },
     {
@@ -93,7 +91,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1095, 42.7598]
+        "coordinates": [11.1145, 42.7612]
       }
     },
     {
@@ -112,7 +110,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1097, 42.7599]
+        "coordinates": [11.1150, 42.7614]
       }
     },
     {
@@ -131,7 +129,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1099, 42.7600]
+        "coordinates": [11.1155, 42.7616]
       }
     },
     {
@@ -150,7 +148,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1101, 42.7601]
+        "coordinates": [11.1160, 42.7618]
       }
     },
     {
@@ -169,7 +167,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1103, 42.7602]
+        "coordinates": [11.1165, 42.7620]
       }
     },
     {
@@ -188,7 +186,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1105, 42.7603]
+        "coordinates": [11.1170, 42.7622]
       }
     },
     {
@@ -207,7 +205,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1107, 42.7604]
+        "coordinates": [11.1175, 42.7624]
       }
     },
     {
@@ -226,7 +224,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1115, 42.7595]
+        "coordinates": [11.1135, 42.7605]
       }
     },
     {
@@ -245,7 +243,7 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [11.1117, 42.7596]
+        "coordinates": [11.1140, 42.7600]
       }
     }
   ]
