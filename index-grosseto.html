@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DMS Gemello Digitale - Mercato Grosseto</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/app-v2.css">
+  
+  <style>
+    /* Import Panel Styles */
+    .dms-import-panel {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    
+    .dms-import-panel h3 {
+      margin-top: 0;
+      color: #001b1c;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    
+    .import-option {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .import-option h4 {
+      margin-top: 0;
+      color: #2196F3;
+    }
+    
+    .import-option p {
+      color: #666;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    
+    .import-option input[type="text"],
+    .import-option input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .import-option .btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .import-option .btn:hover {
+      background: #45a049;
+    }
+    
+    .import-option .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .status-message {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status-message.loading {
+      display: block;
+      background: #E3F2FD;
+      color: #1976D2;
+    }
+    
+    .status-message.success {
+      display: block;
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+    
+    .status-message.error {
+      display: block;
+      background: #FFEBEE;
+      color: #C62828;
+    }
+    
+    .status-message.warning {
+      display: block;
+      background: #FFF3E0;
+      color: #E65100;
+    }
+    
+    .info-panel {
+      background: #E3F2FD;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .info-panel h4 {
+      margin-top: 0;
+      color: #1976D2;
+    }
+    
+    .info-panel ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .info-panel li {
+      margin: 5px 0;
+    }
+    
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 350px;
+      height: 100vh;
+      background: #f5f5f5;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    }
+    
+    #map {
+      position: fixed;
+      top: 0;
+      left: 350px;
+      right: 0;
+      bottom: 0;
+    }
+    
+    .sidebar-header {
+      background: #4CAF50;
+      color: white;
+      padding: 20px;
+    }
+    
+    .sidebar-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    
+    .sidebar-content {
+      padding: 20px;
+    }
+    
+    .legend {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+    
+    .legend h4 {
+      margin-top: 0;
+      color: #001b1c;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+    }
+    
+    .legend-color {
+      width: 30px;
+      height: 20px;
+      border-radius: 3px;
+      margin-right: 10px;
+      border: 1px solid #333;
+    }
+    
+    .legend-label {
+      font-size: 14px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h2>🗺️ DMS Gemello Digitale</h2>
+      <p style="margin: 5px 0 0 0; font-size: 14px;">Mercato Esperanto - Grosseto</p>
+    </div>
+    
+    <div class="sidebar-content">
+      <!-- Info Panel -->
+      <div class="info-panel">
+        <h4>ℹ️ Stato Sistema</h4>
+        <ul>
+          <li><strong>Mercato:</strong> Esperanto Settimanale</li>
+          <li><strong>Posteggi totali:</strong> ~180</li>
+          <li><strong>Posteggi caricati:</strong> <span id="loaded-count">10</span> (sample)</li>
+          <li><strong>Stato:</strong> <span style="color: #FF9800;">Dati demo</span></li>
+        </ul>
+        <p style="font-size: 13px; color: #666; margin-top: 10px;">
+          Sistema predisposto per import automatico di tutti i posteggi quando disponibile accesso al database.
+        </p>
+      </div>
+      
+      <!-- Import Panel -->
+      <div id="import-container"></div>
+      
+      <!-- Legend -->
+      <div class="legend">
+        <h4>Legenda Stati Posteggi</h4>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #4CAF50;"></div>
+          <span class="legend-label">Occupato (busy)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #9E9E9E;"></div>
+          <span class="legend-label">Libero (free)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #FFC107;"></div>
+          <span class="legend-label">Spunta (checked)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #F44336;"></div>
+          <span class="legend-label">Assente (taken)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #2196F3;"></div>
+          <span class="legend-label">Riservato (reserved)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Map -->
+  <div id="map"></div>
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- DMS Core v2 -->
+  <script src="js/dms-core-v2.js"></script>
+  
+  <!-- DMS Import Module -->
+  <script src="js/dms-import.js"></script>
+  
+  <!-- Init -->
+  <script>
+    // Crea UI import
+    DMSImport.createImportUI(document.getElementById('import-container'));
+    
+    // Carica dati sample Grosseto
+    fetch('data/grosseto_mercato_esperanto.geojson')
+      .then(response => response.json())
+      .then(data => {
+        console.log('Dati Grosseto caricati:', data);
+        
+        // Renderizza sulla mappa
+        DMSCore.renderMarkets(data);
+        
+        // Fit sulla mappa
+        DMSCore.fitToBounds();
+        
+        // Aggiorna contatore
+        const slotsCount = data.features.filter(f => f.properties.kind === 'slot').length;
+        document.getElementById('loaded-count').textContent = slotsCount;
+      })
+      .catch(error => {
+        console.error('Errore caricamento dati:', error);
+        alert('Errore caricamento dati Grosseto: ' + error.message);
+      });
+    
+    // Funzione per aprire vetrina (placeholder)
+    window.openVetrina = function(operatorId) {
+      alert(`Apertura vetrina operatore ID: ${operatorId}\n\nFunzionalità da implementare con WebApp Negozianti.`);
+    };
+  </script>
+  
+</body>
+</html>
+

@@ -1,0 +1,253 @@
+{
+  "type": "FeatureCollection",
+  "name": "Mercato Esperanto - Grosseto",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "metadata": {
+    "source": "WebGIS Comune di Grosseto",
+    "date_created": "2025-10-28",
+    "total_slots": 180,
+    "loaded_slots": 10,
+    "status": "sample_data",
+    "note": "Questi sono 10 posteggi di esempio. Sistema predisposto per caricamento automatico di tutti i 180+ posteggi quando disponibile accesso al database."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "area",
+        "name": "Mercato Esperanto Settimanale",
+        "tipo": "Settimanale - Giovedì",
+        "orario": "07:00 - 14:00",
+        "comune": "Grosseto",
+        "indirizzo": "Piazza Esperanto e vie limitrofe",
+        "total_posteggi": 180,
+        "fill_color": "#4CAF50",
+        "fill_opacity": 0.15,
+        "stroke_color": "#2E7D32",
+        "stroke_width": 3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [11.1085, 42.7600],
+          [11.1095, 42.7605],
+          [11.1105, 42.7608],
+          [11.1115, 42.7610],
+          [11.1120, 42.7608],
+          [11.1125, 42.7605],
+          [11.1128, 42.7600],
+          [11.1130, 42.7595],
+          [11.1128, 42.7590],
+          [11.1125, 42.7585],
+          [11.1120, 42.7582],
+          [11.1115, 42.7580],
+          [11.1110, 42.7578],
+          [11.1105, 42.7577],
+          [11.1100, 42.7576],
+          [11.1095, 42.7577],
+          [11.1090, 42.7580],
+          [11.1087, 42.7585],
+          [11.1085, 42.7590],
+          [11.1085, 42.7595],
+          [11.1085, 42.7600]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 18,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-018",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1090, 42.7595]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 37,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-037",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1095, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 39,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-039",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1097, 42.7599]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 41,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-041",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1099, 42.7600]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 43,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-043",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1101, 42.7601]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 45,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-045",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1103, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 47,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-047",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1105, 42.7603]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 49,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-049",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1107, 42.7604]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 142,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-142",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1115, 42.7595]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 144,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "cod_int": "ESP-144",
+        "operator": null,
+        "note": "Posteggio sample - dati reali da caricare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1117, 42.7596]
+      }
+    }
+  ]
+}
+
