@@ -265,29 +265,55 @@
   
   <!-- Init -->
   <script>
-    // Crea UI import
-    DMSImport.createImportUI(document.getElementById('import-container'));
-    
-    // Carica dati sample Grosseto
-    fetch('data/grosseto_mercato_esperanto.geojson')
-      .then(response => response.json())
-      .then(data => {
-        console.log('Dati Grosseto caricati:', data);
-        
-        // Renderizza sulla mappa
-        DMSCore.renderMarkets(data);
-        
-        // Fit sulla mappa
-        DMSCore.fitToBounds();
-        
-        // Aggiorna contatore
-        const slotsCount = data.features.filter(f => f.properties.kind === 'slot').length;
-        document.getElementById('loaded-count').textContent = slotsCount;
-      })
-      .catch(error => {
-        console.error('Errore caricamento dati:', error);
-        alert('Errore caricamento dati Grosseto: ' + error.message);
+    // Aspetta che DOM sia pronto
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inizializza mappa manualmente (senza caricare dati sample)
+      const map = L.map('map', {
+        zoomControl: true,
+        attributionControl: true
       });
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+      
+      // Start on Italy
+      const italyBounds = L.latLngBounds([[36.6,6.6],[47.2,18.8]]);
+      map.fitBounds(italyBounds, {padding:[20,20]});
+      
+      // Sovrascrivi lo state di DMSCore con la nostra mappa
+      if (window.DMSCore && window.DMSCore.state) {
+        window.DMSCore.state.map = map;
+        window.DMSCore.state.layers.areas.addTo(map);
+        window.DMSCore.state.layers.slots.addTo(map);
+        window.DMSCore.state.layers.slotLabels.addTo(map);
+      }
+      
+      // Crea UI import
+      DMSImport.createImportUI(document.getElementById('import-container'));
+      
+      // Carica dati Grosseto
+      fetch('data/grosseto_mercato_esperanto.geojson')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Dati Grosseto caricati:', data);
+          
+          // Renderizza sulla mappa
+          DMSCore.renderMarkets(data);
+          
+          // Fit sulla mappa
+          DMSCore.fitToBounds();
+          
+          // Aggiorna contatore
+          const slotsCount = data.features.filter(f => f.properties.kind === 'slot').length;
+          document.getElementById('loaded-count').textContent = slotsCount;
+        })
+        .catch(error => {
+          console.error('Errore caricamento dati:', error);
+          alert('Errore caricamento dati Grosseto: ' + error.message);
+        });
+    });
     
     // Funzione per aprire vetrina (placeholder)
     window.openVetrina = function(operatorId) {
