@@ -5,90 +5,389 @@
       "type": "Feature",
       "properties": {
         "kind": "area",
-        "name": "Mercato Esperanto Settimanale",
-        "tipo": "Settimanale - Giovedì",
-        "orario": "07:00 - 14:00",
-        "comune": "Grosseto",
-        "indirizzo": "Piazza Esperanto e vie limitrofe",
-        "total_posteggi": 180,
-        "fill_color": "#4CAF50",
+        "name": "Mercato Esperanto",
+        "type": "mercato",
+        "description": "Mercato Settimanale - Grosseto",
+        "fill_color": "#4caf50",
+        "stroke_color": "#2e7d32",
         "fill_opacity": 0.15,
-        "stroke_color": "#2E7D32",
-        "stroke_width": 3
+        "stroke_width": 3,
+        "tipo": "Settimanale",
+        "orario": "Gioved\u00ec 07:00-14:00",
+        "total_posteggi": 180
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              11.113,
-              42.7625
+              11.111974,
+              42.759064
+            ],
+            [
+              11.11178,
+              42.758906
             ],
             [
               11.1145,
-              42.763
+              42.757606
             ],
             [
-              11.116,
-              42.7632
+              11.116667,
+              42.758835
             ],
             [
-              11.1175,
-              42.763
+              11.116362,
+              42.759229
             ],
             [
-              11.1185,
-              42.7625
+              11.114709,
+              42.758552
             ],
             [
-              11.119,
-              42.7618
+              11.114983,
+              42.758268
             ],
             [
-              11.1192,
-              42.761
+              11.114452,
+              42.757823
             ],
             [
-              11.119,
-              42.7602
+              11.113663,
+              42.758378
             ],
             [
-              11.1185,
-              42.7595
+              11.113529,
+              42.758355
             ],
             [
-              11.1175,
-              42.759
-            ],
-            [
-              11.116,
-              42.7588
-            ],
-            [
-              11.1145,
-              42.759
-            ],
-            [
-              11.1135,
-              42.7595
-            ],
-            [
-              11.1128,
-              42.7602
-            ],
-            [
-              11.1125,
-              42.761
-            ],
-            [
-              11.1127,
-              42.7618
-            ],
-            [
-              11.113,
-              42.7625
+              11.111974,
+              42.759064
             ]
           ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 1,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-001"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 2,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-002"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 3,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-003"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 4,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-004"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 5,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-005"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 6,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-006"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 7,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-007"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 8,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-008"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 9,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-009"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 10,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-010"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 11,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-011"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 12,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-012"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 13,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-013"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 14,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-014"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 15,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-015"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 16,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-016"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 17,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-017"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7599
         ]
       }
     },
@@ -101,16 +400,355 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-018",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-018"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.114,
-          42.761
+          11.1127,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 19,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-019"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 20,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-020"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 21,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-021"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 22,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-022"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 23,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-023"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 24,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-024"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 25,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-025"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 26,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-026"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 27,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-027"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 28,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-028"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 29,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-029"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 30,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-030"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7603
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 31,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-031"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 32,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-032"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 33,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-033"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 34,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-034"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 35,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-035"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 36,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-036"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7607
         ]
       }
     },
@@ -123,16 +761,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-037",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-037"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.1145,
-          42.7612
+          11.1121,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 38,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-038"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7607
         ]
       }
     },
@@ -145,16 +799,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-039",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-039"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.115,
-          42.7614
+          11.113299999999999,
+          42.7607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 40,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-040"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7607
         ]
       }
     },
@@ -167,16 +837,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-041",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-041"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.1155,
-          42.7616
+          11.1085,
+          42.761100000000006
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 42,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-042"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.761100000000006
         ]
       }
     },
@@ -189,16 +875,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-043",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-043"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.116,
-          42.7618
+          11.1097,
+          42.761100000000006
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 44,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-044"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.761100000000006
         ]
       }
     },
@@ -211,16 +913,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-045",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-045"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.1165,
-          42.762
+          11.110899999999999,
+          42.761100000000006
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 46,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-046"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.761100000000006
         ]
       }
     },
@@ -233,16 +951,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-047",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-047"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.117,
-          42.7622
+          11.1121,
+          42.761100000000006
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 48,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-048"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.761100000000006
         ]
       }
     },
@@ -255,16 +989,1761 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-049",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-049"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.1175,
-          42.7624
+          11.113299999999999,
+          42.761100000000006
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 50,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-050"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.761100000000006
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 51,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-051"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 52,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-052"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 53,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-053"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 54,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-054"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 55,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-055"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 56,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-056"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 57,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-057"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 58,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-058"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 59,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-059"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 60,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-060"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.761500000000005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 61,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-061"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 62,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-062"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 63,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-063"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 64,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-064"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 65,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-065"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 66,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-066"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 67,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-067"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 68,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-068"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 69,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-069"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 70,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-070"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.761900000000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 71,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-071"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1085,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 72,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-072"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1091,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 73,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-073"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1097,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 74,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-074"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110299999999999,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 75,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-075"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.110899999999999,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 76,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-076"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 77,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-077"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 78,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-078"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 79,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-079"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 80,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-080"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 81,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-081"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 82,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-082"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 83,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-083"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 84,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-084"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 85,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-085"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 86,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-086"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 87,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-087"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 88,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-088"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 89,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-089"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 90,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-090"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 91,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-091"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 92,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-092"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 93,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-093"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 94,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-094"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 95,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-095"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 96,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-096"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 97,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-097"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 98,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-098"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 99,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-099"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 100,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-100"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 101,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-101"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 102,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-102"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 103,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-103"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 104,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-104"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 105,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-105"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 106,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-106"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 107,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-107"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 108,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-108"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 109,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-109"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 110,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-110"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.762299999999996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 111,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-111"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 112,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-112"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 113,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-113"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 114,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-114"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 115,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-115"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 116,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-116"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 117,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-117"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 118,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-118"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 119,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-119"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 120,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-120"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.762699999999995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 121,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-121"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 122,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-122"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 123,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-123"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 124,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-124"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 125,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-125"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 126,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-126"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 127,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-127"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 128,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-128"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 129,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-129"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 130,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-130"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 131,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-131"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 132,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-132"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 133,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-133"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 134,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-134"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 135,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-135"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 136,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-136"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 137,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-137"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 138,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-138"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 139,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-139"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 140,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-140"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 141,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-141"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7639
         ]
       }
     },
@@ -277,16 +2756,32 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-142",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-142"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.1135,
-          42.7605
+          11.1121,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 143,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-143"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7639
         ]
       }
     },
@@ -299,16 +2794,697 @@
         "market": "Esperanto Settimanale",
         "width_m": 3,
         "length_m": 6,
-        "rotation": 0,
-        "cod_int": "ESP-144",
-        "operator": null,
-        "note": "Posteggio sample - dati reali da caricare"
+        "cod_int": "ESP-144"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          11.114,
-          42.76
+          11.113299999999999,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 145,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-145"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 146,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-146"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 147,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-147"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 148,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-148"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 149,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-149"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 150,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-150"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7639
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 151,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-151"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 152,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-152"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 153,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-153"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 154,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-154"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 155,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-155"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 156,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-156"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 157,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-157"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 158,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-158"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 159,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-159"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 160,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-160"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7643
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 161,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-161"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 162,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-162"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 163,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-163"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 164,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-164"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 165,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-165"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 166,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-166"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 167,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-167"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 168,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-168"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 169,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-169"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 170,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-170"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 171,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-171"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1115,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 172,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-172"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1121,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 173,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-173"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1127,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 174,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-174"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.113299999999999,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 175,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-175"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1139,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 176,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-176"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1145,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 177,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-177"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1151,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 178,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-178"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1157,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 179,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-179"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.116299999999999,
+          42.7651
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 180,
+        "status": "free",
+        "market": "Esperanto Settimanale",
+        "width_m": 3,
+        "length_m": 6,
+        "cod_int": "ESP-180"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.1169,
+          42.7651
         ]
       }
     }
