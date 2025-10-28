@@ -1,0 +1,629 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "area",
+        "name": "Tripoli Giornaliero"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [11.1068, 42.7651],
+            [11.119, 42.7652],
+            [11.119, 42.7584],
+            [11.1068, 42.7583],
+            [11.1068, 42.7651]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "area",
+        "name": "Esperanto Settimanale"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [11.1088, 42.7618],
+            [11.1127, 42.7619],
+            [11.1127, 42.7592],
+            [11.1088, 42.7592],
+            [11.1088, 42.7618]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 1,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 101,
+          "nome": "Ortofrutta Rossi",
+          "piva": "IT12345678901",
+          "categoria": "Ortofrutta",
+          "telefono": "+39 0564 123456"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.109, 42.7594]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 2,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 102,
+          "nome": "Salumeria Bianchi",
+          "piva": "IT98765432109",
+          "categoria": "Alimentari",
+          "telefono": "+39 0564 234567"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.109, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 3,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.109, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 4,
+        "status": "checked",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 103,
+          "nome": "Abbigliamento Verdi",
+          "piva": "IT11223344556",
+          "categoria": "Abbigliamento",
+          "telefono": "+39 0564 345678"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.109, 42.7606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 5,
+        "status": "taken",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 104,
+          "nome": "Calzature Neri",
+          "piva": "IT66778899001",
+          "categoria": "Calzature",
+          "telefono": "+39 0564 456789"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.109, 42.761]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 6,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 105,
+          "nome": "Formaggi Toscani",
+          "piva": "IT22334455667",
+          "categoria": "Alimentari",
+          "telefono": "+39 0564 567890"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1096, 42.7594]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 7,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1096, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 8,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 106,
+          "nome": "Fiori e Piante",
+          "piva": "IT33445566778",
+          "categoria": "Fiori",
+          "telefono": "+39 0564 678901"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1096, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 9,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1096, 42.7606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 10,
+        "status": "reserved",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1096, 42.761]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 11,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 107,
+          "nome": "Pescheria Mare Nostrum",
+          "piva": "IT44556677889",
+          "categoria": "Pesce",
+          "telefono": "+39 0564 789012"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1102, 42.7594]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 12,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1102, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 13,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 108,
+          "nome": "Panificio Artigianale",
+          "piva": "IT55667788990",
+          "categoria": "Panificio",
+          "telefono": "+39 0564 890123"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1102, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 14,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1102, 42.7606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 15,
+        "status": "checked",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 109,
+          "nome": "Casalinghi e Utensili",
+          "piva": "IT66778899001",
+          "categoria": "Casalinghi",
+          "telefono": "+39 0564 901234"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1102, 42.761]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 16,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 110,
+          "nome": "Giocattoli e Bimbi",
+          "piva": "IT77889900112",
+          "categoria": "Giocattoli",
+          "telefono": "+39 0564 012345"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1108, 42.7594]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 17,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1108, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 18,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1108, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 19,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 111,
+          "nome": "Tessuti e Stoffe",
+          "piva": "IT88990011223",
+          "categoria": "Tessuti",
+          "telefono": "+39 0564 123450"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1108, 42.7606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 20,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1108, 42.761]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 21,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 112,
+          "nome": "Miele e Prodotti Apistici",
+          "piva": "IT99001122334",
+          "categoria": "Alimentari",
+          "telefono": "+39 0564 234501"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1114, 42.7594]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 22,
+        "status": "taken",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 113,
+          "nome": "Olio e Olive",
+          "piva": "IT00112233445",
+          "categoria": "Alimentari",
+          "telefono": "+39 0564 345012"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1114, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 23,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1114, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+        "properties": {
+        "kind": "slot",
+        "number": 24,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1114, 42.7606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 25,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 114,
+          "nome": "Vini e Liquori Artigianali",
+          "piva": "IT11223344556",
+          "categoria": "Bevande",
+          "telefono": "+39 0564 456123"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.1114, 42.761]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 26,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.112, 42.7594]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 27,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.112, 42.7598]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 28,
+        "status": "busy",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0,
+        "operator": {
+          "id": 115,
+          "nome": "Artigianato Locale",
+          "piva": "IT22334455667",
+          "categoria": "Artigianato",
+          "telefono": "+39 0564 567234"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.112, 42.7602]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 29,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.112, 42.7606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "slot",
+        "number": 30,
+        "status": "free",
+        "market": "Esperanto",
+        "width_m": 3,
+        "length_m": 6,
+        "rotation": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.112, 42.761]
+      }
+    }
+  ]
+}
+

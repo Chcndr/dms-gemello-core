@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>DMS • Core Map (mod v2 - Rettangoli Geografici)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/app-v2.css">
+  <style>/* fallback minimal if css fails */ .app{display:flex;height:100vh}.sidebar{width:320px;background:#0f2830;color:#d5f0e6}#map{flex:1}</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">DMS • GEMELLO DIGITALE — Core Map v2</div>
+    <div class="ver" id="ver">mod v2 - Rettangoli Geografici</div>
+  </header>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="section">
+        <h3>Ricerca indirizzo</h3>
+        <div class="row">
+          <input id="addr" type="text" placeholder="Es. Grosseto, Via X">
+          <button id="go">Cerca</button>
+        </div>
+        <div id="msg" class="msg"></div>
+      </div>
+
+      <div class="section">
+        <h3>Layer</h3>
+        <label><input type="checkbox" id="chkAreas" checked> Aree Mercato (demo)</label><br>
+        <label><input type="checkbox" id="chkSlots" checked> Posteggi (demo)</label><br>
+        <label><input type="checkbox" id="chkItaly" checked> Italia (confini)</label>
+      </div>
+
+      <div class="section">
+        <h3>Azioni</h3>
+        <button id="fit">Fit su dati</button>
+        <button id="reset">Vista Italia</button>
+      </div>
+
+      <div class="section">
+        <h3>Legenda Stati Posteggi</h3>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:20px; height:12px; background:#4CAF50; border:1px solid #fff;"></div>
+            <span>Occupato (busy)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:20px; height:12px; background:#9E9E9E; border:1px solid #fff;"></div>
+            <span>Libero (free)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:20px; height:12px; background:#FFC107; border:1px solid #fff;"></div>
+            <span>Spunta (checked)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:20px; height:12px; background:#F44336; border:1px solid #fff;"></div>
+            <span>Assente (taken)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:20px; height:12px; background:#2196F3; border:1px solid #fff;"></div>
+            <span>Riservato (reserved)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Novità v2</h3>
+        <ul style="font-size:0.9rem; color:var(--muted); margin:0; padding-left:20px;">
+          <li>Posteggi come rettangoli geografici (3m×6m)</li>
+          <li>Dimensioni reali in metri</li>
+          <li>Colori dinamici per stato</li>
+          <li>Popup con dati operatore</li>
+          <li>Pulsante "Vedi Vetrina"</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h3>Politiche</h3>
+        <a href="politica-0/" style="display: block; padding: 0.5rem; background: #1a4a5a; color: #d5f0e6; text-decoration: none; border-radius: 4px; text-align: center; margin-bottom: 0.5rem;">Vedi 'Politica 0' →</a>
+      </div>
+
+      <div class="section small">
+        <p>Questa è la versione migliorata con rettangoli geografici che si ridimensionano con lo zoom.</p>
+        <p><strong>Clicca sui posteggi</strong> per vedere i dati aziendali degli operatori!</p>
+      </div>
+    </aside>
+
+    <main id="map"></main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="libs/turf.min.js?v=mod23-001"></script>
+  <script>
+    // Override fetch per usare sample_markets_v2.geojson
+    const originalFetch = window.fetch;
+    window.fetch = function(url, ...args) {
+      if (url.includes('sample_markets.geojson')) {
+        return originalFetch('data/sample_markets_v2.geojson', ...args);
+      }
+      return originalFetch(url, ...args);
+    };
+  </script>
+  <script src="js/dms-core-v2.js?v=mod23-002"></script>
+  <script src="js/dms-areas.js?v=mod23-001"></script>
+  <script src="js/dms-checkin.js?v=mod23-001"></script>
+  <script>
+    // Demo aree per test (se servono moduli aggiuntivi)
+    window.DMS_DEMO = {
+      areas: [
+        {
+          type: 'Feature',
+          properties: { code: 'TR01', name: 'Mercato Tripoli', category: 'mercato', tolerance_m: 10 },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [11.1094, 42.7598], [11.1104, 42.7598], [11.1104, 42.7588], [11.1094, 42.7588], [11.1094, 42.7598]
+            ]]
+          }
+        },
+        {
+          type: 'Feature', 
+          properties: { code: 'ES01', name: 'Mercato Esperanto', category: 'mercato', tolerance_m: 15 },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [11.1124, 42.7578], [11.1134, 42.7578], [11.1134, 42.7568], [11.1124, 42.7568], [11.1124, 42.7578]
+            ]]
+          }
+        }
+      ]
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.DMS && DMS.Map) {
+        DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+        DMS.Checkin.mount(DMS.Map, { sidebarSelector:'.sidebar' });
+        // Vista su dati all'avvio
+        setTimeout(() => {
+          if (window.DMS.Core && window.DMS.Core.fitData) {
+            window.DMS.Core.fitData();
+          }
+        }, 500);
+      }
+    });
+  </script>
+</body>
+</html>
+
