@@ -131,7 +131,7 @@
       poly.addTo(state.layers.areas);
     });
 
-    // slot circles - scalable with map zoom
+    // slot markers with fixed pixel size (not geographic)
     slots.forEach(f=>{
       const p = f.geometry.coordinates; // [lon,lat]
       const latlng = L.latLng(p[1], p[0]);
@@ -149,34 +149,17 @@
         taken: '#F44336'
       };
       
-      // Create rectangle with geographic bounds (scalable with zoom)
-      // Calculate offset in degrees (approximate: 1 degree lat ~ 111km, 1 degree lon ~ 111km * cos(lat))
-      const latOffset = (length / 2) / 111000; // meters to degrees
-      const lonOffset = (width / 2) / (111000 * Math.cos(latlng.lat * Math.PI / 180));
-      
-      const bounds = [
-        [latlng.lat - latOffset, latlng.lng - lonOffset],
-        [latlng.lat + latOffset, latlng.lng + lonOffset]
-      ];
-      
-      const rect = L.rectangle(bounds, {
-        color: colors[status],
-        fillColor: colors[status],
-        fillOpacity: 0.6,
-        weight: 2
-      });
-      
-      // Add number label at center
-      const label = L.marker(latlng, {
+      // Create marker with divIcon (fixed pixel size)
+      const marker = L.marker(latlng, {
         icon: L.divIcon({
-          className: 'slot-number-label',
-          html: `<div style="background:${colors[status]};color:white;border:2px solid white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${num}</div>`,
-          iconSize: [28, 28]
-        }),
-        interactive: false
+          className: 'dms-slot',
+          html: `<div class="slot-rect" style="background:${colors[status]};color:white;border:2px solid white;width:40px;height:60px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.4);">${num}</div>`,
+          iconSize: [40, 60],
+          iconAnchor: [20, 30]
+        })
       });
       
-      rect.bindPopup(`
+      marker.bindPopup(`
         <div style="font-family: system-ui; padding: 4px;">
           <h3 style="margin: 0 0 8px; color: ${colors[status]};">Posteggio ${num}</h3>
           <p style="margin: 4px 0;"><b>Mercato:</b> ${f.properties.market || 'Esperanto Settimanale'}</p>
@@ -187,8 +170,7 @@
         </div>
       `);
       
-      rect.addTo(state.layers.slots);
-      label.addTo(state.layers.slots);
+      marker.addTo(state.layers.slots);
     });
 
     state.data.areas = areas; state.data.slots = slots;
