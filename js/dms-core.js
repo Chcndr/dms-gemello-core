@@ -42,9 +42,13 @@
     state.layers.slots.addTo(state.map);
 
     // load data
+    // Rileva se siamo su pagina Grosseto
+    const isGrossetoPage = window.location.pathname.includes('grosseto');
+    const marketsFile = isGrossetoPage ? 'data/grosseto_full.geojson' : 'data/sample_markets.geojson';
+    
     Promise.all([
       fetch('data/italy_borders.geojson').then(r=>r.json()).catch(()=>null),
-      fetch('data/sample_markets.geojson').then(r=>r.json()).catch(()=>null)
+      fetch(marketsFile).then(r=>r.json()).catch(()=>null)
     ]).then(([italy, markets])=>{
       if(italy){
         L.geoJSON(italy, {style:{color:'#0FA3A3', weight:1, fill:false}}).addTo(state.layers.italy);
