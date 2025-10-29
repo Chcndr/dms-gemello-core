@@ -148,6 +148,8 @@
     
     <button id="resetBtn">🔄 Reset Posizione</button>
     <button id="saveBtn" class="btn-save">💾 Salva Georeferenziazione</button>
+    <button id="saveCompleteBtn" class="btn-save" style="background: #FF9800 !important;">🎯 Salva Completo (con Posteggi)</button>
+    <div id="progressMsg" style="margin-top: 10px; font-size: 0.85rem; color: #0FA3A3;"></div>
     
     <div class="instructions">
       <strong>📝 Istruzioni:</strong><br>
@@ -391,6 +393,196 @@
       alert('✅ Georeferenziazione salvata!\n\nFile: grosseto_overlay_georef.json\n\nCentro: ' + 
             center.lat.toFixed(6) + ', ' + center.lng.toFixed(6));
     });
+
+    // Save Complete button (with stalls extraction)
+    document.getElementById('saveCompleteBtn').addEventListener('click', async () => {
+      if (!overlayContainer) {
+        alert('⚠️ Nessun overlay caricato!\nClicca prima su "Carica Pianta Mercato"');
+        return;
+      }
+
+      const progressMsg = document.getElementById('progressMsg');
+      progressMsg.textContent = '🔍 Estrazione posteggi in corso...';
+
+      try {
+        // Get georef data (same as save button)
+        const rect = overlayContainer.getBoundingClientRect();
+        const scale = parseFloat(scaleSlider.value);
+        const width = overlayImg.offsetWidth * scale;
+        const height = overlayImg.offsetHeight * scale;
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        const nw = map.containerPointToLatLng([centerX - width/2, centerY - height/2]);
+        const ne = map.containerPointToLatLng([centerX + width/2, centerY - height/2]);
+        const se = map.containerPointToLatLng([centerX + width/2, centerY + height/2]);
+        const sw = map.containerPointToLatLng([centerX - width/2, centerY + height/2]);
+        const center = map.containerPointToLatLng([centerX, centerY]);
+
+        const georef = {
+          mercato: "Grosseto - Mercato Esperanto",
+          timestamp: new Date().toISOString(),
+          corners: {
+            nw: [nw.lat, nw.lng],
+            ne: [ne.lat, ne.lng],
+            se: [se.lat, se.lng],
+            sw: [sw.lat, sw.lng]
+          },
+          center: [center.lat, center.lng],
+          transform: {
+            scale: scale,
+            rotation: parseInt(rotateSlider.value),
+            translateX: currentX,
+            translateY: currentY
+          },
+          image: {
+            width: overlayImg.offsetWidth,
+            height: overlayImg.offsetHeight,
+            source: overlayImg.src
+          }
+        };
+
+        // Extract stalls from image
+        progressMsg.textContent = '🖼️ Analisi immagine...';
+        const stalls = await extractStallsFromImage(overlayImg.src, georef);
+        
+        progressMsg.textContent = `✅ Trovati ${stalls.length} posteggi!`;
+
+        // Create complete JSON
+        const completeData = {
+          mercato: "Grosseto - Mercato Esperanto",
+          timestamp: new Date().toISOString(),
+          georef: georef,
+          stalls: {
+            total: stalls.length,
+            items: stalls
+          }
+        };
+
+        // Download
+        const blob = new Blob([JSON.stringify(completeData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'grosseto_complete.json';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        setTimeout(() => {
+          progressMsg.textContent = '';
+          alert(`✅ Salvataggio completo!\n\nFile: grosseto_complete.json\n\nPosteggi estratti: ${stalls.length}\nCentro: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`);
+        }, 500);
+
+      } catch (error) {
+        progressMsg.textContent = '❌ Errore: ' + error.message;
+        console.error('Errore estrazione posteggi:', error);
+        alert('❌ Errore durante l\'estrazione dei posteggi!\n\n' + error.message);
+      }
+    });
+
+    // Function to extract stalls from image using Canvas
+    async function extractStallsFromImage(imageSrc, georef) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          try {
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw image
+            ctx.drawImage(img, 0, 0);
+            
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Find green rectangles (simple algorithm)
+            const stalls = [];
+            const visited = new Set();
+            const minArea = 30;
+            const maxArea = 8000;
+            
+            // Scan image for green pixels
+            for (let y = 0; y < canvas.height; y += 5) {
+              for (let x = 0; x < canvas.width; x += 5) {
+                const idx = (y * canvas.width + x) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                const a = data[idx + 3];
+                
+                // Check if green (HSV-like check in RGB)
+                if (a > 200 && g > 100 && g > r && g > b && (g - r) > 30) {
+                  const key = `${Math.floor(x/10)},${Math.floor(y/10)}`;
+                  if (!visited.has(key)) {
+                    visited.add(key);
+                    
+                    // Found a green area, add as stall
+                    const stallId = stalls.length + 1;
+                    
+                    // Convert pixel to geo
+                    const geoCoords = pixelToGeo(x, y, canvas.width, canvas.height, georef);
+                    
+                    stalls.push({
+                      id: stallId,
+                      center_px: [x, y],
+                      lat: geoCoords[0],
+                      lng: geoCoords[1]
+                    });
+                  }
+                }
+              }
+            }
+            
+            resolve(stalls);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        img.onerror = () => reject(new Error('Impossibile caricare immagine'));
+        img.src = imageSrc;
+      });
+    }
+
+    // Convert pixel coordinates to geographic
+    function pixelToGeo(px, py, imgWidth, imgHeight, georef) {
+      // Scale from real image to editor scaled image
+      const editorScaledWidth = georef.image.width * georef.transform.scale;
+      const editorScaledHeight = georef.image.height * georef.transform.scale;
+      
+      const scaleX = editorScaledWidth / imgWidth;
+      const scaleY = editorScaledHeight / imgHeight;
+      
+      const pxEditor = px * scaleX;
+      const pyEditor = py * scaleY;
+      
+      // Normalize (0-1)
+      const normX = pxEditor / editorScaledWidth;
+      const normY = pyEditor / editorScaledHeight;
+      
+      // Interpolate between corners
+      const nw = georef.corners.nw;
+      const ne = georef.corners.ne;
+      const sw = georef.corners.sw;
+      const se = georef.corners.se;
+      
+      const topLat = nw[0] + (ne[0] - nw[0]) * normX;
+      const topLng = nw[1] + (ne[1] - nw[1]) * normX;
+      
+      const bottomLat = sw[0] + (se[0] - sw[0]) * normX;
+      const bottomLng = sw[1] + (se[1] - sw[1]) * normX;
+      
+      const lat = topLat + (bottomLat - topLat) * normY;
+      const lng = topLng + (bottomLng - topLng) * normY;
+      
+      return [lat, lng];
+    }
   </script>
 </body>
 </html>
