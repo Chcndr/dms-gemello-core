@@ -3,38 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>DMS • Overlay Editor - Georeferenziazione Pianta Mercato</title>
+  <title>DMS • Overlay Editor v3 - Simple Debug</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     :root{
-      --bg:#072C2E; --panel:#0E2830; --ink:#D5F0E6; --accent:#0FA3A3; --good:#30c36b;
+      --bg:#072C2E; --panel:#0E2830; --ink:#D5F0E6; --accent:#0FA3A3;
     }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui}
     
-    .topbar{position:sticky;top:0;z-index:1000;display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 12px;background:#052023;border-bottom:1px solid #0b3b3f}
-    .brand{font-weight:700;letter-spacing:.2px}
-    .ver{opacity:.7;font-size:.9rem}
-    
-    #map{width:100%;height:calc(100vh - 48px);position:relative}
+    #map{width:100%;height:100vh;position:relative}
     
     .controls {
       position: fixed;
-      top: 60px;
+      top: 20px;
       right: 20px;
       background: #0E2830;
       padding: 20px;
       border-radius: 8px;
       z-index: 2000;
       width: 320px;
-      max-height: calc(100vh - 80px);
+      max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    
-    .controls h3 {
-      margin: 0 0 15px;
-      color: #D5F0E6;
     }
     
     button {
@@ -46,37 +36,23 @@
       font-weight: 700;
       cursor: pointer;
       width: 100%;
-      margin: 8px 0;
-      transition: opacity 0.2s;
+      margin: 5px 0;
     }
     
-    button:hover {
-      opacity: 0.9;
+    .debug {
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-family: monospace;
+      max-height: 200px;
+      overflow-y: auto;
     }
     
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .btn-save {
-      background: var(--good) !important;
-    }
-    
-    .control-group {
-      margin: 15px 0;
-    }
-    
-    label {
-      display: block;
-      margin: 10px 0 5px;
-      color: #9AB8B3;
-      font-size: 0.9rem;
-    }
-    
-    .value-display {
-      color: var(--accent);
-      font-weight: 700;
+    .debug-line {
+      margin: 3px 0;
+      color: #4CAF50;
     }
     
     input[type="range"] {
@@ -84,21 +60,13 @@
       margin: 10px 0;
     }
     
-    .instructions {
-      margin-top: 20px;
-      padding: 12px;
-      background: rgba(15, 163, 163, 0.1);
-      border-radius: 6px;
-      font-size: 0.85rem;
+    label {
+      display: block;
+      margin: 10px 0 5px;
       color: #9AB8B3;
-      line-height: 1.5;
     }
     
-    .instructions strong {
-      color: var(--accent);
-    }
-    
-    /* Draggable overlay container */
+    /* DRAGGABLE OVERLAY */
     .overlay-container {
       position: absolute;
       top: 50%;
@@ -108,6 +76,8 @@
       cursor: move;
       z-index: 1500;
       pointer-events: auto;
+      border: 3px dashed yellow;
+      background: rgba(255, 255, 0, 0.1);
     }
     
     .overlay-container img {
@@ -119,49 +89,47 @@
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand">DMS • Overlay Editor - Georeferenziazione Pianta Mercato</div>
-    <div class="ver">v1.0</div>
-  </div>
-
   <div id="map"></div>
 
   <div class="controls">
-    <h3>🎨 Controlli Overlay</h3>
+    <h3 style="margin-top:0">🎨 Overlay Editor v3</h3>
     
-    <button id="loadBtn">📂 Carica Pianta Mercato</button>
+    <button id="loadBtn">📂 Carica Overlay</button>
     
-    <div class="control-group">
-      <label>📏 Scala: <span class="value-display" id="scaleValue">1.0x</span></label>
-      <input type="range" id="scaleSlider" min="0.5" max="3" step="0.1" value="1">
+    <div class="debug" id="debugLog">
+      <div class="debug-line">🚀 Sistema pronto</div>
     </div>
     
-    <div class="control-group">
-      <label>🔄 Rotazione: <span class="value-display" id="rotateValue">0°</span></label>
-      <input type="range" id="rotateSlider" min="0" max="360" step="1" value="0">
-    </div>
+    <label>📏 Scala: <span id="scaleValue">1.0x</span></label>
+    <input type="range" id="scaleSlider" min="0.5" max="3" step="0.1" value="1">
     
-    <div class="control-group">
-      <label>👁️ Opacità: <span class="value-display" id="opacityValue">70%</span></label>
-      <input type="range" id="opacitySlider" min="0" max="100" step="5" value="70">
-    </div>
+    <label>🔄 Rotazione: <span id="rotateValue">0°</span></label>
+    <input type="range" id="rotateSlider" min="0" max="360" step="5" value="0">
+    
+    <label>👁️ Opacità: <span id="opacityValue">70%</span></label>
+    <input type="range" id="opacitySlider" min="0" max="100" step="10" value="70">
     
     <button id="resetBtn">🔄 Reset Posizione</button>
-    <button id="saveBtn" class="btn-save">💾 Salva Georeferenziazione</button>
-    
-    <div class="instructions">
-      <strong>📝 Istruzioni:</strong><br>
-      1. Clicca "Carica Pianta Mercato"<br>
-      2. Trascina l'overlay sulla mappa<br>
-      3. Usa gli slider per scalare/ruotare<br>
-      4. Allinea con strade e piazze reali<br>
-      5. Clicca "Salva" per esportare coordinate
-    </div>
+    <button id="saveBtn" style="background: #30c36b;">💾 Salva Coordinate</button>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Initialize map centered on Grosseto market
+    // DEBUG HELPER
+    const debugLog = document.getElementById('debugLog');
+    function log(msg, color = '#4CAF50') {
+      const line = document.createElement('div');
+      line.className = 'debug-line';
+      line.style.color = color;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      debugLog.appendChild(line);
+      debugLog.scrollTop = debugLog.scrollHeight;
+      console.log(msg);
+    }
+
+    log('🗺️ Inizializzazione mappa...');
+    
+    // Initialize map
     const map = L.map('map', {
       center: [42.758, 11.114],
       zoom: 16,
@@ -169,13 +137,14 @@
       maxZoom: 22
     });
 
-    // Add OSM tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 22,
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Load market area for reference
+    log('✅ Mappa caricata');
+
+    // Load market area
     fetch('data/grosseto_full.geojson')
       .then(r => r.json())
       .then(data => {
@@ -189,9 +158,10 @@
               weight: 3
             }
           }).addTo(map);
+          log('✅ Area mercato caricata');
         }
       })
-      .catch(e => console.error('Error loading market area:', e));
+      .catch(e => log('❌ Errore caricamento area: ' + e.message, '#E65454'));
 
     // Overlay state
     let overlayContainer = null;
@@ -214,15 +184,19 @@
     const rotateValue = document.getElementById('rotateValue');
     const opacityValue = document.getElementById('opacityValue');
 
-    // Load overlay on button click
+    // LOAD OVERLAY
     loadBtn.addEventListener('click', () => {
+      log('📂 Caricamento overlay...');
       loadOverlay('data/grosseto_pianta_transparent.png');
     });
 
     function loadOverlay(imageUrl) {
-      // Remove existing overlay
+      log('🔧 Creazione container overlay...');
+      
+      // Remove existing
       if (overlayContainer) {
         overlayContainer.remove();
+        log('🗑️ Overlay precedente rimosso');
       }
 
       // Create container
@@ -234,8 +208,12 @@
       overlayImg.src = imageUrl;
       overlayImg.style.opacity = opacitySlider.value / 100;
       
+      overlayImg.onload = () => {
+        log('✅ Immagine caricata: ' + overlayImg.width + 'x' + overlayImg.height + 'px');
+      };
+      
       overlayImg.onerror = () => {
-        alert('⚠️ Errore caricamento immagine!\nVerifica che il file esista in: ' + imageUrl);
+        log('❌ Errore caricamento immagine!', '#E65454');
       };
       
       overlayContainer.appendChild(overlayImg);
@@ -244,25 +222,24 @@
       const mapDiv = document.getElementById('map');
       mapDiv.appendChild(overlayContainer);
       
+      log('✅ Overlay aggiunto al DOM');
+      
       // Reset position
       currentX = 0;
       currentY = 0;
       
       // Setup drag
       overlayContainer.addEventListener('mousedown', startDrag);
+      log('✅ Event listener drag attaccato');
       
       updateTransform();
-      
-      // Update button
-      loadBtn.textContent = '✅ Overlay Caricato';
-      loadBtn.disabled = true;
     }
 
     function startDrag(e) {
+      log('👆 Drag iniziato!', '#FFD700');
       isDragging = true;
       dragStartX = e.clientX - currentX;
       dragStartY = e.clientY - currentY;
-      overlayContainer.style.cursor = 'grabbing';
       e.preventDefault();
     }
 
@@ -276,10 +253,8 @@
 
     document.addEventListener('mouseup', () => {
       if (isDragging) {
+        log('👆 Drag completato! Pos: ' + currentX + ', ' + currentY, '#FFD700');
         isDragging = false;
-        if (overlayContainer) {
-          overlayContainer.style.cursor = 'move';
-        }
       }
     });
 
@@ -318,6 +293,7 @@
 
     // Reset button
     resetBtn.addEventListener('click', () => {
+      log('🔄 Reset posizione');
       currentX = 0;
       currentY = 0;
       scaleSlider.value = 1;
@@ -335,11 +311,12 @@
     // Save button
     saveBtn.addEventListener('click', () => {
       if (!overlayContainer) {
-        alert('⚠️ Nessun overlay caricato!\nClicca prima su "Carica Pianta Mercato"');
+        log('⚠️ Nessun overlay caricato!', '#FFA500');
         return;
       }
 
-      // Calculate geographic coordinates
+      log('💾 Calcolo coordinate geografiche...');
+      
       const rect = overlayContainer.getBoundingClientRect();
       const scale = parseFloat(scaleSlider.value);
       
@@ -357,8 +334,6 @@
       const center = map.containerPointToLatLng([centerX, centerY]);
 
       const georef = {
-        mercato: "Grosseto - Mercato Esperanto",
-        timestamp: new Date().toISOString(),
         corners: {
           nw: [nw.lat, nw.lng],
           ne: [ne.lat, ne.lng],
@@ -366,17 +341,9 @@
           sw: [sw.lat, sw.lng]
         },
         center: [center.lat, center.lng],
-        transform: {
-          scale: scale,
-          rotation: parseInt(rotateSlider.value),
-          translateX: currentX,
-          translateY: currentY
-        },
-        image: {
-          width: overlayImg.offsetWidth,
-          height: overlayImg.offsetHeight,
-          source: overlayImg.src
-        }
+        scale: scale,
+        rotation: parseInt(rotateSlider.value),
+        timestamp: new Date().toISOString()
       };
 
       // Download JSON
@@ -384,13 +351,15 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'grosseto_overlay_georef.json';
+      a.download = 'overlay_georef.json';
       a.click();
       URL.revokeObjectURL(url);
 
-      alert('✅ Georeferenziazione salvata!\n\nFile: grosseto_overlay_georef.json\n\nCentro: ' + 
-            center.lat.toFixed(6) + ', ' + center.lng.toFixed(6));
+      log('✅ Georeferenziazione salvata!', '#30c36b');
+      log('📍 Centro: ' + center.lat.toFixed(6) + ', ' + center.lng.toFixed(6));
     });
+
+    log('✅ Sistema pronto! Clicca "Carica Overlay"');
   </script>
 </body>
 </html>
