@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>DMS • Overlay Editor - Posiziona Pianta Mercato</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .controls {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: #0E2830;
+      padding: 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .controls h3 {
+      margin: 0 0 15px;
+      color: #D5F0E6;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #9AB8B3;
+      font-size: 0.9rem;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+    }
+    .control-group input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      background: #09343a;
+      border: 1px solid #1c4a4e;
+      border-radius: 6px;
+      color: #D5F0E6;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-group button {
+      flex: 1;
+    }
+    .value-display {
+      display: inline-block;
+      margin-left: 10px;
+      color: #0FA3A3;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">DMS • Overlay Editor - Posiziona Pianta Mercato</div>
+    <div class="ver">v1.0</div>
+  </header>
+
+  <div class="controls">
+    <h3>🎯 Controlli Overlay</h3>
+    
+    <div class="control-group">
+      <label>📁 Carica PDF/PNG Pianta:</label>
+      <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg">
+    </div>
+
+    <div class="control-group">
+      <label>
+        📏 Scala: <span class="value-display" id="scaleValue">1.0x</span>
+      </label>
+      <input type="range" id="scaleSlider" min="0.1" max="3" step="0.01" value="1">
+    </div>
+
+    <div class="control-group">
+      <label>
+        🔄 Rotazione: <span class="value-display" id="rotateValue">0°</span>
+      </label>
+      <input type="range" id="rotateSlider" min="0" max="360" step="1" value="0">
+    </div>
+
+    <div class="control-group">
+      <label>
+        👁️ Opacità: <span class="value-display" id="opacityValue">70%</span>
+      </label>
+      <input type="range" id="opacitySlider" min="0" max="100" step="5" value="70">
+    </div>
+
+    <div class="btn-group">
+      <button id="resetBtn">🔄 Reset</button>
+      <button id="saveBtn" style="background: #30c36b;">💾 Salva</button>
+    </div>
+
+    <div style="margin-top: 20px; padding: 10px; background: rgba(15, 163, 163, 0.1); border-radius: 6px; font-size: 0.85rem; color: #9AB8B3;">
+      <strong>📝 Istruzioni:</strong><br>
+      1. Carica il PDF/PNG della pianta<br>
+      2. Trascina l'overlay sulla mappa<br>
+      3. Usa gli slider per scalare/ruotare<br>
+      4. Allinea con strade e piazze<br>
+      5. Clicca "Salva" per georeferenziare
+    </div>
+  </div>
+
+  <div id="map" style="width: 100%; height: calc(100vh - 48px);"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Initialize map centered on Grosseto
+    const map = L.map('map', {
+      center: [42.758, 11.114],
+      zoom: 16,
+      zoomControl: true,
+      maxZoom: 22
+    });
+
+    // Add OSM tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 22,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Load market area for reference
+    fetch('data/grosseto_full.geojson')
+      .then(r => r.json())
+      .then(data => {
+        const area = data.features.find(f => f.properties.kind === 'area');
+        if (area) {
+          L.geoJSON(area, {
+            style: {
+              color: '#2E7D32',
+              fillColor: '#4CAF50',
+              fillOpacity: 0.15,
+              weight: 3
+            }
+          }).addTo(map);
+        }
+      });
+
+    // Overlay state
+    let overlayImage = null;
+    let overlayBounds = null;
+    let isDragging = false;
+    let dragStart = null;
+
+    // Controls
+    const scaleSlider = document.getElementById('scaleSlider');
+    const rotateSlider = document.getElementById('rotateSlider');
+    const opacitySlider = document.getElementById('opacitySlider');
+    const fileInput = document.getElementById('fileInput');
+    const resetBtn = document.getElementById('resetBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    // Value displays
+    const scaleValue = document.getElementById('scaleValue');
+    const rotateValue = document.getElementById('rotateValue');
+    const opacityValue = document.getElementById('opacityValue');
+
+    // Default overlay bounds (Grosseto market area)
+    const defaultBounds = [
+      [42.757, 11.111],  // Southwest
+      [42.760, 11.117]   // Northeast
+    ];
+
+    // Load default pianta
+    loadOverlay('data/grosseto_pianta.png');
+
+    // File upload handler
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.type === 'application/pdf') {
+        // Convert PDF to image
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({scale: 2});
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({canvasContext: ctx, viewport}).promise;
+        const imageUrl = canvas.toDataURL('image/png');
+        loadOverlay(imageUrl);
+      } else {
+        // Load image directly
+        const reader = new FileReader();
+        reader.onload = (e) => loadOverlay(e.target.result);
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function loadOverlay(imageUrl) {
+      if (overlayImage) {
+        map.removeLayer(overlayImage);
+      }
+
+      overlayBounds = L.latLngBounds(defaultBounds);
+      
+      overlayImage = L.imageOverlay(imageUrl, overlayBounds, {
+        opacity: opacitySlider.value / 100,
+        interactive: true,
+        className: 'draggable-overlay'
+      }).addTo(map);
+
+      // Make draggable
+      overlayImage.getElement().style.cursor = 'move';
+      
+      overlayImage.on('mousedown', (e) => {
+        isDragging = true;
+        dragStart = e.latlng;
+        map.dragging.disable();
+      });
+
+      map.on('mousemove', (e) => {
+        if (isDragging && dragStart) {
+          const latDiff = e.latlng.lat - dragStart.lat;
+          const lngDiff = e.latlng.lng - dragStart.lng;
+          
+          const sw = overlayBounds.getSouthWest();
+          const ne = overlayBounds.getNorthEast();
+          
+          overlayBounds = L.latLngBounds(
+            [sw.lat + latDiff, sw.lng + lngDiff],
+            [ne.lat + latDiff, ne.lng + lngDiff]
+          );
+          
+          overlayImage.setBounds(overlayBounds);
+          dragStart = e.latlng;
+        }
+      });
+
+      map.on('mouseup', () => {
+        isDragging = false;
+        dragStart = null;
+        map.dragging.enable();
+      });
+
+      updateOverlay();
+    }
+
+    // Scale slider
+    scaleSlider.addEventListener('input', (e) => {
+      const scale = parseFloat(e.target.value);
+      scaleValue.textContent = scale.toFixed(2) + 'x';
+      
+      const center = overlayBounds.getCenter();
+      const sw = overlayBounds.getSouthWest();
+      const ne = overlayBounds.getNorthEast();
+      
+      const latSpan = (ne.lat - sw.lat) * scale / parseFloat(scaleSlider.dataset.prevScale || 1);
+      const lngSpan = (ne.lng - sw.lng) * scale / parseFloat(scaleSlider.dataset.prevScale || 1);
+      
+      overlayBounds = L.latLngBounds(
+        [center.lat - latSpan / 2, center.lng - lngSpan / 2],
+        [center.lat + latSpan / 2, center.lng + lngSpan / 2]
+      );
+      
+      scaleSlider.dataset.prevScale = scale;
+      updateOverlay();
+    });
+
+    // Rotate slider
+    rotateSlider.addEventListener('input', (e) => {
+      const angle = parseInt(e.target.value);
+      rotateValue.textContent = angle + '°';
+      updateOverlay();
+    });
+
+    // Opacity slider
+    opacitySlider.addEventListener('input', (e) => {
+      const opacity = parseInt(e.target.value);
+      opacityValue.textContent = opacity + '%';
+      if (overlayImage) {
+        overlayImage.setOpacity(opacity / 100);
+      }
+    });
+
+    function updateOverlay() {
+      if (overlayImage && overlayBounds) {
+        overlayImage.setBounds(overlayBounds);
+        
+        // Apply rotation via CSS
+        const angle = parseInt(rotateSlider.value);
+        const img = overlayImage.getElement();
+        if (img) {
+          img.style.transform = `rotate(${angle}deg)`;
+          img.style.transformOrigin = 'center';
+        }
+      }
+    }
+
+    // Reset button
+    resetBtn.addEventListener('click', () => {
+      scaleSlider.value = 1;
+      rotateSlider.value = 0;
+      opacitySlider.value = 70;
+      scaleValue.textContent = '1.0x';
+      rotateValue.textContent = '0°';
+      opacityValue.textContent = '70%';
+      overlayBounds = L.latLngBounds(defaultBounds);
+      updateOverlay();
+    });
+
+    // Save button
+    saveBtn.addEventListener('click', () => {
+      if (!overlayImage || !overlayBounds) {
+        alert('⚠️ Nessun overlay caricato!');
+        return;
+      }
+
+      const sw = overlayBounds.getSouthWest();
+      const ne = overlayBounds.getNorthEast();
+      const rotation = parseInt(rotateSlider.value);
+
+      const georef = {
+        bounds: {
+          southwest: [sw.lat, sw.lng],
+          northeast: [ne.lat, ne.lng]
+        },
+        rotation: rotation,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('📍 Georeferenziazione salvata:', georef);
+      
+      // Download georef JSON
+      const blob = new Blob([JSON.stringify(georef, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'overlay_georef.json';
+      a.click();
+
+      alert('✅ Georeferenziazione salvata!\n\nFile scaricato: overlay_georef.json\n\nUsa questo file per caricare l\'overlay sulla mappa principale.');
+    });
+
+    // Initialize prev scale
+    scaleSlider.dataset.prevScale = 1;
+  </script>
+</body>
+</html>
+
