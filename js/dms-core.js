@@ -45,8 +45,8 @@
       })
     };
     
-    // Start with white background
-    baseLayers['Bianco'].addTo(state.map);
+    // Start with OpenStreetMap
+    baseLayers['OpenStreetMap'].addTo(state.map);
     
     // Add layer control
     L.control.layers(baseLayers, null, {position: 'topright'}).addTo(state.map);
@@ -145,9 +145,28 @@
       else if(f.properties && f.properties.kind==='slot') slots.push(f);
     });
 
-    // areas polygons
+    // areas polygons with popup
     areas.forEach(f=>{
-      const poly = L.geoJSON(f, {style: {className:'dms-area'}});
+      const props = f.properties;
+      const poly = L.geoJSON(f, {
+        style: {
+          color: props.stroke_color || '#2E7D32',
+          fillColor: props.fill_color || '#4CAF50',
+          fillOpacity: props.fill_opacity || 0.15,
+          weight: props.stroke_width || 3
+        }
+      });
+      
+      // Add popup
+      poly.bindPopup(`
+        <div style="font-family: system-ui; padding: 4px;">
+          <h3 style="margin: 0 0 8px; color: #2E7D32;">${props.name || 'Area Mercato'}</h3>
+          <p style="margin: 4px 0;"><b>Tipo:</b> ${props.tipo || 'Settimanale - Giovedì'}</p>
+          <p style="margin: 4px 0;"><b>Orario:</b> ${props.orario || '07:00 - 14:00'}</p>
+          <p style="margin: 4px 0;"><b>Posteggi totali:</b> ${props.total_posteggi || 'N/D'}</p>
+        </div>
+      `);
+      
       poly.addTo(state.layers.areas);
     });
 
@@ -157,17 +176,17 @@
       const latlng = L.latLng(p[1], p[0]);
       const num = f.properties.number;
       const status = f.properties.status || 'free'; // free | busy | taken
-      const width = f.properties.width_m || 8;
-      const length = f.properties.length_m || 12;
+      const width = f.properties.width_m || 4;
+      const length = f.properties.length_m || 6;
       const codInt = f.properties.cod_int || `POST-${num}`;
       const statusText = status === 'free' ? 'Libero' : status === 'busy' ? 'Occupato' : 'Prenotato';
       const orientation = f.properties.orientation || 0; // degrees
       
       // Color based on status
       const colors = {
-        free: 'rgba(76, 175, 80, 0.7)',
-        busy: 'rgba(255, 193, 7, 0.7)',
-        taken: 'rgba(244, 67, 54, 0.7)'
+        free: 'rgba(76, 175, 80, 0.9)',
+        busy: 'rgba(255, 193, 7, 0.9)',
+        taken: 'rgba(244, 67, 54, 0.9)'
       };
       
       // Create geographic polygon (rotated rectangle)
