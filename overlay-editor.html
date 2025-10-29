@@ -246,21 +246,14 @@
             [ne.lat + latDiff, ne.lng + lngDiff]
           );
           
-          // Update bounds without calling setBounds to preserve transforms
-          overlayImage._bounds = overlayBounds;
-          overlayImage._reset();
-          
-          // Reapply transforms after reset
-          updateOverlay();
-          
+          overlayImage.setBounds(overlayBounds);
           dragStart = e.latlng;
         }
       });
 
       map.on('mouseup', () => {
         if (isDragging) {
-          // Final bounds update
-          overlayImage.setBounds(overlayBounds);
+          // Reapply transforms after dragging
           updateOverlay();
         }
         isDragging = false;
