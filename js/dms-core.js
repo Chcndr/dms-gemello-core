@@ -80,9 +80,8 @@
     Promise.all([
       fetch('data/italy_borders.geojson').then(r=>r.json()).catch(()=>null),
       fetch(marketsFile).then(r=>r.json()).catch(()=>null),
-      isGrossetoPage ? fetch('data/grosseto_overlay_georef.json').then(r=>r.json()).catch(()=>null) : Promise.resolve(null),
-      isGrossetoPage ? fetch('data/extracted_stalls.json').then(r=>r.json()).catch(()=>null) : Promise.resolve(null)
-    ]).then(([italy, markets, georef, stallsData])=>{
+      isGrossetoPage ? fetch('data/grosseto_complete.json').then(r=>r.json()).catch(()=>null) : Promise.resolve(null)
+    ]).then(([italy, markets, completeData])=>{
       if(italy){
         L.geoJSON(italy, {style:{color:'#0FA3A3', weight:1, fill:false}}).addTo(state.layers.italy);
       }
@@ -90,8 +89,8 @@
         renderMarkets(markets);
         fitToData();
       }
-      if(georef && stallsData){
-        loadOverlaySystem(georef, stallsData);
+      if(completeData){
+        loadOverlaySystem(completeData.georef, {stalls: completeData.stalls.items});
       }
     });
 
