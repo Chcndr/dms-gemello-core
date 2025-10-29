@@ -24,23 +24,7 @@ window.DMS = window.DMS || {};
       }
     }).addTo(map);
 
-    // UI base opzionale: se vuoi un bottone per "Fit su dati"
-    const btn = L.control({position:'topleft'});
-    btn.onAdd = () => {
-      const d = L.DomUtil.create('div','leaflet-bar');
-      d.innerHTML = `
-        <a class="leaflet-control-zoom-in" title="Vista Italia" id="dms-vitalia">I</a>
-        <a class="leaflet-control-zoom-out" title="Fit su dati" id="dms-fitdata">F</a>
-      `;
-      setTimeout(()=>{
-        const i = document.getElementById('dms-vitalia');
-        const f = document.getElementById('dms-fitdata');
-        i && i.addEventListener('click', (ev)=>{ ev.preventDefault(); NS.Core.fitItaly(); });
-        f && f.addEventListener('click', (ev)=>{ ev.preventDefault(); NS.Core.fitData && NS.Core.fitData(); });
-      },0);
-      return d;
-    };
-    btn.addTo(map);
+    // Removed I/F controls - using sidebar buttons instead
 
     NS.Core.state.layers.areas = layerAreas;
     NS.Bus.emit('areas:mounted', { layer: layerAreas });
