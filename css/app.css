@@ -32,3 +32,36 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 .msg{margin-top:6px;color:var(--muted);min-height:20px}
 .leaflet-control-zoom{margin-top:8px} /* keep visible under header */
+
+
+/* Fix zoom controls position */
+.leaflet-control-zoom {
+  position: fixed !important;
+  top: 60px !important;
+  left: 10px !important;
+  z-index: 1000 !important;
+}
+
+/* Hide unnecessary Leaflet controls if any */
+.leaflet-control-container .leaflet-top.leaflet-left {
+  top: 60px !important;
+}
+
+/* Improve slot label visibility */
+.slot-label {
+  pointer-events: none;
+  z-index: 600 !important;
+}
+
+/* Smooth transitions for zoom */
+.leaflet-zoom-animated {
+  transition: transform 0.25s cubic-bezier(0,0,0.25,1) !important;
+}
+
+
+
+/* Hide any stray control buttons (I, F, etc.) */
+.leaflet-control-container button:not(.leaflet-control-zoom-in):not(.leaflet-control-zoom-out) {
+  display: none !important;
+}
+

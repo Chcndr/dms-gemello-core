@@ -25,7 +25,10 @@
     state.map = L.map('map', {
       zoomControl: true,
       attributionControl: true,
-      maxZoom: 22
+      maxZoom: 22,
+      zoomSnap: 0.25,  // Zoom fluido (0.25 step invece di 1)
+      zoomDelta: 0.25, // Delta zoom per ogni scroll
+      wheelPxPerZoomLevel: 120 // Sensibilità scroll
     });
     
     // Multiple tile layers
