@@ -137,8 +137,8 @@
       const latlng = L.latLng(p[1], p[0]);
       const num = f.properties.number;
       const status = f.properties.status || 'free'; // free | busy | taken
-      const width = f.properties.width_m || 3;
-      const length = f.properties.length_m || 6;
+      const width = f.properties.width_m || 8;
+      const length = f.properties.length_m || 12;
       const codInt = f.properties.cod_int || `POST-${num}`;
       const statusText = status === 'free' ? 'Libero' : status === 'busy' ? 'Occupato' : 'Prenotato';
       const orientation = f.properties.orientation || 0; // degrees
