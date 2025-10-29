@@ -246,12 +246,23 @@
             [ne.lat + latDiff, ne.lng + lngDiff]
           );
           
-          overlayImage.setBounds(overlayBounds);
+          // Update bounds without calling setBounds to preserve transforms
+          overlayImage._bounds = overlayBounds;
+          overlayImage._reset();
+          
+          // Reapply transforms after reset
+          updateOverlay();
+          
           dragStart = e.latlng;
         }
       });
 
       map.on('mouseup', () => {
+        if (isDragging) {
+          // Final bounds update
+          overlayImage.setBounds(overlayBounds);
+          updateOverlay();
+        }
         isDragging = false;
         dragStart = null;
         map.dragging.enable();
