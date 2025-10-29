@@ -367,13 +367,23 @@
       if(!feat){ msg.textContent = 'Nessun risultato'; return; }
       const [lon,lat] = feat.geometry.coordinates;
       const box = feat.bbox;
-      if(box && box.length===4){
+      
+      // Se cerchiamo Grosseto e siamo sulla pagina Grosseto, zoom sull'area mercato
+      const isGrossetoPage = window.location.pathname.includes('grosseto');
+      const isGrossetoSearch = q.toLowerCase().includes('grosseto');
+      
+      if(isGrossetoPage && isGrossetoSearch){
+        // Zoom sull'area mercato (centro dai dati georef)
+        state.map.setView([42.758556, 11.114205], 18);
+        msg.textContent = 'Mercato Esperanto - Grosseto';
+      }else if(box && box.length===4){
         const b = L.latLngBounds([[box[1],box[0]],[box[3],box[2]]]);
         state.map.fitBounds(b.pad(0.1));
+        msg.textContent = feat.properties.display_name || 'OK';
       }else{
         state.map.setView([lat,lon], 15);
+        msg.textContent = feat.properties.display_name || 'OK';
       }
-      msg.textContent = feat.properties.display_name || 'OK';
     }catch(err){
       msg.textContent = 'Errore geocoding';
     }
