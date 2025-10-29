@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>DMS • Overlay Editor - Posiziona Pianta Mercato</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    /* Base styles for overlay editor */
+    :root{
+      --bg:#072C2E; --panel:#0E2830; --ink:#D5F0E6; --accent:#0FA3A3; --good:#30c36b;
+      --danger:#E65454; --muted:#9AB8B3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .topbar{position:sticky;top:0;z-index:1000;display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 12px;background:#052023;border-bottom:1px solid #0b3b3f}
+    .brand{font-weight:700;letter-spacing:.2px}
+    .ver{opacity:.7;font-size:.9rem}
+    button{background:var(--accent);border:none;color:#001b1c;padding:8px 10px;border-radius:6px;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    #map{width:100%;height:calc(100vh - 48px);position:relative}
+    
+    .controls {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: #0E2830;
+      padding: 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .controls h3 {
+      margin: 0 0 15px;
+      color: #D5F0E6;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #9AB8B3;
+      font-size: 0.9rem;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+    }
+    .control-group input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      background: #09343a;
+      border: 1px solid #1c4a4e;
+      border-radius: 6px;
+      color: #D5F0E6;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-group button {
+      flex: 1;
+    }
+    .value-display {
+      color: #0FA3A3;
+      font-weight: 700;
+    }
+    
+    /* Draggable overlay image */
+    #overlayContainer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-origin: center center;
+      cursor: move;
+      z-index: 400;
+      pointer-events: auto;
+    }
+    #overlayContainer img {
+      display: block;
+      max-width: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">DMS • Overlay Editor - Posiziona Pianta Mercato</div>
+    <div class="ver">v1.0</div>
+  </div>
+
+  <div class="controls">
+    <h3>🎨 Controlli Overlay</h3>
+
+    <div class="control-group">
+      <label>📁 Carica PDF/PNG Pianta:</label>
+      <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg">
+      <small style="color: #9AB8B3;">nessun file selezionato</small>
+    </div>
+
+    <div class="control-group">
+      <label>
+        📏 Scala: <span class="value-display" id="scaleValue">1.0x</span>
+      </label>
+      <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1">
+    </div>
+
+    <div class="control-group">
+      <label>
+        🔄 Rotazione: <span class="value-display" id="rotateValue">0°</span>
+      </label>
+      <input type="range" id="rotateSlider" min="0" max="360" step="1" value="0">
+    </div>
+
+    <div class="control-group">
+      <label>
+        👁️ Opacità: <span class="value-display" id="opacityValue">70%</span>
+      </label>
+      <input type="range" id="opacitySlider" min="0" max="100" step="5" value="70">
+    </div>
+
+    <div class="btn-group">
+      <button id="resetBtn">🔄 Reset</button>
+      <button id="saveBtn" style="background: #30c36b;">💾 Salva</button>
+    </div>
+
+    <div style="margin-top: 20px; padding: 10px; background: rgba(15, 163, 163, 0.1); border-radius: 6px; font-size: 0.85rem; color: #9AB8B3;">
+      <strong>📝 Istruzioni:</strong><br>
+      1. Carica il PDF/PNG della pianta<br>
+      2. Trascina l'overlay sulla mappa<br>
+      3. Usa gli slider per scalare/ruotare<br>
+      4. Allinea con strade e piazze<br>
+      5. Clicca "Salva" per georeferenziare
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Initialize map centered on Grosseto
+    const map = L.map('map', {
+      center: [42.758, 11.114],
+      zoom: 16,
+      zoomControl: true,
+      maxZoom: 22
+    });
+
+    // Add OSM tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 22,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Load market area for reference
+    fetch('data/grosseto_full.geojson')
+      .then(r => r.json())
+      .then(data => {
+        const area = data.features.find(f => f.properties.kind === 'area');
+        if (area) {
+          L.geoJSON(area, {
+            style: {
+              color: '#2E7D32',
+              fillColor: '#4CAF50',
+              fillOpacity: 0.15,
+              weight: 3
+            }
+          }).addTo(map);
+        }
+      });
+
+    // Overlay state
+    let overlayContainer = null;
+    let overlayImg = null;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let overlayX = 0;
+    let overlayY = 0;
+
+    // Controls
+    const scaleSlider = document.getElementById('scaleSlider');
+    const rotateSlider = document.getElementById('rotateSlider');
+    const opacitySlider = document.getElementById('opacitySlider');
+    const fileInput = document.getElementById('fileInput');
+    const resetBtn = document.getElementById('resetBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    // Value displays
+    const scaleValue = document.getElementById('scaleValue');
+    const rotateValue = document.getElementById('rotateValue');
+    const opacityValue = document.getElementById('opacityValue');
+
+    // Load default pianta
+    loadOverlay('data/grosseto_pianta_transparent.png');
+
+    // File upload handler
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.type === 'application/pdf') {
+        // Convert PDF to image
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({scale: 2});
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({canvasContext: ctx, viewport}).promise;
+        const imageUrl = canvas.toDataURL('image/png');
+        loadOverlay(imageUrl);
+      } else {
+        // Load image directly
+        const reader = new FileReader();
+        reader.onload = (e) => loadOverlay(e.target.result);
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function loadOverlay(imageUrl) {
+      // Remove existing overlay
+      if (overlayContainer) {
+        overlayContainer.remove();
+      }
+
+      // Create container
+      overlayContainer = document.createElement('div');
+      overlayContainer.id = 'overlayContainer';
+      overlayContainer.style.transform = 'translate(-50%, -50%)';
+      
+      // Create image
+      overlayImg = document.createElement('img');
+      overlayImg.src = imageUrl;
+      overlayImg.style.width = '400px'; // Default size
+      overlayImg.style.opacity = opacitySlider.value / 100;
+      
+      overlayContainer.appendChild(overlayImg);
+      document.getElementById('map').appendChild(overlayContainer);
+
+      // Reset position
+      overlayX = 0;
+      overlayY = 0;
+
+      // Setup drag
+      overlayContainer.addEventListener('mousedown', startDrag);
+      
+      updateOverlay();
+    }
+
+    function startDrag(e) {
+      isDragging = true;
+      dragStartX = e.clientX - overlayX;
+      dragStartY = e.clientY - overlayY;
+      e.preventDefault();
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        overlayX = e.clientX - dragStartX;
+        overlayY = e.clientY - dragStartY;
+        updateOverlay();
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Scale slider
+    scaleSlider.addEventListener('input', (e) => {
+      const scale = parseFloat(e.target.value);
+      scaleValue.textContent = scale.toFixed(1) + 'x';
+      updateOverlay();
+    });
+
+    // Rotate slider
+    rotateSlider.addEventListener('input', (e) => {
+      const angle = parseInt(e.target.value);
+      rotateValue.textContent = angle + '°';
+      updateOverlay();
+    });
+
+    // Opacity slider
+    opacitySlider.addEventListener('input', (e) => {
+      const opacity = parseInt(e.target.value);
+      opacityValue.textContent = opacity + '%';
+      if (overlayImg) {
+        overlayImg.style.opacity = opacity / 100;
+      }
+    });
+
+    function updateOverlay() {
+      if (overlayContainer) {
+        const scale = parseFloat(scaleSlider.value);
+        const angle = parseInt(rotateSlider.value);
+        
+        overlayContainer.style.transform = `translate(calc(-50% + ${overlayX}px), calc(-50% + ${overlayY}px)) scale(${scale}) rotate(${angle}deg)`;
+      }
+    }
+
+    // Reset button
+    resetBtn.addEventListener('click', () => {
+      scaleSlider.value = 1;
+      rotateSlider.value = 0;
+      opacitySlider.value = 70;
+      scaleValue.textContent = '1.0x';
+      rotateValue.textContent = '0°';
+      opacityValue.textContent = '70%';
+      overlayX = 0;
+      overlayY = 0;
+      if (overlayImg) {
+        overlayImg.style.opacity = 0.7;
+      }
+      updateOverlay();
+    });
+
+    // Save button
+    saveBtn.addEventListener('click', () => {
+      if (!overlayContainer) {
+        alert('⚠️ Nessun overlay caricato!');
+        return;
+      }
+
+      // Get overlay position in map coordinates
+      const containerRect = overlayContainer.getBoundingClientRect();
+      const mapPane = map.getPane('mapPane');
+      const mapRect = mapPane.getBoundingClientRect();
+
+      // Calculate corners in screen coordinates
+      const imgWidth = overlayImg.offsetWidth * parseFloat(scaleSlider.value);
+      const imgHeight = overlayImg.offsetHeight * parseFloat(scaleSlider.value);
+      
+      const centerX = containerRect.left + containerRect.width / 2;
+      const centerY = containerRect.top + containerRect.height / 2;
+
+      // Convert to lat/lng (simplified - corners)
+      const nw = map.containerPointToLatLng([centerX - imgWidth/2, centerY - imgHeight/2]);
+      const ne = map.containerPointToLatLng([centerX + imgWidth/2, centerY - imgHeight/2]);
+      const se = map.containerPointToLatLng([centerX + imgWidth/2, centerY + imgHeight/2]);
+      const sw = map.containerPointToLatLng([centerX - imgWidth/2, centerY + imgHeight/2]);
+
+      const georef = {
+        corners: {
+          nw: [nw.lat, nw.lng],
+          ne: [ne.lat, ne.lng],
+          se: [se.lat, se.lng],
+          sw: [sw.lat, sw.lng]
+        },
+        center: map.containerPointToLatLng([centerX, centerY]),
+        scale: parseFloat(scaleSlider.value),
+        rotation: parseInt(rotateSlider.value),
+        timestamp: new Date().toISOString()
+      };
+
+      // Download JSON
+      const blob = new Blob([JSON.stringify(georef, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'overlay_georef.json';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      alert('✅ Georeferenziazione salvata!\n\nFile: overlay_georef.json\n\nUsa questo file per posizionare i posteggi automaticamente.');
+    });
+  </script>
+</body>
+</html>
+
