@@ -26,9 +26,11 @@
       zoomControl: true,
       attributionControl: true,
       maxZoom: 22,
-      zoomSnap: 0.25,  // Zoom fluido (0.25 step invece di 1)
-      zoomDelta: 0.25, // Delta zoom per ogni scroll
-      wheelPxPerZoomLevel: 120 // Sensibilità scroll
+      zoomSnap: 0,  // Zoom completamente fluido (no snap)
+      zoomDelta: 0.5, // Delta zoom per ogni scroll
+      wheelPxPerZoomLevel: 60, // Sensibilità scroll (più basso = più fluido)
+      zoomAnimation: true,
+      markerZoomAnimation: true
     });
     
     // Multiple tile layers
