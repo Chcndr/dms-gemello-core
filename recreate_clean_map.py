@@ -32,8 +32,12 @@ mask = cv2.inRange(hsv, lower_green, upper_green)
 
 print(f"✅ Pixel verdi rilevati: {np.sum(mask > 0)}")
 
+# Applica morphological closing per riempire buchi
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+mask_closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+
 # Trova contorni
-contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours, _ = cv2.findContours(mask_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 # Filtra e ordina contorni
 min_area = 100
