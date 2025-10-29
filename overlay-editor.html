@@ -260,24 +260,13 @@
       updateOverlay();
     }
 
+    // Initialize prevScale
+    scaleSlider.dataset.prevScale = '1';
+    
     // Scale slider
     scaleSlider.addEventListener('input', (e) => {
       const scale = parseFloat(e.target.value);
       scaleValue.textContent = scale.toFixed(2) + 'x';
-      
-      const center = overlayBounds.getCenter();
-      const sw = overlayBounds.getSouthWest();
-      const ne = overlayBounds.getNorthEast();
-      
-      const latSpan = (ne.lat - sw.lat) * scale / parseFloat(scaleSlider.dataset.prevScale || 1);
-      const lngSpan = (ne.lng - sw.lng) * scale / parseFloat(scaleSlider.dataset.prevScale || 1);
-      
-      overlayBounds = L.latLngBounds(
-        [center.lat - latSpan / 2, center.lng - lngSpan / 2],
-        [center.lat + latSpan / 2, center.lng + lngSpan / 2]
-      );
-      
-      scaleSlider.dataset.prevScale = scale;
       updateOverlay();
     });
 
@@ -301,12 +290,13 @@
       if (overlayImage && overlayBounds) {
         overlayImage.setBounds(overlayBounds);
         
-        // Apply rotation via CSS
+        // Apply scale and rotation via CSS transform
+        const scale = parseFloat(scaleSlider.value);
         const angle = parseInt(rotateSlider.value);
         const img = overlayImage.getElement();
         if (img) {
-          img.style.transform = `rotate(${angle}deg)`;
-          img.style.transformOrigin = 'center';
+          img.style.transform = `scale(${scale}) rotate(${angle}deg)`;
+          img.style.transformOrigin = 'center center';
         }
       }
     }
