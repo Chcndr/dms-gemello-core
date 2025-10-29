@@ -131,7 +131,7 @@
       poly.addTo(state.layers.areas);
     });
 
-    // slot markers with fixed pixel size (not geographic)
+    // slot rectangles with geographic dimensions (scale with zoom)
     slots.forEach(f=>{
       const p = f.geometry.coordinates; // [lon,lat]
       const latlng = L.latLng(p[1], p[0]);
@@ -141,25 +141,48 @@
       const length = f.properties.length_m || 6;
       const codInt = f.properties.cod_int || `POST-${num}`;
       const statusText = status === 'free' ? 'Libero' : status === 'busy' ? 'Occupato' : 'Prenotato';
+      const orientation = f.properties.orientation || 0; // degrees
       
       // Color based on status
       const colors = {
-        free: '#4CAF50',
-        busy: '#FFC107',
-        taken: '#F44336'
+        free: 'rgba(76, 175, 80, 0.7)',
+        busy: 'rgba(255, 193, 7, 0.7)',
+        taken: 'rgba(244, 67, 54, 0.7)'
       };
       
-      // Create marker with divIcon (fixed pixel size)
-      const marker = L.marker(latlng, {
-        icon: L.divIcon({
-          className: 'dms-slot',
-          html: `<div class="slot-rect" style="background:${colors[status]};color:white;border:2px solid white;width:40px;height:60px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.4);">${num}</div>`,
-          iconSize: [40, 60],
-          iconAnchor: [20, 30]
-        })
+      // Create geographic rectangle (3m x 6m)
+      // Convert meters to degrees (approximate)
+      const metersToLat = 1 / 111320; // 1 degree latitude ≈ 111.32 km
+      const metersToLon = 1 / (111320 * Math.cos(latlng.lat * Math.PI / 180));
+      
+      const halfWidth = (width / 2) * metersToLon;
+      const halfLength = (length / 2) * metersToLat;
+      
+      // Create rectangle bounds
+      const bounds = [
+        [latlng.lat - halfLength, latlng.lng - halfWidth],
+        [latlng.lat + halfLength, latlng.lng + halfWidth]
+      ];
+      
+      const rect = L.rectangle(bounds, {
+        color: 'white',
+        weight: 2,
+        fillColor: colors[status],
+        fillOpacity: 0.8
       });
       
-      marker.bindPopup(`
+      // Add label with number (centered on rectangle)
+      const label = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'slot-label',
+          html: `<div style="color:white;font-weight:bold;font-size:12px;text-shadow:0 0 3px black;">${num}</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        }),
+        interactive: false
+      });
+      
+      rect.bindPopup(`
         <div style="font-family: system-ui; padding: 4px;">
           <h3 style="margin: 0 0 8px; color: ${colors[status]};">Posteggio ${num}</h3>
           <p style="margin: 4px 0;"><b>Mercato:</b> ${f.properties.market || 'Esperanto Settimanale'}</p>
@@ -170,7 +193,8 @@
         </div>
       `);
       
-      marker.addTo(state.layers.slots);
+      rect.addTo(state.layers.slots);
+      label.addTo(state.layers.slots);
     });
 
     state.data.areas = areas; state.data.slots = slots;
