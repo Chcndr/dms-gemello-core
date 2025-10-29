@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DMS • Mercato Grosseto - Sistema Overlay Interattivo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    /* Stili per gli overlay dei posteggi */
+    .stall-overlay {
+      position: absolute;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 1000;
+    }
+    
+    .stall-overlay:hover {
+      border-color: #0FA3A3;
+      background: rgba(15, 163, 163, 0.2);
+    }
+    
+    .stall-overlay.libero {
+      background: rgba(76, 175, 80, 0.3);
+    }
+    
+    .stall-overlay.occupato {
+      background: rgba(244, 67, 54, 0.3);
+    }
+    
+    .stall-overlay.assegnato {
+      background: rgba(255, 152, 0, 0.3);
+    }
+    
+    .leaflet-popup-content {
+      min-width: 200px;
+    }
+    
+    .popup-header {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      color: #0FA3A3;
+    }
+    
+    .popup-status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .popup-status.libero {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .popup-status.occupato {
+      background: #F44336;
+      color: white;
+    }
+    
+    .popup-status.assegnato {
+      background: #FF9800;
+      color: white;
+    }
+    
+    .popup-info {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    
+    .popup-coords {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="brand">DMS • Mercato Grosseto</div>
+    <div class="controls">
+      <h3>🎨 Controlli Overlay</h3>
+      <button id="toggleOverlay">👁️ Mostra/Nascondi Pianta</button>
+      <button id="toggleStalls">🔲 Mostra/Nascondi Aree</button>
+      
+      <div style="margin-top: 20px;">
+        <label>Opacità Pianta: <span id="opacityValue">70%</span></label>
+        <input type="range" id="opacitySlider" min="0" max="100" step="5" value="70" style="width: 100%;">
+      </div>
+      
+      <div style="margin-top: 20px; padding: 10px; background: rgba(15, 163, 163, 0.1); border-radius: 6px; font-size: 0.85rem;">
+        <strong>📊 Statistiche:</strong><br>
+        Totale posteggi: <span id="totalStalls">0</span><br>
+        Liberi: <span id="liberiCount" style="color: #4CAF50;">0</span><br>
+        Occupati: <span id="occupatiCount" style="color: #F44336;">0</span><br>
+        Assegnati: <span id="assegnatiCount" style="color: #FF9800;">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize map
+    const map = L.map('map', {
+      center: [42.758, 11.114],
+      zoom: 16,
+      zoomControl: true,
+      maxZoom: 22,
+      zoomSnap: 1
+    });
+
+    // Add tile layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 22,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 22,
+      attribution: '© Esri'
+    });
+
+    const blankLayer = L.tileLayer('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', {
+      maxZoom: 22
+    });
+
+    // Layer control
+    L.control.layers({
+      'OpenStreetMap': osmLayer,
+      'Satellite': satelliteLayer,
+      'Blank': blankLayer
+    }).addTo(map);
+
+    // Load georeferenced overlay
+    let overlayImage = null;
+    let stallsVisible = true;
+    
+    fetch('data/grosseto_overlay_georef.json')
+      .then(r => r.json())
+      .then(georef => {
+        const bounds = [
+          [georef.corners.sw[0], georef.corners.sw[1]],
+          [georef.corners.ne[0], georef.corners.ne[1]]
+        ];
+        
+        overlayImage = L.imageOverlay('data/grosseto_pianta_transparent.png', bounds, {
+          opacity: 0.7,
+          interactive: false
+        }).addTo(map);
+        
+        console.log('✅ Overlay georeferenziato caricato');
+        
+        // Load stalls data and create interactive areas
+        loadStalls(georef);
+      })
+      .catch(e => {
+        console.error('❌ Errore caricamento overlay:', e);
+        alert('Errore caricamento pianta georeferenziata!');
+      });
+
+    // Stalls data structure
+    let stallsData = [];
+    let stallElements = [];
+
+    function loadStalls(georef) {
+      // Load extracted stalls
+      fetch('data/extracted_stalls.json')
+        .then(r => r.json())
+        .then(data => {
+          stallsData = data.stalls.map((stall, idx) => ({
+            id: idx + 1,
+            numero: idx + 1,
+            center_px: stall.center_px,
+            width_px: stall.width_px,
+            height_px: stall.height_px,
+            angle: stall.angle,
+            lat: stall.lat,
+            lng: stall.lng,
+            stato: idx % 3 === 0 ? 'libero' : idx % 3 === 1 ? 'occupato' : 'assegnato', // Demo
+            operatore: idx % 3 === 2 ? 'Mario Rossi' : null,
+            settore: 'Alimentare'
+          }));
+          
+          console.log(`✅ Caricati ${stallsData.length} posteggi`);
+          
+          // Create interactive rectangles
+          createInteractiveStalls(georef);
+          
+          // Update stats
+          updateStats();
+        })
+        .catch(e => {
+          console.error('❌ Errore caricamento posteggi:', e);
+        });
+    }
+
+    function createInteractiveStalls(georef) {
+      const imgWidth = georef.image.width;
+      const imgHeight = georef.image.height;
+      
+      const bounds = [
+        [georef.corners.sw[0], georef.corners.sw[1]],
+        [georef.corners.ne[0], georef.corners.ne[1]]
+      ];
+      
+      stallsData.forEach(stall => {
+        // Convert pixel coordinates to geographic coordinates
+        const normX = stall.center_px[0] / imgWidth;
+        const normY = stall.center_px[1] / imgHeight;
+        
+        const lat = bounds[0][0] + (bounds[1][0] - bounds[0][0]) * (1 - normY);
+        const lng = bounds[0][1] + (bounds[1][1] - bounds[0][1]) * normX;
+        
+        // Calculate corner offsets in degrees
+        const latPerPx = (bounds[1][0] - bounds[0][0]) / imgHeight;
+        const lngPerPx = (bounds[1][1] - bounds[0][1]) / imgWidth;
+        
+        const halfWidth = (stall.width_px / 2) * lngPerPx;
+        const halfHeight = (stall.height_px / 2) * latPerPx;
+        
+        // Create rectangle
+        const rectBounds = [
+          [lat - halfHeight, lng - halfWidth],
+          [lat + halfHeight, lng + halfWidth]
+        ];
+        
+        const rect = L.rectangle(rectBounds, {
+          color: getColorByStato(stall.stato),
+          fillColor: getColorByStato(stall.stato),
+          fillOpacity: 0.3,
+          weight: 2,
+          className: `stall-${stall.id}`
+        });
+        
+        // Add popup
+        rect.bindPopup(createPopupContent(stall));
+        
+        // Add click handler
+        rect.on('click', () => {
+          console.log('Posteggio cliccato:', stall.numero);
+        });
+        
+        rect.addTo(map);
+        stallElements.push(rect);
+      });
+    }
+
+    function getColorByStato(stato) {
+      switch(stato) {
+        case 'libero': return '#4CAF50';
+        case 'occupato': return '#F44336';
+        case 'assegnato': return '#FF9800';
+        default: return '#999';
+      }
+    }
+
+    function createPopupContent(stall) {
+      const statusLabel = {
+        'libero': 'Libero',
+        'occupato': 'Occupato',
+        'assegnato': 'Assegnato'
+      }[stall.stato];
+      
+      let html = `
+        <div class="popup-header">Posteggio #${stall.numero}</div>
+        <div class="popup-status ${stall.stato}">${statusLabel}</div>
+        <div class="popup-info">
+          <strong>Settore:</strong> ${stall.settore}<br>
+      `;
+      
+      if (stall.operatore) {
+        html += `<strong>Operatore:</strong> ${stall.operatore}<br>`;
+      }
+      
+      html += `
+        </div>
+        <div class="popup-coords">
+          📍 ${stall.lat.toFixed(6)}, ${stall.lng.toFixed(6)}
+        </div>
+      `;
+      
+      return html;
+    }
+
+    function updateStats() {
+      const liberi = stallsData.filter(s => s.stato === 'libero').length;
+      const occupati = stallsData.filter(s => s.stato === 'occupato').length;
+      const assegnati = stallsData.filter(s => s.stato === 'assegnato').length;
+      
+      document.getElementById('totalStalls').textContent = stallsData.length;
+      document.getElementById('liberiCount').textContent = liberi;
+      document.getElementById('occupatiCount').textContent = occupati;
+      document.getElementById('assegnatiCount').textContent = assegnati;
+    }
+
+    // Controls
+    document.getElementById('toggleOverlay').addEventListener('click', () => {
+      if (overlayImage) {
+        if (map.hasLayer(overlayImage)) {
+          map.removeLayer(overlayImage);
+        } else {
+          overlayImage.addTo(map);
+        }
+      }
+    });
+
+    document.getElementById('toggleStalls').addEventListener('click', () => {
+      stallsVisible = !stallsVisible;
+      stallElements.forEach(rect => {
+        if (stallsVisible) {
+          rect.addTo(map);
+        } else {
+          map.removeLayer(rect);
+        }
+      });
+    });
+
+    document.getElementById('opacitySlider').addEventListener('input', (e) => {
+      const opacity = parseInt(e.target.value) / 100;
+      document.getElementById('opacityValue').textContent = e.target.value + '%';
+      if (overlayImage) {
+        overlayImage.setOpacity(opacity);
+      }
+    });
+  </script>
+</body>
+</html>
+

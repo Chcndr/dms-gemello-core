@@ -1,0 +1,38 @@
+{
+  "mercato": "Grosseto - Mercato Esperanto",
+  "timestamp": "2025-10-29T16:43:39.526Z",
+  "corners": {
+    "nw": [
+      42.75986263223188,
+      11.111817944101858
+    ],
+    "ne": [
+      42.75986263223188,
+      11.116645920328665
+    ],
+    "se": [
+      42.75750179878379,
+      11.116645920328665
+    ],
+    "sw": [
+      42.75750179878379,
+      11.111817944101858
+    ]
+  },
+  "center": [
+    42.75868222675143,
+    11.114231932215265
+  ],
+  "transform": {
+    "scale": 1.8,
+    "rotation": 1,
+    "translateX": -159,
+    "translateY": -14
+  },
+  "image": {
+    "width": 500,
+    "height": 333,
+    "source": "https://chcndr.github.io/dms-gemello-core/data/grosseto_pianta_transparent.png"
+  }
+}
+

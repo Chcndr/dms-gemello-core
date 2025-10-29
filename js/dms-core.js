@@ -13,8 +13,10 @@
     layers: {
       italy: L.layerGroup(),
       areas: L.layerGroup(),
-      slots: L.layerGroup()
+      slots: L.layerGroup(),
+      overlay: L.layerGroup()
     },
+    overlayImage: null,
     data: {
       areas: null,
       slots: null
@@ -67,6 +69,7 @@
     // add groups
     state.layers.italy.addTo(state.map);
     state.layers.areas.addTo(state.map);
+    state.layers.overlay.addTo(state.map);
     state.layers.slots.addTo(state.map);
 
     // load data
@@ -76,14 +79,19 @@
     
     Promise.all([
       fetch('data/italy_borders.geojson').then(r=>r.json()).catch(()=>null),
-      fetch(marketsFile).then(r=>r.json()).catch(()=>null)
-    ]).then(([italy, markets])=>{
+      fetch(marketsFile).then(r=>r.json()).catch(()=>null),
+      isGrossetoPage ? fetch('data/grosseto_overlay_georef.json').then(r=>r.json()).catch(()=>null) : Promise.resolve(null),
+      isGrossetoPage ? fetch('data/extracted_stalls.json').then(r=>r.json()).catch(()=>null) : Promise.resolve(null)
+    ]).then(([italy, markets, georef, stallsData])=>{
       if(italy){
         L.geoJSON(italy, {style:{color:'#0FA3A3', weight:1, fill:false}}).addTo(state.layers.italy);
       }
       if(markets){
         renderMarkets(markets);
         fitToData();
+      }
+      if(georef && stallsData){
+        loadOverlaySystem(georef, stallsData);
       }
     });
 
@@ -93,6 +101,7 @@
       const b = L.latLngBounds([[36.6,6.6],[47.2,18.8]]); state.map.fitBounds(b, {padding:[20,20]});
     };
     document.getElementById('chkAreas').onchange = (e)=> toggleLayer('areas', e.target.checked);
+    document.getElementById('chkOverlay').onchange = (e)=> toggleLayer('overlay', e.target.checked);
     document.getElementById('chkSlots').onchange = (e)=> toggleLayer('slots', e.target.checked);
     document.getElementById('chkItaly').onchange = (e)=> toggleLayer('italy', e.target.checked);
     document.getElementById('go').onclick = geocode;
@@ -131,6 +140,79 @@
     if(!window.DMS.Core._dataBounds && typeof L!=='undefined'){
       // verrà settato da moduli quando aggiungono layer
     }
+  }
+
+  function loadOverlaySystem(georef, stallsData){
+    console.log('✅ Caricamento overlay system:', georef, stallsData);
+    
+    // Create bounds from georef corners
+    const bounds = [
+      [georef.corners.sw[0], georef.corners.sw[1]],
+      [georef.corners.ne[0], georef.corners.ne[1]]
+    ];
+    
+    // Add image overlay
+    state.overlayImage = L.imageOverlay('data/grosseto_pianta_transparent.png', bounds, {
+      opacity: 0.7,
+      interactive: false,
+      zIndex: 400
+    });
+    state.overlayImage.addTo(state.layers.overlay);
+    
+    console.log('✅ ImageOverlay aggiunto con bounds:', bounds);
+    
+    // Add clickable markers for each stall
+    const stalls = stallsData.stalls || [];
+    console.log(`✅ Caricamento ${stalls.length} posteggi overlay`);
+    
+    stalls.forEach((stall, idx) => {
+      const latlng = [stall.lat, stall.lng];
+      const num = idx + 1;
+      
+      // Demo status
+      const status = idx % 3 === 0 ? 'free' : idx % 3 === 1 ? 'busy' : 'taken';
+      const statusText = status === 'free' ? 'Libero' : status === 'busy' ? 'Occupato' : 'Prenotato';
+      const colors = {
+        free: 'rgba(76, 175, 80, 0.9)',
+        busy: 'rgba(255, 193, 7, 0.9)',
+        taken: 'rgba(244, 67, 54, 0.9)'
+      };
+      
+      // Create small circular marker
+      const marker = L.circleMarker(latlng, {
+        radius: 8,
+        fillColor: colors[status],
+        color: 'white',
+        weight: 2,
+        fillOpacity: 0.9
+      });
+      
+      // Add number label
+      const label = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'slot-label-overlay',
+          html: `<div style="color:white;font-weight:bold;font-size:11px;text-shadow:0 0 3px black;">${num}</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        }),
+        interactive: false
+      });
+      
+      // Popup
+      marker.bindPopup(`
+        <div style="font-family: system-ui; padding: 4px;">
+          <h3 style="margin: 0 0 8px; color: ${colors[status]};">Posteggio ${num}</h3>
+          <p style="margin: 4px 0;"><b>Mercato:</b> Esperanto Settimanale</p>
+          <p style="margin: 4px 0;"><b>Stato:</b> ${statusText}</p>
+          <p style="margin: 4px 0; font-size: 0.85rem; color: #666;">📍 ${stall.lat.toFixed(6)}, ${stall.lng.toFixed(6)}</p>
+        </div>
+      `);
+      
+      marker.addTo(state.layers.overlay);
+      label.addTo(state.layers.overlay);
+    });
+    
+    console.log('✅ Overlay system caricato!');
   }
 
   function toggleLayer(name, on){

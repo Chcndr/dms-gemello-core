@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DMS • Mercato Grosseto - Sistema Interattivo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .leaflet-overlay-pane svg {
+      pointer-events: auto !important;
+    }
+    
+    .stall-rect {
+      fill-opacity: 0.3;
+      stroke-width: 2;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .stall-rect:hover {
+      fill-opacity: 0.6;
+      stroke-width: 3;
+    }
+    
+    .stall-rect.libero {
+      fill: #4CAF50;
+      stroke: #2E7D32;
+    }
+    
+    .stall-rect.occupato {
+      fill: #F44336;
+      stroke: #C62828;
+    }
+    
+    .stall-rect.assegnato {
+      fill: #FF9800;
+      stroke: #E65100;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="brand">DMS • Mercato Grosseto</div>
+    <div class="controls">
+      <h3>🎨 Controlli</h3>
+      
+      <button id="toggleOverlay">👁️ Mostra/Nascondi Pianta</button>
+      <button id="toggleStalls">🔲 Mostra/Nascondi Posteggi</button>
+      
+      <div style="margin-top: 15px;">
+        <label>Opacità Pianta: <span id="opacityValue">70%</span></label>
+        <input type="range" id="opacitySlider" min="0" max="100" step="5" value="70" style="width: 100%;">
+      </div>
+      
+      <div style="margin-top: 20px; padding: 10px; background: rgba(15, 163, 163, 0.1); border-radius: 6px; font-size: 0.85rem;">
+        <strong>📊 Statistiche:</strong><br>
+        Totale: <span id="totalStalls">0</span><br>
+        <span style="color: #4CAF50;">●</span> Liberi: <span id="liberiCount">0</span><br>
+        <span style="color: #F44336;">●</span> Occupati: <span id="occupatiCount">0</span><br>
+        <span style="color: #FF9800;">●</span> Assegnati: <span id="assegnatiCount">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize map
+    const map = L.map('map', {
+      center: [42.758, 11.114],
+      zoom: 17,
+      zoomControl: true,
+      maxZoom: 22,
+      zoomSnap: 1
+    });
+
+    // Add tile layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 22,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 22,
+      attribution: '© Esri'
+    });
+
+    L.control.layers({
+      'OpenStreetMap': osmLayer,
+      'Satellite': satelliteLayer
+    }).addTo(map);
+
+    // State
+    let overlayImage = null;
+    let svgOverlay = null;
+    let stallsData = [];
+    let stallsVisible = true;
+
+    // Load georeferenced overlay
+    fetch('data/grosseto_overlay_georef.json')
+      .then(r => r.json())
+      .then(georef => {
+        console.log('✅ Georeferenziazione caricata:', georef);
+        
+        // Create bounds from corners
+        const bounds = [
+          [georef.corners.sw[0], georef.corners.sw[1]],
+          [georef.corners.ne[0], georef.corners.ne[1]]
+        ];
+        
+        console.log('📍 Bounds:', bounds);
+        
+        // Add image overlay
+        overlayImage = L.imageOverlay('data/grosseto_pianta_transparent.png', bounds, {
+          opacity: 0.7,
+          interactive: false
+        }).addTo(map);
+        
+        console.log('✅ ImageOverlay aggiunto');
+        
+        // Load stalls and create SVG overlay
+        loadStalls(georef, bounds);
+      })
+      .catch(e => {
+        console.error('❌ Errore caricamento georef:', e);
+        alert('Errore caricamento georeferenziazione!');
+      });
+
+    function loadStalls(georef, bounds) {
+      fetch('data/extracted_stalls.json')
+        .then(r => r.json())
+        .then(data => {
+          console.log(`✅ Caricati ${data.stalls.length} posteggi`);
+          
+          // Prepare stalls data with demo states
+          stallsData = data.stalls.map((stall, idx) => ({
+            ...stall,
+            numero: idx + 1,
+            stato: idx % 3 === 0 ? 'libero' : idx % 3 === 1 ? 'occupato' : 'assegnato',
+            operatore: idx % 3 === 2 ? `Operatore ${idx + 1}` : null,
+            settore: 'Alimentare'
+          }));
+          
+          // Create SVG overlay
+          createSVGOverlay(georef, bounds);
+          
+          // Update stats
+          updateStats();
+        })
+        .catch(e => {
+          console.error('❌ Errore caricamento posteggi:', e);
+        });
+    }
+
+    function createSVGOverlay(georef, bounds) {
+      // Create SVG element
+      const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svgElement.setAttribute('viewBox', `0 0 ${georef.image.width} ${georef.image.height}`);
+      svgElement.style.width = '100%';
+      svgElement.style.height = '100%';
+      
+      // Add rectangles for each stall
+      stallsData.forEach(stall => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        
+        const cx = stall.center_px[0];
+        const cy = stall.center_px[1];
+        const w = stall.width_px;
+        const h = stall.height_px;
+        
+        rect.setAttribute('x', cx - w/2);
+        rect.setAttribute('y', cy - h/2);
+        rect.setAttribute('width', w);
+        rect.setAttribute('height', h);
+        rect.setAttribute('class', `stall-rect ${stall.stato}`);
+        rect.setAttribute('data-stall-id', stall.numero);
+        
+        // Add rotation if needed
+        if (stall.angle && stall.angle !== 0) {
+          rect.setAttribute('transform', `rotate(${stall.angle} ${cx} ${cy})`);
+        }
+        
+        // Click handler
+        rect.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showStallPopup(stall, e);
+        });
+        
+        svgElement.appendChild(rect);
+      });
+      
+      // Add SVG as Leaflet overlay
+      svgOverlay = L.svgOverlay(svgElement, bounds, {
+        interactive: true
+      }).addTo(map);
+      
+      console.log('✅ SVG overlay creato con', stallsData.length, 'posteggi');
+    }
+
+    function showStallPopup(stall, event) {
+      console.log('🖱️ Click su posteggio:', stall.numero);
+      
+      const statusLabel = {
+        'libero': 'Libero',
+        'occupato': 'Occupato',
+        'assegnato': 'Assegnato'
+      }[stall.stato];
+      
+      let content = `
+        <div style="min-width: 200px;">
+          <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 10px; color: #0FA3A3;">
+            Posteggio #${stall.numero}
+          </div>
+          <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; background: ${getColorByStato(stall.stato)}; color: white;">
+            ${statusLabel}
+          </div>
+          <div style="font-size: 0.9rem; line-height: 1.6;">
+            <strong>Settore:</strong> ${stall.settore}<br>
+      `;
+      
+      if (stall.operatore) {
+        content += `<strong>Operatore:</strong> ${stall.operatore}<br>`;
+      }
+      
+      content += `
+          </div>
+          <div style="font-family: monospace; font-size: 0.8rem; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+            📍 ${stall.lat.toFixed(6)}, ${stall.lng.toFixed(6)}
+          </div>
+        </div>
+      `;
+      
+      // Create popup at stall location
+      const latlng = [stall.lat, stall.lng];
+      L.popup()
+        .setLatLng(latlng)
+        .setContent(content)
+        .openOn(map);
+    }
+
+    function getColorByStato(stato) {
+      switch(stato) {
+        case 'libero': return '#4CAF50';
+        case 'occupato': return '#F44336';
+        case 'assegnato': return '#FF9800';
+        default: return '#999';
+      }
+    }
+
+    function updateStats() {
+      const liberi = stallsData.filter(s => s.stato === 'libero').length;
+      const occupati = stallsData.filter(s => s.stato === 'occupato').length;
+      const assegnati = stallsData.filter(s => s.stato === 'assegnato').length;
+      
+      document.getElementById('totalStalls').textContent = stallsData.length;
+      document.getElementById('liberiCount').textContent = liberi;
+      document.getElementById('occupatiCount').textContent = occupati;
+      document.getElementById('assegnatiCount').textContent = assegnati;
+    }
+
+    // Controls
+    document.getElementById('toggleOverlay').addEventListener('click', () => {
+      if (overlayImage) {
+        if (map.hasLayer(overlayImage)) {
+          map.removeLayer(overlayImage);
+        } else {
+          overlayImage.addTo(map);
+        }
+      }
+    });
+
+    document.getElementById('toggleStalls').addEventListener('click', () => {
+      if (svgOverlay) {
+        stallsVisible = !stallsVisible;
+        if (stallsVisible) {
+          svgOverlay.addTo(map);
+        } else {
+          map.removeLayer(svgOverlay);
+        }
+      }
+    });
+
+    document.getElementById('opacitySlider').addEventListener('input', (e) => {
+      const opacity = parseInt(e.target.value) / 100;
+      document.getElementById('opacityValue').textContent = e.target.value + '%';
+      if (overlayImage) {
+        overlayImage.setOpacity(opacity);
+      }
+    });
+  </script>
+</body>
+</html>
+
