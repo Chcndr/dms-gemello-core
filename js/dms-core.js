@@ -24,12 +24,32 @@
   function init(){
     state.map = L.map('map', {
       zoomControl: true,
-      attributionControl: true
+      attributionControl: true,
+      maxZoom: 22
     });
-    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(state.map);
+    
+    // Multiple tile layers
+    const baseLayers = {
+      'Nessuna mappa': L.tileLayer('', {maxZoom: 22}),
+      'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 22,
+        attribution: '&copy; OpenStreetMap'
+      }),
+      'Satellitare': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22,
+        attribution: '&copy; Esri'
+      }),
+      'Bianco': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        maxZoom: 22,
+        attribution: '&copy; CartoDB'
+      })
+    };
+    
+    // Start with white background
+    baseLayers['Bianco'].addTo(state.map);
+    
+    // Add layer control
+    L.control.layers(baseLayers, null, {position: 'topright'}).addTo(state.map);
 
     // Start on Italy
     // Bounds roughly Italy
@@ -150,7 +170,7 @@
         taken: 'rgba(244, 67, 54, 0.7)'
       };
       
-      // Create geographic rectangle (3m x 6m)
+      // Create geographic polygon (rotated rectangle)
       // Convert meters to degrees (approximate)
       const metersToLat = 1 / 111320; // 1 degree latitude ≈ 111.32 km
       const metersToLon = 1 / (111320 * Math.cos(latlng.lat * Math.PI / 180));
@@ -158,13 +178,27 @@
       const halfWidth = (width / 2) * metersToLon;
       const halfLength = (length / 2) * metersToLat;
       
-      // Create rectangle bounds
-      const bounds = [
-        [latlng.lat - halfLength, latlng.lng - halfWidth],
-        [latlng.lat + halfLength, latlng.lng + halfWidth]
+      // Calculate 4 corners of rotated rectangle
+      const angleRad = (orientation * Math.PI) / 180;
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      
+      // Corners before rotation (centered at origin)
+      const corners = [
+        [-halfLength, -halfWidth],
+        [halfLength, -halfWidth],
+        [halfLength, halfWidth],
+        [-halfLength, halfWidth]
       ];
       
-      const rect = L.rectangle(bounds, {
+      // Rotate and translate corners
+      const rotatedCorners = corners.map(([dx, dy]) => {
+        const rotX = dx * cos - dy * sin;
+        const rotY = dx * sin + dy * cos;
+        return [latlng.lat + rotY, latlng.lng + rotX];
+      });
+      
+      const polygon = L.polygon(rotatedCorners, {
         color: 'white',
         weight: 2,
         fillColor: colors[status],
@@ -182,7 +216,7 @@
         interactive: false
       });
       
-      rect.bindPopup(`
+      polygon.bindPopup(`
         <div style="font-family: system-ui; padding: 4px;">
           <h3 style="margin: 0 0 8px; color: ${colors[status]};">Posteggio ${num}</h3>
           <p style="margin: 4px 0;"><b>Mercato:</b> ${f.properties.market || 'Esperanto Settimanale'}</p>
@@ -193,7 +227,7 @@
         </div>
       `);
       
-      rect.addTo(state.layers.slots);
+      polygon.addTo(state.layers.slots);
       label.addTo(state.layers.slots);
     });
 
