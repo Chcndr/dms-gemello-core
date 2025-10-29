@@ -9,7 +9,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 .brand{font-weight:700;letter-spacing:.2px}
 .ver{opacity:.7;font-size:.9rem}
 .app{display:flex;height:calc(100vh - 48px);width:100%}
-.sidebar{width:320px;min-width:280px;max-width:380px;background:var(--panel);border-right:1px solid #0b3b3f;overflow:auto;padding:12px}
+.sidebar{position:fixed;top:48px;left:0;bottom:0;width:320px;min-width:280px;max-width:380px;background:var(--panel);border-right:1px solid #0b3b3f;overflow:auto;padding:12px;z-index:900}
 .section{margin-bottom:16px}
 .section h3{margin:4px 0 8px;font-size:1rem}
 .section.small{font-size:.9rem;color:var(--muted)}
@@ -17,7 +17,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 input[type=text]{flex:1;padding:8px;border:1px solid #1c4a4e;background:#09343a;color:var(--ink);border-radius:6px}
 button{background:var(--accent);border:none;color:#001b1c;padding:8px 10px;border-radius:6px;font-weight:700;cursor:pointer}
 button:disabled{opacity:.5;cursor:not-allowed}
-#map{flex:1}
+#map{position:fixed;top:48px;left:320px;right:0;bottom:0}
 /* slot style */
 .dms-slot{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#4CAF50;border:2px solid white;color:white;font-weight:bold;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:pointer;transition:transform 0.2s}
 .dms-slot:hover{transform:scale(1.1)}
@@ -31,43 +31,22 @@ button:disabled{opacity:.5;cursor:not-allowed}
   .dms-slot{transform:scale(.9)}
 }
 .msg{margin-top:6px;color:var(--muted);min-height:20px}
-.leaflet-control-zoom{margin-top:8px} /* keep visible under header */
-
-
-/* Fix zoom controls position */
-.leaflet-control-zoom {
-  position: fixed !important;
-  top: 60px !important;
-  left: 10px !important;
-  z-index: 1000 !important;
+/* Zoom controls in top-right */
+.leaflet-control-zoom{
+  margin-top: 10px !important;
+  margin-right: 10px !important;
 }
 
-/* Hide unnecessary Leaflet controls if any */
-.leaflet-control-container .leaflet-top.leaflet-left {
-  top: 60px !important;
+/* Hide any stray controls in top-left */
+.leaflet-top.leaflet-left {
+  display: none !important;
 }
+
 
 /* Improve slot label visibility */
 .slot-label {
   pointer-events: none;
   z-index: 600 !important;
-}
-
-/* Smooth transitions for zoom */
-.leaflet-zoom-animated {
-  transition: transform 0.25s cubic-bezier(0,0,0.25,1) !important;
-}
-
-
-
-/* Show zoom controls */
-.leaflet-control-zoom {
-  display: block !important;
-}
-
-.leaflet-control-zoom-in,
-.leaflet-control-zoom-out {
-  display: block !important;
 }
 
 

@@ -23,29 +23,32 @@
 
   function init(){
     state.map = L.map('map', {
-      zoomControl: true,
+      zoomControl: false,  // Aggiungeremo controlli custom
       attributionControl: true,
-      maxZoom: 19,  // Livello ottimale per OSM
-      zoomSnap: 1,  // Zoom discreto (no scatti area)
-      zoomDelta: 1, // Delta zoom standard
+      maxZoom: 20,
+      zoomSnap: 1,
+      zoomDelta: 1,
       wheelPxPerZoomLevel: 60,
-      zoomAnimation: true,
-      fadeAnimation: true
+      zoomAnimation: false,  // Disabilita animazione per eliminare scatti
+      fadeAnimation: false
     });
+    
+    // Add zoom control in top-right (away from sidebar)
+    L.control.zoom({position: 'topright'}).addTo(state.map);
     
     // Multiple tile layers
     const baseLayers = {
-      'Nessuna mappa': L.tileLayer('', {maxZoom: 19}),
+      'Nessuna mappa': L.tileLayer('', {maxZoom: 20}),
       'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
+        maxZoom: 20,
         attribution: '&copy; OpenStreetMap'
       }),
       'Satellitare': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19,
+        maxZoom: 20,
         attribution: '&copy; Esri'
       }),
       'Bianco': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
+        maxZoom: 20,
         attribution: '&copy; CartoDB'
       })
     };
