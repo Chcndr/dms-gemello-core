@@ -86,7 +86,8 @@
         L.geoJSON(italy, {style:{color:'#0FA3A3', weight:1, fill:false}}).addTo(state.layers.italy);
       }
       if(markets){
-        renderMarkets(markets);
+        // Se c'è l'overlay completo, NON caricare i posteggi vecchi
+        renderMarkets(markets, completeData ? true : false);
         fitToData();
       }
       if(completeData){
@@ -220,7 +221,7 @@
     if(on){ grp.addTo(state.map); } else { state.map.removeLayer(grp); }
   }
 
-  function renderMarkets(fc){
+  function renderMarkets(fc, skipSlots = false){
     // clear
     state.layers.areas.clearLayers();
     state.layers.slots.clearLayers();
@@ -260,7 +261,9 @@
     });
 
     // slot rectangles with geographic dimensions (scale with zoom)
-    slots.forEach(f=>{
+    // Skip se c'è l'overlay system
+    if (!skipSlots) {
+      slots.forEach(f=>{
       const p = f.geometry.coordinates; // [lon,lat]
       const latlng = L.latLng(p[1], p[0]);
       const num = f.properties.number;
@@ -337,7 +340,8 @@
       
       polygon.addTo(state.layers.slots);
       label.addTo(state.layers.slots);
-    });
+      });
+    }
 
     state.data.areas = areas; state.data.slots = slots;
   }
