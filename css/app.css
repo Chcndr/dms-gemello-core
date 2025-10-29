@@ -72,18 +72,5 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 
 
-/* Hide mysterious I and F buttons in top-left */
-.topbar + * > *:first-child:not(.app) {
-  display: none !important;
-}
-
-/* Alternative: hide any single-letter buttons in top area */
-button:not([class*="leaflet"]):not([id]) {
-  display: none !important;
-}
-
-/* Ensure only Leaflet controls are visible in top-left */
-body > *:not(.topbar):not(.app):not(script):not(style) {
-  display: none !important;
-}
+/* Removed aggressive CSS that was hiding too many elements */
 

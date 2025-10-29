@@ -26,9 +26,9 @@
       zoomControl: true,
       attributionControl: true,
       maxZoom: 22,
-      zoomSnap: 0,  // Zoom completamente fluido (no snap)
+      zoomSnap: 0.5,  // Zoom fluido ma performante
       zoomDelta: 0.5, // Delta zoom per ogni scroll
-      wheelPxPerZoomLevel: 60, // Sensibilità scroll (più basso = più fluido)
+      wheelPxPerZoomLevel: 80, // Sensibilità scroll bilanciata
       zoomAnimation: true,
       markerZoomAnimation: true
     });
