@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DMS GIS Container",
+  "description": "Schema per container mercato con georeferenziazione 4 punti",
+  "type": "object",
+  "required": ["id", "image", "gcp", "area_px", "stalls_px"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID univoco del mercato (es: grosseto-mercato-esperanto)",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome leggibile del mercato"
+    },
+    "image": {
+      "type": "string",
+      "description": "Path o URL dell'immagine della pianta (PNG/PDF)"
+    },
+    "gcp": {
+      "type": "array",
+      "description": "Ground Control Points (4 punti di controllo)",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["px", "ll"],
+        "properties": {
+          "px": {
+            "type": "array",
+            "description": "Coordinate pixel [x, y]",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" }
+          },
+          "ll": {
+            "type": "array",
+            "description": "Coordinate geografiche [lat, lng]",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+    "area_px": {
+      "type": "array",
+      "description": "Poligono area mercato in coordinate pixel",
+      "minItems": 3,
+      "items": {
+        "type": "array",
+        "description": "Punto [x, y]",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "number" }
+      }
+    },
+    "stalls_px": {
+      "type": "array",
+      "description": "Lista posteggi in coordinate pixel",
+      "items": {
+        "type": "object",
+        "required": ["id", "poly"],
+        "properties": {
+          "id": {
+            "type": ["number", "string"],
+            "description": "ID univoco del posteggio"
+          },
+          "poly": {
+            "type": "array",
+            "description": "Poligono posteggio (rettangolo) in pixel",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "number" }
+            }
+          },
+          "w": {
+            "type": "number",
+            "description": "Larghezza in metri"
+          },
+          "h": {
+            "type": "number",
+            "description": "Altezza in metri"
+          },
+          "row": {
+            "type": "string",
+            "description": "Fila/settore (es: A, B, C)"
+          },
+          "angle": {
+            "type": "number",
+            "description": "Rotazione in gradi"
+          }
+        }
+      }
+    }
+  }
+}
+
