@@ -1,0 +1,281 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DMS GIS Editor — Trasparenza • Overlay • GCP • GeoJSON</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--bg:#0b1c26;--panel:#0f2330;--txt:#eaf1f5;--mut:#9fb1be;--acc:#1f8f5f}
+  html,body,#map{height:100%;margin:0}
+  .ui{position:absolute;top:10px;left:10px;max-width:420px;background:var(--panel);color:var(--txt);
+      padding:14px;border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.3);font:14px system-ui}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  input[type=range]{width:100%}
+  input[type=file]{display:block;margin-top:6px}
+  button{background:var(--acc);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  button.secondary{background:#2b3c48} button.danger{background:#b84040}
+  .small{font-size:12px} .mut{color:var(--mut)}
+  .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
+  #log{max-height:120px;overflow:auto;background:#08131a;border-radius:8px;padding:6px;font-family:ui-monospace,monospace;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="ui">
+  <b>1) Carica Pianta (PNG/JPG o PDF)</b>
+  <input id="file" type="file" accept="image/*,application/pdf"/>
+
+  <div class="row" style="margin-top:6px">
+    <button id="pick" class="secondary" title="Clicca sulla preview per campionare il verde">🎯 Contagocce</button>
+    <button id="downloadPng" class="secondary">⬇️ PNG trasparente</button>
+  </div>
+
+  <label>Hue min/max <span id="hvals" class="small"></span></label>
+  <input id="hmin" type="range" min="0" max="360" value="70">
+  <input id="hmax" type="range" min="0" max="360" value="160">
+
+  <label>Saturazione minima <span id="sval" class="small"></span></label>
+  <input id="smin" type="range" min="0" max="100" value="25">
+
+  <label>Luminosità minima <span id="vval" class="small"></span></label>
+  <input id="vmin" type="range" min="0" max="100" value="25">
+
+  <label><input type="checkbox" id="keepDigits" checked> Mantieni numeri/contorni scuri</label>
+
+  <div class="row">
+    <button id="applyAlpha" class="secondary">↻ Applica</button>
+    <button id="fixOverlay">📌 Fissa</button>
+    <button id="unlock" class="secondary">✏️ Sblocca</button>
+  </div>
+
+  <div class="row">
+    <button id="exportGCP" class="secondary">⬇️ Esporta GCP</button>
+    <button id="clear" class="danger">🧹 Pulisci</button>
+  </div>
+
+  <details style="margin-top:8px">
+    <summary class="small">Anteprima cromakey</summary>
+    <canvas id="preview" style="width:100%;background:#0c141a;border-radius:8px;border:1px solid #20303c"></canvas>
+  </details>
+
+  <div class="group">
+    <b>2) Container (px) → GeoJSON</b>
+    <div class="mut small" style="margin-top:4px">
+      Carica un <code>container.json</code> con <code>area_px</code> e <code>stalls_px</code> in pixel dell’immagine (vedi sample).
+      Posiziona la pianta, poi applica i GCP per georeferenziare e genera i GeoJSON.
+    </div>
+    <input type="file" id="containerInput" accept="application/json"/>
+    <div class="row" style="margin-top:6px">
+      <button id="btnApply">Applica GCP → mappa</button>
+      <button id="btnExportArea" class="secondary">⬇️ Area GeoJSON</button>
+      <button id="btnExportStalls" class="secondary">⬇️ Stalls GeoJSON</button>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.distortableimage@0.12.0/dist/leaflet.distortableimage.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+<script>
+/* ===================== MAPPA ===================== */
+const map=L.map('map').setView([42.7633,11.1117],17);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20}).addTo(map);
+map.createPane('area'); map.getPane('area').style.zIndex=450;
+map.createPane('stalls'); map.getPane('stalls').style.zIndex=460;
+
+/* ===================== UI state ===================== */
+let overlay=null, pxSize=null, lastAlphaDataURL=null, picking=false;
+const file=document.getElementById('file'), hmin=document.getElementById('hmin'), hmax=document.getElementById('hmax'),
+      smin=document.getElementById('smin'), vmin=document.getElementById('vmin'), keepDigits=document.getElementById('keepDigits'),
+      hvals=document.getElementById('hvals'), sval=document.getElementById('sval'), vval=document.getElementById('vval'),
+      preview=document.getElementById('preview'), pickBtn=document.getElementById('pick'), logEl=document.getElementById('log');
+const img=new Image(); let srcCanvas=document.createElement('canvas'), srcCtx=srcCanvas.getContext('2d',{willReadFrequently:true});
+let currentContainer=null, areaLayer=null, stallsLayer=null;
+
+/* ===================== LOG helper ===================== */
+function log(msg){const t=new Date().toTimeString().slice(0,8); logEl.innerText = `[${t}] ${msg}\n` + logEl.innerText}
+
+/* ===================== CARICA PLANTA ===================== */
+file.onchange=async()=>{
+  const f=file.files[0]; if(!f) return;
+  if(f.type==='application/pdf'){
+    const buf=await f.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    const page=await pdf.getPage(1);
+    const v=page.getViewport({scale:2});
+    const cnv=document.createElement('canvas'); cnv.width=v.width; cnv.height=v.height;
+    await page.render({canvasContext:cnv.getContext('2d'),viewport:v}).promise;
+    img.onload=()=>{pxSize={w:img.naturalWidth,h:img.naturalHeight}; drawAlpha(); placeOverlay(); log('PDF caricato.');};
+    img.src=cnv.toDataURL('image/png');
+  } else {
+    img.onload=()=>{pxSize={w:img.naturalWidth,h:img.naturalHeight}; drawAlpha(); placeOverlay(); log('Immagine caricata.');};
+    img.src=URL.createObjectURL(f);
+  }
+};
+
+/* ===================== CONTAGOCCE ===================== */
+pickBtn.onclick=()=>{picking=!picking; pickBtn.textContent=picking?'🎯 Tocca la preview…':'🎯 Contagocce'};
+preview.addEventListener('click', e=>{
+  if(!picking) return;
+  const r=preview.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)*preview.width/r.width);
+  const y=Math.floor((e.clientY-r.top)*preview.height/r.height);
+  const pctx=preview.getContext('2d',{willReadFrequently:true});
+  const d=pctx.getImageData(x,y,1,1).data;
+  const {h}=rgb2hsv(d[0],d[1],d[2]);
+  hmin.value=Math.max(0,Math.round(h)-20);
+  hmax.value=Math.min(360,Math.round(h)+20);
+  smin.value=20; vmin.value=20;
+  picking=false; pickBtn.textContent='🎯 Contagocce';
+  drawAlpha(true);
+});
+
+/* ===================== SLIDER ===================== */
+[hmin,hmax,smin,vmin,keepDigits].forEach(el=>el.oninput=()=>drawAlpha(true));
+
+/* ===================== BOTTONI BASE ===================== */
+document.getElementById('applyAlpha').onclick=()=>drawAlpha(true);
+document.getElementById('downloadPng').onclick=()=>{ if(!lastAlphaDataURL) return alert('Nessuna immagine'); const a=document.createElement('a'); a.href=lastAlphaDataURL; a.download='stalls_transparent.png'; a.click(); };
+document.getElementById('fixOverlay').onclick=()=>{ if(!overlay) return alert('Nessun overlay'); overlay.editing.disable(); log('Overlay fissato.'); };
+document.getElementById('unlock').onclick=()=>{ overlay?.editing.enable(); log('Overlay sbloccato.'); };
+document.getElementById('exportGCP').onclick=()=>{ if(!overlay||!pxSize) return alert('Niente GCP'); const ll=overlay.getCornerLatLngs(); const gcp=[{px:[0,0],ll:[ll[0].lat,ll[0].lng]},{px:[pxSize.w,0],ll:[ll[1].lat,ll[1].lng]},{px:[pxSize.w,pxSize.h],ll:[ll[2].lat,ll[2].lng]},{px:[0,pxSize.h],ll:[ll[3].lat,ll[3].lng]}]; downloadJSON({gcp,imageW:pxSize.w,imageH:pxSize.h},'gcp.json'); log('GCP esportati.'); };
+document.getElementById('clear').onclick=()=>{ [overlay,areaLayer,stallsLayer].forEach(l=>l&&map.removeLayer(l)); overlay=areaLayer=stallsLayer=null; lastAlphaDataURL=null; preview.width=0; preview.height=0; currentContainer=null; log('Pulito.'); };
+
+/* ===================== CORE: CROMAKEY + OVERLAY ===================== */
+function drawAlpha(updateOverlay=false){
+  if(!img.naturalWidth) return;
+  const W=img.naturalWidth,H=img.naturalHeight;
+  srcCanvas.width=W; srcCanvas.height=H;
+  const ctx=srcCtx; ctx.drawImage(img,0,0);
+  hvals.textContent=`${hmin.value}–${hmax.value}`; sval.textContent=smin.value; vval.textContent=vmin.value;
+
+  const scale=Math.min(1,1200/W);
+  preview.width=Math.round(W*scale); preview.height=Math.round(H*scale);
+  const pctx=preview.getContext('2d'); pctx.drawImage(img,0,0,preview.width,preview.height);
+
+  const imgData=ctx.getImageData(0,0,W,H), d=imgData.data;
+  const HMIN=+hmin.value,HMAX=+hmax.value,SMIN=+smin.value/100,VMIN=+vmin.value/100;
+  for(let i=0;i<d.length;i+=4){
+    const {h,s,v}=rgb2hsv(d[i],d[i+1],d[i+2]);
+    let keep=(h>=HMIN&&h<=HMAX&&s>=SMIN&&v>=VMIN);
+    if(keepDigits.checked){ const lum=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; if(lum<90) keep=true; }
+    d[i+3]=keep?255:0;
+  }
+  ctx.putImageData(imgData,0,0);
+  lastAlphaDataURL=srcCanvas.toDataURL('image/png');
+
+  const tmp=new Image();
+  tmp.onload=()=>{ pctx.clearRect(0,0,preview.width,preview.height); pctx.drawImage(tmp,0,0,preview.width,preview.height); };
+  tmp.src=lastAlphaDataURL;
+
+  if(updateOverlay) refreshOverlay();
+}
+function placeOverlay(){ const url=lastAlphaDataURL||img.src; if(overlay) map.removeLayer(overlay); overlay=L.distortableImageOverlay(url,{editable:true,actions:['distort','rotate','scale']}).addTo(map); map.fitBounds(overlay.getBounds()); }
+function refreshOverlay(){ if(!overlay){placeOverlay();return;} overlay.setUrl(lastAlphaDataURL); }
+
+/* ===================== CONTAINER → GEOJSON ===================== */
+document.getElementById('containerInput').onchange=async(e)=>{ const f=e.target.files[0]; if(!f) return; currentContainer=JSON.parse(await f.text()); log('Container caricato.'); };
+document.getElementById('btnApply').onclick=()=>{
+  if(!currentContainer) return alert('Carica un container JSON');
+  if(!overlay||!pxSize) return alert('Posiziona e fissa la pianta (o lasciata modificabile) per avere i GCP');
+  const ll=overlay.getCornerLatLngs();
+  const gcp=[ {px:{x:0,y:0},           wm:latLngToXY(ll[0])},
+              {px:{x:pxSize.w,y:0},     wm:latLngToXY(ll[1])},
+              {px:{x:pxSize.w,y:pxSize.h}, wm:latLngToXY(ll[2])},
+              {px:{x:0,y:pxSize.h},     wm:latLngToXY(ll[3])} ];
+
+  const H=computeHomography(
+    gcp.map(g=>g.px),
+    gcp.map(g=>g.wm)
+  );
+
+  // Area
+  const areaLatLngs = currentContainer.area_px.map(p => fromXY(applyH(H,p[0],p[1])));
+  if(areaLayer) map.removeLayer(areaLayer);
+  areaLayer = L.polygon(areaLatLngs, {pane:'area', weight:1}).addTo(map);
+
+  // Stalls
+  if(stallsLayer) map.removeLayer(stallsLayer);
+  stallsLayer = L.featureGroup([], {pane:'stalls'}).addTo(map);
+  (currentContainer.stalls_px||[]).forEach(s=>{
+    const latlngs = s.poly.map(p => fromXY(applyH(H,p[0],p[1])));
+    const poly = L.polygon(latlngs, {weight:1});
+    poly.feature = {type:'Feature', properties:{id:s.id}};
+    poly.bindTooltip(String(s.id), {direction:'center'});
+    stallsLayer.addLayer(poly);
+  });
+  attachZoomStyling(map, stallsLayer, 18);
+  map.fitBounds(areaLayer.getBounds(), {padding:[24,24]});
+  log('Georeferenzazione applicata (container → mappa).');
+};
+document.getElementById('btnExportArea').onclick=()=>{ if(!areaLayer) return alert('Nessuna area'); downloadJSON(areaLayer.toGeoJSON(),'area.geojson'); };
+document.getElementById('btnExportStalls').onclick=()=>{ if(!stallsLayer) return alert('Nessun layer posteggi'); downloadJSON(stallsLayer.toGeoJSON(),'stalls.geojson'); };
+
+/* ===================== MATH & PROIEZIONI ===================== */
+// CRS di Leaflet (Spherical Mercator)
+const CRS = L.CRS.EPSG3857;
+function latLngToXY(ll){ const p=CRS.project(ll); return {x:p.x,y:p.y}; }
+function fromXY(pt){ return CRS.unproject(L.point(pt.x,pt.y)); }
+
+// Omografia 4 punti (px -> world meters)
+function solve(A,b){
+  const n=A.length;
+  for(let i=0;i<n;i++){
+    let max=i; for(let r=i+1;r<n;r++) if(Math.abs(A[r][i])>Math.abs(A[max][i])) max=r;
+    [A[i],A[max]]=[A[max],A[i]]; [b[i],b[max]]=[b[max],b[i]];
+    const div=A[i][i]; for(let j=i;j<n;j++) A[i][j]/=div; b[i]/=div;
+    for(let r=0;r<n;r++) if(r!==i){
+      const f=A[r][i];
+      for(let j=i;j<n;j++) A[r][j]-=f*A[i][j];
+      b[r]-=f*b[i];
+    }
+  }
+  return b;
+}
+function computeHomography(pxs, wms){
+  const A=[], b=[];
+  for(let k=0;k<4;k++){
+    const x=pxs[k].x, y=pxs[k].y, X=wms[k].x, Y=wms[k].y;
+    A.push([x,y,1,0,0,0,-x*X,-y*X]); b.push(X);
+    A.push([0,0,0,x,y,1,-x*Y,-y*Y]); b.push(Y);
+  }
+  const h=solve(A,b);
+  return [[h[0],h[1],h[2]],[h[3],h[4],h[5]],[h[6],h[7],1]];
+}
+function applyH(H, x, y){
+  const w = H[2][0]*x + H[2][1]*y + H[2][2];
+  const X = (H[0][0]*x + H[0][1]*y + H[0][2]) / w;
+  const Y = (H[1][0]*x + H[1][1]*y + H[1][2]) / w;
+  return {x:X, y:Y};
+}
+
+/* ===================== STILE DINAMICO ALLO ZOOM ===================== */
+function attachZoomStyling(map, layer, baseZoom){
+  baseZoom = baseZoom || 18;
+  function restyle(){
+    const scale = Math.pow(2, map.getZoom() - baseZoom);
+    layer.setStyle?.({weight: Math.max(0.5, 1/scale)});
+    document.querySelectorAll('.leaflet-tooltip').forEach(el=>{
+      el.style.fontSize = `${Math.max(10, 12/scale)}px`;
+    });
+  }
+  map.on('zoomend', restyle); restyle();
+}
+
+/* ===================== UTILITY ===================== */
+function downloadJSON(obj, filename){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+function rgb2hsv(R,G,B){
+  const r=R/255,g=G/255,b=B/255;
+  const M=Math.max(r,g,b), m=Math.min(r,g,b), C=M-m; let H=0;
+  if(C!==0){ if(M===r) H=((g-b)/C)%6; else if(M===g) H=(b-r)/C+2; else H=(r-g)/C+4; H*=60; if(H<0) H+=360; }
+  const V=M, S=M===0?0:C/M; return {h:H,s:S,v:V};
+}
+</script>
+</body>
+</html>

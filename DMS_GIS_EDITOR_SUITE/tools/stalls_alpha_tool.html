@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DMS • Stalls → PNG trasparente</title>
+<style>
+  body{font:14px system-ui;margin:20px;background:#0b1c26;color:#eaf1f5}
+  .panel{max-width:900px;margin:auto;background:#0f2330;padding:16px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+  label{display:block;margin-top:10px} input[type=range]{width:100%}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  canvas{width:100%;background:#111;border:1px solid #223;border-radius:8px}
+  button{background:#1f8f5f;border:0;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="panel">
+  <h2>PNG trasparente (solo posteggi)</h2>
+  <input id="file" type="file" accept="image/*,application/pdf"/>
+  <div class="row">
+    <div><label>Originale</label><canvas id="src"></canvas></div>
+    <div><label>Risultato</label><canvas id="dst"></canvas></div>
+  </div>
+  <label>Hue Min/Max <span id="hvals"></span></label>
+  <input id="hmin" type="range" min="0" max="360" value="70">
+  <input id="hmax" type="range" min="0" max="360" value="160">
+  <label>Saturation Min <span id="sval"></span></label>
+  <input id="smin" type="range" min="0" max="100" value="25">
+  <label>Value Min <span id="vval"></span></label>
+  <input id="vmin" type="range" min="0" max="100" value="25">
+  <label><input type="checkbox" id="keepDigits" checked> Tieni numeri scuri</label>
+  <button id="download">Scarica PNG</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+<script>
+const f=document.getElementById('file'), sC=document.getElementById('src'), dC=document.getElementById('dst');
+const hmin=document.getElementById('hmin'), hmax=document.getElementById('hmax'), smin=document.getElementById('smin'), vmin=document.getElementById('vmin'), keepDigits=document.getElementById('keepDigits');
+const hvals=document.getElementById('hvals'), sval=document.getElementById('sval'), vval=document.getElementById('vval'); let img=new Image();
+f.onchange=async()=>{
+  const file=f.files[0]; if(!file) return;
+  if(file.type==='application/pdf'){
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    const page=await pdf.getPage(1);
+    const v=page.getViewport({scale:2});
+    const canvas=document.createElement('canvas');
+    canvas.width=v.width; canvas.height=v.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:v}).promise;
+    img.onload=()=>draw(); img.src=canvas.toDataURL('image/png');
+  } else { img.onload=()=>draw(); img.src=URL.createObjectURL(file); }
+};
+[hmin,hmax,smin,vmin,keepDigits].forEach(el=>el.oninput=draw);
+document.getElementById('download').onclick=()=>{ const a=document.createElement('a'); a.href=dC.toDataURL('image/png'); a.download='stalls_transparent.png'; a.click(); };
+function draw(){
+  if(!img.naturalWidth) return;
+  const W=img.naturalWidth,H=img.naturalHeight;
+  sC.width=W; sC.height=H; dC.width=W; dC.height=H;
+  const sctx=sC.getContext('2d'); sctx.drawImage(img,0,0);
+  const dctx=dC.getContext('2d'); dctx.drawImage(img,0,0);
+  const imgData=dctx.getImageData(0,0,W,H); const d=imgData.data;
+  const HMIN=+hmin.value,HMAX=+hmax.value,SMIN=+smin.value/100,VMIN=+vmin.value/100;
+  hvals.textContent=`${HMIN}–${HMAX}`; sval.textContent=smin.value; vval.textContent=vmin.value;
+  for(let i=0;i<d.length;i+=4){
+    const hsv=rgb2hsv(d[i],d[i+1],d[i+2]);
+    let keep=(hsv.h>=HMIN&&hsv.h<=HMAX&&hsv.s>=SMIN&&hsv.v>=VMIN);
+    if(keepDigits.checked){ const lum=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; if(lum<90) keep=true; }
+    d[i+3]=keep?255:0;
+  }
+  dctx.putImageData(imgData,0,0);
+}
+function rgb2hsv(R,G,B){const r=R/255,g=G/255,b=B/255;const M=Math.max(r,g,b),m=Math.min(r,g,b),C=M-m;let H=0;
+  if(C!==0){ if(M===r) H=((g-b)/C)%6; else if(M===g) H=(b-r)/C+2; else H=(r-g)/C+4; H*=60; if(H<0) H+=360; }
+  const V=M, S=M===0?0:C/M; return {h:H,s:S,v:V};}
+</script>
+</body>
+</html>
