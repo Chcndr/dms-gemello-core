@@ -631,6 +631,9 @@ document.getElementById('rotateImageBtn').onclick = ()=>{
 };
 
 document.getElementById('applyFromModal').onclick = ()=>{
+  // Chiudo subito la modale per vedere la mappa
+  closePngModal();
+  
   // Salvo l'immagine pulita
   lastAlphaDataURL = modalDst.toDataURL('image/png');
   pxSize = {w: modalDst.width, h: modalDst.height};
@@ -645,7 +648,6 @@ document.getElementById('applyFromModal').onclick = ()=>{
   // Aggiorno anche l'immagine sorgente per i canvas dell'editor
   img.src = lastAlphaDataURL;
   
-  closePngModal(); // Chiudo la modale
   log('Immagine pulita applicata sulla mappa.');
 };
 
