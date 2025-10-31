@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DMS GIS — Editor Completo (HUB)</title>
+
+<!-- Leaflet base -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{--panel:#0f2330;--txt:#eaf1f5;--mut:#9fb1be;--acc:#1f8f5f}
+  html,body,#map{height:100%;margin:0}
+  #map{position:relative;z-index:1}
+
+  /* Sidebar fissa, scrollabile, sempre sopra */
+  .ui{
+    position:fixed; top:12px; left:12px; z-index:10000;
+    width:360px; max-width:min(92vw,420px); height:calc(100% - 24px);
+    overflow:auto; background:var(--panel); color:var(--txt);
+    padding:14px 14px 18px; border-radius:12px;
+    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    font:14px system-ui; transition:transform .25s ease;
+  }
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .btn{background:var(--acc);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  .btn.secondary{background:#2b3c48}
+  .btn.danger{background:#b84040}
+  a.btn{ text-decoration:none; display:inline-block }
+  .mut{color:var(--mut)} .small{font-size:12px}
+  .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
+
+  /* Hamburger */
+  .toggle{position:fixed; top:12px; left:12px; z-index:10001; background:#2b3c48;color:#fff;
+          border:0;border-radius:10px;padding:8px 10px;cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.25)}
+  body.ui-collapsed .ui{ transform:translateX(calc(-100% - 16px)); }
+  /* Sposta i controlli Leaflet quando sidebar aperta (desktop) */
+  body:not(.ui-collapsed) .leaflet-left{ left:388px; transition:left .25s ease; }
+  @media (max-width:900px){
+    .ui{ width:min(92vw,420px) }
+    body:not(.ui-collapsed) .leaflet-left{ left:12px }
+    body:not(.ui-opened-once) .ui{ transform:translateX(calc(-100% - 16px)); }
+  }
+  #bus{background:#08131a;border-radius:8px;padding:8px;max-height:160px;overflow:auto}
+  .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #20303c;padding:4px 0}
+</style>
+</head>
+<body>
+<button id="togglePanel" class="toggle" title="Apri/chiudi pannello">☰</button>
+<div id="map"></div>
+
+<div class="ui">
+  <h3 style="margin:0 0 6px">DMS GIS — Editor Completo (HUB)</h3>
+  <div class="small mut">Questo HUB non elabora: apre i 3 editor e mostra lo stato del Bus (IndexedDB).</div>
+
+  <div class="group">
+    <b>Apri editor</b>
+    <div class="row">
+      <a class="btn secondary" href="../tools/stalls_alpha_tool.html" target="_blank">PNG Trasparente</a>
+      <a class="btn secondary" href="../tools/align_editor.html" target="_blank">Allineatore (ruota/scala)</a>
+      <a class="btn secondary" href="../tools/container_kit.html" target="_blank">GIS Container Kit</a>
+      <a class="btn"           href="../tools/result_viewer.html" target="_blank">Viewer finale</a>
+    </div>
+    <div class="small mut" style="margin-top:6px">Si aprono in nuova scheda; scambiano i dati via Bus.</div>
+  </div>
+
+  <div class="group">
+    <b>Stato Bus (IndexedDB)</b>
+    <div id="bus" class="small"></div>
+    <div class="row">
+      <button class="btn secondary" id="refreshBus">Aggiorna</button>
+      <button class="btn danger" id="clearBus">Svuota</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <b>Diagnostica rapida</b>
+    <div class="small mut">
+      Leaflet: <span id="leafletOk">…</span><br/>
+      Cache: se vedi comportamenti strani, ricarica la pagina tenendo premuto "↻" su iPad → "Ricarica senza contenuti bloccati".
+    </div>
+  </div>
+</div>
+
+<script>
+// mappa base
+const map=L.map('map').setView([42.7633,11.1117],16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OSM'}).addTo(map);
+
+// toggle sidebar
+const toggleBtn=document.getElementById('togglePanel');
+toggleBtn.addEventListener('click', ()=>{ document.body.classList.toggle('ui-collapsed'); document.body.classList.add('ui-opened-once'); });
+if(window.matchMedia('(min-width:901px)').matches){ document.body.classList.remove('ui-collapsed'); }
+
+// bus
+</script>
+<script src="../shared/dms-bus.js"></script>
+<script>
+const busEl=document.getElementById('bus');
+const KEYS=[
+  ['png_transparent','PNG trasparente'],
+  ['png_meta','Meta PNG'],
+  ['png_aligned','PNG allineata'],
+  ['gcp','GCP (4 angoli)'],
+  ['container_json','Container (px)'],
+  ['area_geojson','Area GeoJSON'],
+  ['stalls_geojson','Stalls GeoJSON']
+];
+
+async function renderBus(){
+  let html='';
+  for(const [k,label] of KEYS){
+    const v = await DMSBUS.get(k);
+    let info='—';
+    if(v){
+      if(v instanceof Blob){ info = `Blob ${Math.round(v.size/1024)} KB`; }
+      else{
+        try{
+          const obj = typeof v==='string'? JSON.parse(v):v;
+          info = Array.isArray(obj)? `${obj.length} items` : (typeof obj==='object'? `${Object.keys(obj).length} chiavi` : String(v).slice(0,60));
+        }catch{ info = String(v).slice(0,60); }
+      }
+    }
+    html += `<div class="kv"><span>${label}</span><span>${v?'✅':'—'} ${info}</span></div>`;
+  }
+  busEl.innerHTML = html || '<span class="mut">Vuoto.</span>';
+}
+document.getElementById('refreshBus').onclick=renderBus;
+document.getElementById('clearBus').onclick=async()=>{ await DMSBUS.clear(); renderBus(); };
+renderBus();
+
+// diagnostica
+document.getElementById('leafletOk').textContent = (window.L && L.map)? 'OK' : 'NON CARICATO';
+</script>
+</body>
+</html>
+

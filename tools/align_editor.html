@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DMS GIS — Allineatore (ruota/scala/centra)</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{--panel:#0f2330;--txt:#eaf1f5;--mut:#9fb1be;--acc:#1f8f5f}
+  html,body,#map{height:100%;margin:0}
+  #map{position:relative;z-index:1}
+  
+  .ui{
+    position:fixed; top:12px; left:12px; z-index:10000;
+    width:360px; max-width:min(92vw,420px); max-height:calc(100% - 24px);
+    overflow:auto; background:var(--panel); color:var(--txt);
+    padding:14px; border-radius:12px;
+    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    font:14px system-ui;
+  }
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .btn{background:var(--acc);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  .btn.secondary{background:#2b3c48}
+  .btn.danger{background:#b84040}
+  .btn:disabled{opacity:0.5;cursor:not-allowed}
+  .mut{color:var(--mut)} .small{font-size:12px}
+  .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
+  
+  input[type=range]{width:100%;margin:6px 0}
+  label{display:block;margin-top:8px;font-size:13px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="ui">
+  <h3 style="margin:0 0 6px">🎯 Allineatore</h3>
+  <div class="small mut">Ruota, scala e centra l'immagine sulla mappa. NO distorsioni.</div>
+
+  <div class="group">
+    <b>1. Carica PNG dal Bus</b>
+    <div class="row">
+      <button class="btn secondary" id="loadFromBus">📥 Carica dal Bus</button>
+    </div>
+    <div class="small mut" id="loadStatus">In attesa...</div>
+  </div>
+
+  <div class="group">
+    <b>2. Allinea Immagine</b>
+    
+    <label>Rotazione: <span id="rotVal">0</span>°</label>
+    <input type="range" id="rotation" min="0" max="360" value="0" step="1"/>
+    
+    <label>Scala: <span id="scaleVal">1.0</span>x</label>
+    <input type="range" id="scale" min="0.1" max="5" value="1" step="0.1"/>
+    
+    <label>Opacità: <span id="opVal">0.7</span></label>
+    <input type="range" id="opacity" min="0" max="1" value="0.7" step="0.05"/>
+    
+    <div class="row" style="margin-top:12px">
+      <button class="btn secondary" id="resetTransform">↻ Reset</button>
+      <button class="btn secondary" id="centerOnMap">📍 Centra su Mappa</button>
+    </div>
+    
+    <div class="small mut" style="margin-top:8px">
+      Trascina l'immagine per posizionarla. Usa gli slider per ruotare e scalare.
+    </div>
+  </div>
+
+  <div class="group">
+    <b>3. Salva GCP ed Esporta</b>
+    <div class="row">
+      <button class="btn" id="saveGCP" disabled>💾 Salva GCP nel Bus</button>
+      <button class="btn secondary" id="openContainerKit" disabled>➡️ Container Kit</button>
+    </div>
+    <div class="small mut" id="gcpStatus">Posiziona l'immagine prima di salvare.</div>
+  </div>
+
+  <div class="group">
+    <b>Debug</b>
+    <div class="small mut" id="debug">...</div>
+  </div>
+</div>
+
+<script src="../shared/dms-bus.js"></script>
+<script>
+// Mappa
+const map = L.map('map').setView([42.7633, 11.1117], 16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20,
+  attribution: '© OSM'
+}).addTo(map);
+
+// Elementi UI
+const loadStatus = document.getElementById('loadStatus');
+const gcpStatus = document.getElementById('gcpStatus');
+const debugEl = document.getElementById('debug');
+const rotInput = document.getElementById('rotation');
+const scaleInput = document.getElementById('scale');
+const opInput = document.getElementById('opacity');
+const rotVal = document.getElementById('rotVal');
+const scaleVal = document.getElementById('scaleVal');
+const opVal = document.getElementById('opVal');
+const saveBtn = document.getElementById('saveGCP');
+const openKitBtn = document.getElementById('openContainerKit');
+
+// Stato
+let imageOverlay = null;
+let imageBounds = null;
+let imageSize = {w: 0, h: 0};
+let currentRotation = 0;
+let currentScale = 1.0;
+let currentOpacity = 0.7;
+
+// Funzioni di log
+function log(msg) {
+  debugEl.textContent = `[${new Date().toTimeString().slice(0,8)}] ${msg}`;
+}
+
+// 1. Carica PNG dal Bus
+document.getElementById('loadFromBus').onclick = async () => {
+  try {
+    const blob = await DMSBUS.getBlob('png_transparent');
+    const meta = await DMSBUS.getJSON('png_meta');
+    
+    if (!blob) {
+      loadStatus.textContent = '❌ Nessun PNG nel bus. Usa prima "PNG Trasparente".';
+      return;
+    }
+    
+    imageSize = meta || {w: 1000, h: 800};
+    loadStatus.textContent = `✅ PNG caricato (${imageSize.w}x${imageSize.h})`;
+    
+    // Crea URL da Blob
+    const url = URL.createObjectURL(blob);
+    
+    // Calcola bounds iniziali centrati sulla mappa
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const metersPerPixel = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, zoom);
+    const widthMeters = imageSize.w * metersPerPixel * 0.5; // Scala iniziale 0.5x
+    const heightMeters = imageSize.h * metersPerPixel * 0.5;
+    
+    const latOffset = (heightMeters / 111320);
+    const lngOffset = (widthMeters / (111320 * Math.cos(center.lat * Math.PI / 180)));
+    
+    imageBounds = [
+      [center.lat - latOffset, center.lng - lngOffset], // SW
+      [center.lat + latOffset, center.lng + lngOffset]  // NE
+    ];
+    
+    // Crea overlay
+    if (imageOverlay) {
+      map.removeLayer(imageOverlay);
+    }
+    
+    imageOverlay = L.imageOverlay(url, imageBounds, {
+      opacity: currentOpacity,
+      interactive: true
+    }).addTo(map);
+    
+    // Abilita drag
+    imageOverlay.dragging = new L.Handler.Drag(imageOverlay);
+    imageOverlay.dragging.enable();
+    
+    log('Immagine caricata. Trascina per posizionare.');
+    saveBtn.disabled = false;
+    openKitBtn.disabled = false;
+    gcpStatus.textContent = 'Immagine pronta. Allinea e salva GCP.';
+    
+  } catch (err) {
+    loadStatus.textContent = `❌ Errore: ${err.message}`;
+    log(`Errore caricamento: ${err}`);
+  }
+};
+
+// 2. Controlli trasformazione
+rotInput.oninput = () => {
+  currentRotation = parseFloat(rotInput.value);
+  rotVal.textContent = currentRotation;
+  updateTransform();
+};
+
+scaleInput.oninput = () => {
+  currentScale = parseFloat(scaleInput.value);
+  scaleVal.textContent = currentScale.toFixed(1);
+  updateTransform();
+};
+
+opInput.oninput = () => {
+  currentOpacity = parseFloat(opInput.value);
+  opVal.textContent = currentOpacity.toFixed(2);
+  if (imageOverlay) {
+    imageOverlay.setOpacity(currentOpacity);
+  }
+};
+
+function updateTransform() {
+  if (!imageOverlay || !imageBounds) return;
+  
+  const center = L.latLngBounds(imageBounds).getCenter();
+  const originalWidth = imageBounds[1][1] - imageBounds[0][1];
+  const originalHeight = imageBounds[1][0] - imageBounds[0][0];
+  
+  // Applica scala
+  const newWidth = originalWidth * currentScale;
+  const newHeight = originalHeight * currentScale;
+  
+  // Calcola nuovi bounds
+  const newBounds = [
+    [center.lat - newHeight/2, center.lng - newWidth/2],
+    [center.lat + newHeight/2, center.lng + newWidth/2]
+  ];
+  
+  imageOverlay.setBounds(newBounds);
+  
+  // Applica rotazione (CSS transform)
+  const el = imageOverlay.getElement();
+  if (el) {
+    el.style.transform = `rotate(${currentRotation}deg)`;
+    el.style.transformOrigin = 'center';
+  }
+  
+  log(`Trasformato: rot=${currentRotation}° scala=${currentScale}x`);
+}
+
+document.getElementById('resetTransform').onclick = () => {
+  rotInput.value = 0;
+  scaleInput.value = 1;
+  opInput.value = 0.7;
+  currentRotation = 0;
+  currentScale = 1.0;
+  currentOpacity = 0.7;
+  rotVal.textContent = '0';
+  scaleVal.textContent = '1.0';
+  opVal.textContent = '0.70';
+  updateTransform();
+  log('Reset trasformazioni');
+};
+
+document.getElementById('centerOnMap').onclick = () => {
+  if (imageOverlay) {
+    map.fitBounds(imageOverlay.getBounds());
+    log('Centrato su mappa');
+  }
+};
+
+// 3. Salva GCP
+document.getElementById('saveGCP').onclick = async () => {
+  if (!imageOverlay) {
+    gcpStatus.textContent = '❌ Carica prima un\'immagine';
+    return;
+  }
+  
+  try {
+    const bounds = imageOverlay.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const nw = L.latLng(ne.lat, sw.lng);
+    const se = L.latLng(sw.lat, ne.lng);
+    
+    // GCP: 4 angoli (NW, NE, SW, SE)
+    const gcp = {
+      gcp: [
+        {px: [0, 0], ll: [nw.lat, nw.lng]},
+        {px: [imageSize.w, 0], ll: [ne.lat, ne.lng]},
+        {px: [0, imageSize.h], ll: [sw.lat, sw.lng]},
+        {px: [imageSize.w, imageSize.h], ll: [se.lat, se.lng]}
+      ],
+      imageW: imageSize.w,
+      imageH: imageSize.h,
+      rotation: currentRotation,
+      scale: currentScale
+    };
+    
+    await DMSBUS.putJSON('gcp', gcp);
+    await DMSBUS.putBlob('png_aligned', await DMSBUS.getBlob('png_transparent'));
+    
+    gcpStatus.textContent = '✅ GCP salvati nel bus!';
+    log('GCP salvati con successo');
+    
+  } catch (err) {
+    gcpStatus.textContent = `❌ Errore: ${err.message}`;
+    log(`Errore salvataggio GCP: ${err}`);
+  }
+};
+
+document.getElementById('openContainerKit').onclick = () => {
+  window.open('../tools/container_kit.html', '_blank');
+};
+
+log('Allineatore pronto');
+</script>
+</body>
+</html>
+

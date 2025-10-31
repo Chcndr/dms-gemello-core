@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DMS GIS — Result Viewer</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{--panel:#0f2330;--txt:#eaf1f5;--mut:#9fb1be;--acc:#1f8f5f}
+  html,body,#map{height:100%;margin:0}
+  #map{position:relative;z-index:1}
+  
+  .ui{
+    position:fixed; top:12px; left:12px; z-index:10000;
+    width:360px; max-width:min(92vw,420px); max-height:calc(100% - 24px);
+    overflow:auto; background:var(--panel); color:var(--txt);
+    padding:14px; border-radius:12px;
+    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    font:14px system-ui;
+  }
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .btn{background:var(--acc);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  .btn.secondary{background:#2b3c48}
+  .btn.danger{background:#b84040}
+  .btn:disabled{opacity:0.5;cursor:not-allowed}
+  .mut{color:var(--mut)} .small{font-size:12px}
+  .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
+  
+  .stall-label{
+    background:rgba(76,175,80,0.9)!important;
+    border:none!important;
+    color:white!important;
+    font-weight:bold;
+    padding:2px 6px!important;
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="ui">
+  <h3 style="margin:0 0 6px">🎉 Result Viewer</h3>
+  <div class="small mut">Visualizza i risultati finali dal bus.</div>
+
+  <div class="group">
+    <b>Carica dal Bus</b>
+    <div class="row">
+      <button class="btn" id="loadFromBus">📥 Carica GeoJSON</button>
+      <button class="btn secondary" id="refresh">🔄 Refresh</button>
+    </div>
+    <div class="small mut" id="status">In attesa...</div>
+  </div>
+
+  <div class="group">
+    <b>Controlli</b>
+    <div class="row">
+      <button class="btn danger" id="clearMap">🗑️ Pulisci Mappa</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <b>Statistiche</b>
+    <div class="small mut" id="stats">...</div>
+  </div>
+</div>
+
+<script src="../shared/dms-bus.js"></script>
+<script>
+// Mappa
+const map = L.map('map').setView([42.7633, 11.1117], 16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20,
+  attribution: '© OSM'
+}).addTo(map);
+
+// Crea pane per posteggi
+map.createPane('stalls');
+map.getPane('stalls').style.zIndex = 650;
+
+// Elementi UI
+const statusEl = document.getElementById('status');
+const statsEl = document.getElementById('stats');
+
+// Layer
+let areaLayer = null;
+let stallsLayer = null;
+
+// Funzioni
+function log(msg) {
+  statusEl.textContent = msg;
+}
+
+async function loadFromBus() {
+  try {
+    const area = await DMSBUS.getJSON('area_geojson');
+    const stalls = await DMSBUS.getJSON('stalls_geojson');
+    
+    if (!area && !stalls) {
+      log('❌ Nessun GeoJSON nel bus. Completa prima il workflow.');
+      return;
+    }
+    
+    // Pulisci mappa
+    clearMap();
+    
+    // Visualizza area
+    if (area) {
+      areaLayer = L.geoJSON(area, {
+        style: {
+          color: '#4CAF50',
+          weight: 2,
+          fillOpacity: 0.1
+        }
+      }).addTo(map);
+      
+      log('✅ Area caricata!');
+    }
+    
+    // Visualizza posteggi
+    if (stalls) {
+      stallsLayer = L.geoJSON(stalls, {
+        pane: 'stalls',
+        style: {
+          color: '#4CAF50',
+          weight: 1,
+          fillOpacity: 0.3
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          
+          layer.bindTooltip(String(props.id), {
+            permanent: false,
+            direction: 'center',
+            className: 'stall-label'
+          });
+          
+          layer.bindPopup(`
+            <strong>Posteggio ${props.id}</strong><br>
+            Dimensioni: ${props.width}m x ${props.height}m<br>
+            ${props.row ? `Fila: ${props.row}<br>` : ''}
+            Coordinate: ${props.center_lat.toFixed(6)}, ${props.center_lng.toFixed(6)}
+          `);
+        }
+      }).addTo(map);
+      
+      log('✅ Posteggi caricati!');
+    }
+    
+    // Zoom su area
+    if (areaLayer) {
+      map.fitBounds(areaLayer.getBounds());
+    } else if (stallsLayer) {
+      map.fitBounds(stallsLayer.getBounds());
+    }
+    
+    // Statistiche
+    const areaCount = area ? 1 : 0;
+    const stallCount = stalls ? stalls.features.length : 0;
+    statsEl.innerHTML = `
+      Area: ${areaCount ? '✅' : '—'}<br>
+      Posteggi: ${stallCount || '—'}
+    `;
+    
+  } catch (err) {
+    log(`❌ Errore: ${err.message}`);
+    console.error(err);
+  }
+}
+
+function clearMap() {
+  if (areaLayer) {
+    map.removeLayer(areaLayer);
+    areaLayer = null;
+  }
+  if (stallsLayer) {
+    map.removeLayer(stallsLayer);
+    stallsLayer = null;
+  }
+  log('Mappa pulita');
+  statsEl.textContent = '...';
+}
+
+// Eventi
+document.getElementById('loadFromBus').onclick = loadFromBus;
+document.getElementById('refresh').onclick = loadFromBus;
+document.getElementById('clearMap').onclick = clearMap;
+
+// Auto-carica all'avvio
+loadFromBus();
+log('Result Viewer pronto');
+</script>
+</body>
+</html>
+

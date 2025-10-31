@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DMS GIS Container Kit - Demo</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 350px;
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    #map {
+      flex: 1;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #3498db;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin: 20px 0 10px 0;
+      color: #ecf0f1;
+    }
+
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      background: #2980b9;
+    }
+
+    .btn-success {
+      background: #27ae60;
+    }
+
+    .btn-success:hover {
+      background: #229954;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #34495e;
+      background: #34495e;
+      color: white;
+    }
+
+    .info {
+      background: #34495e;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .stall-label {
+      background: rgba(76, 175, 80, 0.9) !important;
+      border: none !important;
+      color: white !important;
+      font-weight: bold;
+      padding: 2px 6px !important;
+    }
+
+    #status {
+      background: #34495e;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .status-line {
+      margin: 5px 0;
+    }
+
+    .status-success {
+      color: #2ecc71;
+    }
+
+    .status-error {
+      color: #e74c3c;
+    }
+
+    .status-info {
+      color: #3498db;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h1>🗺️ DMS GIS Container Kit</h1>
+    
+    <div class="info">
+      <strong>Demo Completa</strong><br>
+      Carica un container JSON e visualizza area + posteggi georeferenziati.
+    </div>
+
+    <h2>1. Carica Container</h2>
+    <input type="file" id="fileInput" accept=".json">
+    <button class="btn" onclick="loadSample()">📋 Carica Sample</button>
+
+    <h2>2. Visualizza</h2>
+    <button class="btn btn-success" id="btnApply" disabled>✅ Applica Georeferenziazione</button>
+
+    <h2>3. Export</h2>
+    <button class="btn" id="btnExportArea" disabled>💾 Esporta Area GeoJSON</button>
+    <button class="btn" id="btnExportStalls" disabled>💾 Esporta Posteggi GeoJSON</button>
+
+    <h2>4. Controlli</h2>
+    <button class="btn btn-danger" onclick="clearMap()">🗑️ Pulisci Mappa</button>
+
+    <div id="status"></div>
+  </div>
+
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- DMS GIS Container Kit -->
+  <script src="./js/rectMeters.js"></script>
+  <script src="./js/zoomStyle.js"></script>
+  <script src="./js/applyHomography.js"></script>
+  <script src="./js/container.js"></script>
+  <script src="../shared/dms-bus.js"></script>
+
+  <script>
+    // Inizializza mappa
+    const map = L.map('map').setView([42.7583, 11.1142], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Crea pane per posteggi
+    map.createPane('stalls');
+    map.getPane('stalls').style.zIndex = 650;
+
+    // Variabili globali
+    let currentContainer = null;
+    let currentLayers = null;
+    let currentGeoJSON = null;
+
+    // Auto-carica da bus
+    async function loadFromBus() {
+      try {
+        const containerJSON = await DMSBUS.getJSON('container_json');
+        const gcp = await DMSBUS.getJSON('gcp');
+        
+        if (containerJSON && gcp) {
+          // Merge container + GCP
+          currentContainer = {...containerJSON, gcp: gcp.gcp};
+          log('Container e GCP caricati dal bus!', 'success');
+          log(`GCP: ${gcp.gcp.length} punti`, 'info');
+          log(`Posteggi: ${containerJSON.stalls_px.length}`, 'info');
+          document.getElementById('btnApply').disabled = false;
+          
+          // Auto-applica
+          document.getElementById('btnApply').click();
+        } else {
+          log('Bus vuoto. Carica manualmente un container.', 'info');
+        }
+      } catch (err) {
+        log(`Errore caricamento bus: ${err.message}`, 'error');
+      }
+    }
+    
+    // Carica da bus all'avvio
+    loadFromBus();
+
+    // Funzioni di log
+    function log(message, type = 'info') {
+      const status = document.getElementById('status');
+      const line = document.createElement('div');
+      line.className = `status-line status-${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      status.insertBefore(line, status.firstChild);
+    }
+
+    // Carica file
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          currentContainer = JSON.parse(event.target.result);
+          log(`Container caricato: ${currentContainer.id}`, 'success');
+          log(`GCP: ${currentContainer.gcp.length} punti`, 'info');
+          log(`Posteggi: ${currentContainer.stalls_px.length}`, 'info');
+          document.getElementById('btnApply').disabled = false;
+        } catch (err) {
+          log(`Errore: ${err.message}`, 'error');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Carica sample
+    function loadSample() {
+      fetch('../../DMS_GIS_CONTAINER_KIT/sample/container.sample.json')
+        .then(r => r.json())
+        .then(data => {
+          currentContainer = data;
+          log(`Sample caricato: ${data.id}`, 'success');
+          log(`GCP: ${data.gcp.length} punti`, 'info');
+          log(`Posteggi: ${data.stalls_px.length}`, 'info');
+          document.getElementById('btnApply').disabled = false;
+        })
+        .catch(err => {
+          log(`Errore: ${err.message}`, 'error');
+        });
+    }
+
+    // Applica georeferenziazione
+    document.getElementById('btnApply').addEventListener('click', () => {
+      if (!currentContainer) {
+        log('Nessun container caricato!', 'error');
+        return;
+      }
+
+      try {
+        log('Applicazione omografia...', 'info');
+        
+        // Converti container in GeoJSON
+        currentGeoJSON = DMS.containerToLayers(currentContainer);
+        
+        log('Omografia applicata!', 'success');
+        log(`Area: ${currentGeoJSON.area.geometry.coordinates[0].length} vertici`, 'info');
+        log(`Posteggi: ${currentGeoJSON.stalls.features.length}`, 'info');
+
+        // Visualizza su mappa
+        clearMap();
+
+        // Area
+        const areaLayer = L.geoJSON(currentGeoJSON.area, {
+          style: {
+            color: '#4CAF50',
+            weight: 2,
+            fillOpacity: 0.1
+          }
+        }).addTo(map);
+
+        // Posteggi
+        const stallsLayer = L.geoJSON(currentGeoJSON.stalls, {
+          pane: 'stalls',
+          style: {
+            color: '#4CAF50',
+            weight: 1,
+            fillOpacity: 0.3
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            
+            layer.bindTooltip(String(props.id), {
+              permanent: false,
+              direction: 'center',
+              className: 'stall-label'
+            });
+
+            layer.bindPopup(`
+              <strong>Posteggio ${props.id}</strong><br>
+              Dimensioni: ${props.width}m x ${props.height}m<br>
+              ${props.row ? `Fila: ${props.row}<br>` : ''}
+              Coordinate: ${props.center_lat.toFixed(6)}, ${props.center_lng.toFixed(6)}
+            `);
+          }
+        }).addTo(map);
+
+        // Zoom su area
+        map.fitBounds(areaLayer.getBounds());
+
+        currentLayers = { areaLayer, stallsLayer };
+
+        // Abilita export
+        document.getElementById('btnExportArea').disabled = false;
+        document.getElementById('btnExportStalls').disabled = false;
+
+        log('Visualizzazione completata!', 'success');
+      } catch (err) {
+        log(`Errore: ${err.message}`, 'error');
+        console.error(err);
+      }
+    });
+
+    // Export Area
+    document.getElementById('btnExportArea').addEventListener('click', async () => {
+      if (!currentGeoJSON) return;
+      
+      // Salva nel bus
+      await DMSBUS.putJSON('area_geojson', currentGeoJSON.area);
+      
+      const blob = new Blob([JSON.stringify(currentGeoJSON.area, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentContainer.id}_area.geojson`;
+      a.click();
+      
+      log('Area esportata e salvata nel bus!', 'success');
+    });
+
+    // Export Stalls
+    document.getElementById('btnExportStalls').addEventListener('click', async () => {
+      if (!currentGeoJSON) return;
+      
+      // Salva nel bus
+      await DMSBUS.putJSON('stalls_geojson', currentGeoJSON.stalls);
+      
+      const blob = new Blob([JSON.stringify(currentGeoJSON.stalls, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentContainer.id}_stalls.geojson`;
+      a.click();
+      
+      log('Posteggi esportati e salvati nel bus!', 'success');
+    });
+
+    // Pulisci mappa
+    function clearMap() {
+      if (currentLayers) {
+        map.removeLayer(currentLayers.areaLayer);
+        map.removeLayer(currentLayers.stallsLayer);
+        currentLayers = null;
+      }
+      log('Mappa pulita', 'info');
+    }
+
+    // Log iniziale
+    log('Demo pronta! Carica un container JSON o usa il sample.', 'info');
+  </script>
+</body>
+</html>
+
