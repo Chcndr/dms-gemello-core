@@ -339,8 +339,41 @@ function placeOverlay(){
   if(overlay) map.removeLayer(overlay); 
   
   try {
-    // Creo overlay senza specificare corners - la libreria li imposterà automaticamente
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    
+    // Calcolo la dimensione dell'overlay in base al rapporto larghezza/altezza dell'immagine
+    let aspectRatio = 1;
+    if (pxSize && pxSize.w && pxSize.h) {
+      aspectRatio = pxSize.w / pxSize.h;
+    }
+    
+    // Dimensione base in gradi (circa 100 metri a zoom 17)
+    const baseSize = 0.0005 * Math.pow(2, 17 - zoom);
+    
+    // Calcolo larghezza e altezza in base all'aspect ratio
+    let latDiff, lngDiff;
+    if (aspectRatio > 1) {
+      // Immagine orizzontale
+      lngDiff = baseSize * aspectRatio;
+      latDiff = baseSize;
+    } else {
+      // Immagine verticale
+      lngDiff = baseSize;
+      latDiff = baseSize / aspectRatio;
+    }
+    
+    // Creo i corners in ordine NW, NE, SW, SE (forma a Z)
+    const corners = [
+      L.latLng(center.lat + latDiff, center.lng - lngDiff), // NW
+      L.latLng(center.lat + latDiff, center.lng + lngDiff), // NE
+      L.latLng(center.lat - latDiff, center.lng - lngDiff), // SW
+      L.latLng(center.lat - latDiff, center.lng + lngDiff)  // SE
+    ];
+    
+    // Creo overlay con corners calcolati
     overlay = L.distortableImageOverlay(url, {
+      corners: corners,
       editable: true,
       mode: 'distort'
     }).addTo(map);
