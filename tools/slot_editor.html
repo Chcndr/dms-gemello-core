@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DMS • Slot Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    .container { display: flex; height: 100vh; }
+    
+    .sidebar {
+      width: 350px;
+      background: #0f2830;
+      color: #d5f0e6;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    
+    .sidebar h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #4CAF50; }
+    .sidebar h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem; color: #81C784; }
+    
+    .section { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #1a4a5a; }
+    
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.25rem 0;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    button:hover { background: #45a049; }
+    button:disabled { background: #666; cursor: not-allowed; }
+    button.secondary { background: #2196F3; }
+    button.danger { background: #F44336; }
+    button.active { background: #FF9800; }
+    
+    input[type="text"], input[type="number"], input[type="file"], select {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: #1a4a5a;
+      color: #d5f0e6;
+      border: 1px solid #2a5a6a;
+      border-radius: 4px;
+    }
+    
+    label { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
+    
+    .info { 
+      background: #1a4a5a; 
+      padding: 0.75rem; 
+      border-radius: 4px; 
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+    }
+    
+    .slot-list {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #1a4a5a;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    
+    .slot-item {
+      padding: 0.25rem;
+      margin: 0.25rem 0;
+      background: #0f2830;
+      border-radius: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .slot-item button {
+      width: auto;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      margin: 0;
+    }
+    
+    #map { flex: 1; }
+    
+    .leaflet-overlay-pane img {
+      opacity: 0.6;
+    }
+    
+    .slot-marker {
+      background: rgba(76, 175, 80, 0.8);
+      color: white;
+      border: 2px solid white;
+      padding: 4px 8px;
+      font-weight: bold;
+      font-size: 11px;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>🎯 Slot Editor</h1>
+      <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem;">
+        Digitalizza posteggi da pianta PDF
+      </p>
+
+      <div class="section">
+        <h2>1. Carica Area Mercato</h2>
+        <input type="file" id="area-file" accept=".geojson,.json">
+        <div class="info" id="area-info">Nessuna area caricata</div>
+      </div>
+
+      <div class="section">
+        <h2>2. Sovrapponi Pianta PDF</h2>
+        <input type="file" id="pdf-file" accept=".pdf,.png,.jpg,.jpeg">
+        <button id="align-btn" disabled>Posiziona Pianta</button>
+        <div class="info" id="pdf-info">Nessuna pianta caricata</div>
+      </div>
+
+      <div class="section">
+        <h2>3. Aggiungi Posteggi</h2>
+        <label>Numero Posteggio</label>
+        <input type="number" id="slot-number" min="1" max="999" value="1">
+        
+        <label>Orientamento</label>
+        <select id="slot-orientation">
+          <option value="0">Orizzontale (0°)</option>
+          <option value="90">Verticale (90°)</option>
+          <option value="45">Obliquo 45°</option>
+          <option value="135">Obliquo 135°</option>
+          <option value="custom">Personalizzato...</option>
+        </select>
+        
+        <input type="number" id="custom-angle" min="0" max="360" value="0" style="display:none;" placeholder="Angolo personalizzato (0-360°)">
+        
+        <button id="add-mode-btn">📍 Modalità Aggiungi Posteggio</button>
+        <div class="info" id="mode-info">Clicca sul pulsante per iniziare</div>
+      </div>
+
+      <div class="section">
+        <h2>4. Posteggi Aggiunti (<span id="slot-count">0</span>)</h2>
+        <div class="slot-list" id="slot-list"></div>
+        <button id="clear-btn" class="danger">🗑️ Cancella Tutti</button>
+      </div>
+
+      <div class="section">
+        <h2>5. Esporta</h2>
+        <button id="export-btn" class="secondary">💾 Esporta GeoJSON</button>
+        <button id="save-bus-btn" style="background:#2a7a9f">💾 Salva nel Bus</button>
+      </div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+  <script src="../shared/dms-bus.js"></script>
+  <script>
+    // Inizializza mappa con OpenStreetMap
+    const map = L.map('map').setView([42.7639, 11.1139], 16);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    // State
+    let areaLayer = null;
+    let pdfOverlay = null;
+    let slots = [];
+    let addMode = false;
+    let alignMode = false;
+    let alignCorners = [];
+
+    // Elements
+    const areaFile = document.getElementById('area-file');
+    const pdfFile = document.getElementById('pdf-file');
+    const alignBtn = document.getElementById('align-btn');
+    const addModeBtn = document.getElementById('add-mode-btn');
+    const slotNumber = document.getElementById('slot-number');
+    const slotOrientation = document.getElementById('slot-orientation');
+    const customAngle = document.getElementById('custom-angle');
+    const slotList = document.getElementById('slot-list');
+    const slotCount = document.getElementById('slot-count');
+    const clearBtn = document.getElementById('clear-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const areaInfo = document.getElementById('area-info');
+    const pdfInfo = document.getElementById('pdf-info');
+    const modeInfo = document.getElementById('mode-info');
+
+    // Load area
+    areaFile.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const text = await file.text();
+      const geojson = JSON.parse(text);
+
+      if (areaLayer) map.removeLayer(areaLayer);
+
+      areaLayer = L.geoJSON(geojson, {
+        style: { color: '#4CAF50', weight: 2, fillOpacity: 0.2 }
+      }).addTo(map);
+
+      map.fitBounds(areaLayer.getBounds());
+      areaInfo.textContent = `✅ Area caricata (${geojson.features.length} feature)`;
+    });
+
+    // Load PDF/image
+    pdfFile.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        pdfInfo.textContent = `✅ Pianta caricata: ${file.name}`;
+        alignBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Align PDF
+    alignBtn.addEventListener('click', () => {
+      alignMode = true;
+      alignCorners = [];
+      modeInfo.textContent = '📍 Clicca sui 4 angoli della pianta sulla mappa (NW, NE, SE, SW)';
+      alignBtn.classList.add('active');
+    });
+
+    // Orientation selector
+    slotOrientation.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        customAngle.style.display = 'block';
+      } else {
+        customAngle.style.display = 'none';
+      }
+    });
+
+    // Add mode toggle
+    addModeBtn.addEventListener('click', () => {
+      addMode = !addMode;
+      if (addMode) {
+        addModeBtn.classList.add('active');
+        addModeBtn.textContent = '⏸️ Ferma Modalità Aggiungi';
+        modeInfo.textContent = '✅ Clicca sulla mappa per aggiungere posteggi';
+      } else {
+        addModeBtn.classList.remove('active');
+        addModeBtn.textContent = '📍 Modalità Aggiungi Posteggio';
+        modeInfo.textContent = 'Modalità disattivata';
+      }
+    });
+
+    // Map click
+    map.on('click', (e) => {
+      if (alignMode) {
+        handleAlignClick(e.latlng);
+      } else if (addMode) {
+        handleAddSlot(e.latlng);
+      }
+    });
+
+    function handleAlignClick(latlng) {
+      alignCorners.push(latlng);
+      
+      L.circleMarker(latlng, {
+        radius: 8,
+        color: '#FF9800',
+        fillOpacity: 0.8
+      }).addTo(map);
+
+      if (alignCorners.length === 4) {
+        // Create image overlay
+        const bounds = L.latLngBounds(alignCorners);
+        const file = pdfFile.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (pdfOverlay) map.removeLayer(pdfOverlay);
+          pdfOverlay = L.imageOverlay(e.target.result, bounds, {
+            opacity: 0.6,
+            interactive: false
+          }).addTo(map);
+        };
+        reader.readAsDataURL(file);
+
+        alignMode = false;
+        alignBtn.classList.remove('active');
+        modeInfo.textContent = '✅ Pianta posizionata! Ora puoi aggiungere posteggi';
+      } else {
+        modeInfo.textContent = `📍 Angolo ${alignCorners.length}/4 posizionato`;
+      }
+    }
+
+    function handleAddSlot(latlng) {
+      const number = parseInt(slotNumber.value);
+      const orientValue = slotOrientation.value;
+      const angle = orientValue === 'custom' ? parseInt(customAngle.value) : parseInt(orientValue);
+
+      const slot = {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [latlng.lng, latlng.lat]
+        },
+        properties: {
+          number: number,
+          orientation: angle,
+          kind: 'slot',
+          status: 'free',
+          dimensions: '3m × 6m'
+        }
+      };
+
+      slots.push(slot);
+
+      // Add marker
+      const marker = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'slot-marker',
+          html: `<div style="transform: rotate(${angle}deg)">${number}</div>`,
+          iconSize: [40, 60],
+          iconAnchor: [20, 30]
+        })
+      }).addTo(map);
+
+      marker.slotIndex = slots.length - 1;
+      marker.on('click', () => {
+        if (confirm(`Rimuovere posteggio ${number}?`)) {
+          slots.splice(marker.slotIndex, 1);
+          map.removeLayer(marker);
+          updateSlotList();
+        }
+      });
+
+      // Auto increment
+      slotNumber.value = number + 1;
+
+      updateSlotList();
+    }
+
+    function updateSlotList() {
+      slotCount.textContent = slots.length;
+      slotList.innerHTML = slots.map((s, i) => `
+        <div class="slot-item">
+          <span>Posteggio ${s.properties.number} (${s.properties.orientation}°)</span>
+          <button onclick="removeSlot(${i})">❌</button>
+        </div>
+      `).join('');
+    }
+
+    window.removeSlot = (index) => {
+      slots.splice(index, 1);
+      updateSlotList();
+      // Reload map to remove marker
+      location.reload();
+    };
+
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Cancellare tutti i posteggi?')) {
+        slots = [];
+        updateSlotList();
+        location.reload();
+      }
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (slots.length === 0) {
+        alert('Nessun posteggio da esportare!');
+        return;
+      }
+
+      // Merge area + slots
+      let features = slots;
+      if (areaLayer) {
+        const areaGeoJSON = areaLayer.toGeoJSON();
+        features = [...areaGeoJSON.features, ...slots];
+      }
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features: features
+      };
+
+      const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `grosseto_${slots.length}_slots.geojson`;
+      a.click();
+    });
+    
+    // Salva nel bus
+    const saveBusBtn = document.getElementById('save-bus-btn');
+    saveBusBtn.addEventListener('click', async () => {
+      if (slots.length === 0) {
+        alert('Nessun posteggio da salvare!');
+        return;
+      }
+      
+      const geojson = {
+        type: 'FeatureCollection',
+        features: slots
+      };
+      
+      try {
+        await DMSBUS.putJSON('stalls_geojson', geojson);
+        alert('✅ Posteggi salvati nel bus!');
+      } catch (err) {
+        alert('❌ Errore: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
+
