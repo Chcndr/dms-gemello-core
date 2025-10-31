@@ -203,7 +203,8 @@
     <input id="modalDespeckle" type="range" min="0" max="2" value="1">
     
     <button id="rotateImageBtn" style="width:100%;margin-top:16px;background:#2b7a9a">🔄 Ruota 90°</button>
-    <button id="downloadFromModal" style="width:100%;margin-top:8px">📥 Scarica PNG Trasparente</button>
+    <button id="applyFromModal" style="width:100%;margin-top:8px;background:#4fc3a0">✅ Applica sulla Mappa</button>
+    <button id="downloadFromModal" style="width:100%;margin-top:8px">📥 Scarica PNG</button>
   </div>
   <div class="png-modal-canvas">
     <div class="png-modal-canvas-container">
@@ -619,6 +620,15 @@ document.getElementById('rotateImageBtn').onclick = ()=>{
   // Aggiorno l'immagine con quella ruotata
   img.onload = ()=>{ drawModalAlpha(); };
   img.src = tempCanvas.toDataURL('image/png');
+};
+
+document.getElementById('applyFromModal').onclick = ()=>{
+  // Applico l'immagine pulita come nuova immagine sorgente
+  img.onload = ()=>{
+    drawAlpha(); // Ridisegno sulla mappa principale
+    closePngModal(); // Chiudo la modale
+  };
+  img.src = modalDst.toDataURL('image/png');
 };
 
 document.getElementById('downloadFromModal').onclick = ()=>{
