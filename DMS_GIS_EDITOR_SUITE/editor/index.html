@@ -5,10 +5,29 @@
 <title>DMS GIS Editor — Trasparenza • Overlay • GCP • GeoJSON</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  :root{--bg:#0b1c26;--panel:#0f2330;--txt:#eaf1f5;--mut:#9fb1be;--acc:#1f8f5f}
+  :root{
+    --bg:#0b1c26;--panel:#0f2330;--txt:#eaf1f5;--mut:#9fb1be;--acc:#1f8f5f
+  }
   html,body,#map{height:100%;margin:0}
-  .ui{position:absolute;top:10px;left:10px;max-width:420px;max-height:calc(100vh - 20px);overflow-y:auto;background:var(--panel);color:var(--txt);
-      padding:14px;border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.3);font:14px system-ui}
+  /* MAPPA piena */
+  #map{position:relative; z-index:1}
+
+  /* SIDEBAR fissa, stretta, scrollabile e sempre sopra */
+  .ui{
+    position:fixed;           /* non più absolute */
+    top:12px; left:12px;
+    width:360px;              /* ~360px desktop */
+    max-width:min(92vw,420px);
+    height:calc(100% - 24px); /* occupa tutta l'altezza */
+    overflow:auto;            /* scroll interno */
+    background:var(--panel); color:var(--txt);
+    padding:14px 14px 18px;
+    border-radius:12px;
+    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    font:14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    z-index:10000;            /* SEMPRE sopra alla mappa */
+    transition:transform .25s ease;
+  }
   .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   input[type=range]{width:100%}
   input[type=file]{display:block;margin-top:6px}
@@ -17,9 +36,33 @@
   .small{font-size:12px} .mut{color:var(--mut)}
   .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
   #log{max-height:120px;overflow:auto;background:#08131a;border-radius:8px;padding:6px;font-family:ui-monospace,monospace;margin-top:6px}
+
+  /* TOGGLE (hamburger) fisso nell'angolo */
+  .toggle{
+    position:fixed; top:12px; left:12px;
+    z-index:10001;            /* sopra alla sidebar stessa */
+    background:#2b3c48; color:#fff; border:0; border-radius:10px;
+    padding:8px 10px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.25);
+  }
+  /* Quando collasso, sposto la sidebar fuori schermo */
+  body.ui-collapsed .ui{ transform:translateX(calc(-100% - 16px)); }
+  /* Su schermi stretti parto già collassato per lasciare la mappa libera */
+  @media (max-width: 900px){
+    .ui{ width:min(92vw,420px); }
+    body:not(.ui-opened-once) .ui{ transform:translateX(calc(-100% - 16px)); }
+  }
+  /* Far respirare la mappa quando sidebar aperta */
+  body:not(.ui-collapsed) .leaflet-left{
+    left:388px;               /* 360 + padding */
+    transition:left .25s ease;
+  }
+  @media (max-width: 900px){
+    body:not(.ui-collapsed) .leaflet-left{ left:12px; }
+  }
 </style>
 </head>
 <body>
+<button id="togglePanel" class="toggle" title="Apri/chiudi pannello">☰</button>
 <div id="map"></div>
 
 <div class="ui">
@@ -275,6 +318,19 @@ function rgb2hsv(R,G,B){
   const M=Math.max(r,g,b), m=Math.min(r,g,b), C=M-m; let H=0;
   if(C!==0){ if(M===r) H=((g-b)/C)%6; else if(M===g) H=(b-r)/C+2; else H=(r-g)/C+4; H*=60; if(H<0) H+=360; }
   const V=M, S=M===0?0:C/M; return {h:H,s:S,v:V};
+}
+
+/* ===================== TOGGLE PANNELLO ===================== */
+const toggleBtn = document.getElementById('togglePanel');
+function toggleUI(){
+  document.body.classList.toggle('ui-collapsed');
+  document.body.classList.add('ui-opened-once'); // evita auto-collasso mobile dopo la prima apertura
+}
+toggleBtn.addEventListener('click', toggleUI);
+
+// All'avvio, assicuro che il pannello sia visibile su desktop
+if(window.matchMedia('(min-width: 901px)').matches){
+  document.body.classList.remove('ui-collapsed');
 }
 </script>
 </body>
