@@ -623,12 +623,22 @@ document.getElementById('rotateImageBtn').onclick = ()=>{
 };
 
 document.getElementById('applyFromModal').onclick = ()=>{
-  // Applico l'immagine pulita come nuova immagine sorgente
+  // Salvo l'immagine pulita e creo/aggiorno l'overlay sulla mappa
+  lastAlphaDataURL = modalDst.toDataURL('image/png');
+  pxSize = {w: modalDst.width, h: modalDst.height};
+  
+  // Aggiorno l'immagine sorgente per i canvas dell'editor
   img.onload = ()=>{
-    drawAlpha(); // Ridisegno sulla mappa principale
+    // Creo o aggiorno l'overlay distorcibile sulla mappa Leaflet
+    if(!overlay){
+      placeOverlay();
+    } else {
+      refreshOverlay();
+    }
     closePngModal(); // Chiudo la modale
+    log('Immagine pulita applicata sulla mappa.');
   };
-  img.src = modalDst.toDataURL('image/png');
+  img.src = lastAlphaDataURL;
 };
 
 document.getElementById('downloadFromModal').onclick = ()=>{
