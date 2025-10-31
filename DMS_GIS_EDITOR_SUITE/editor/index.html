@@ -359,9 +359,33 @@ function placeOverlay(){
   
   alert('🔍 DEBUG: Creo overlay con ' + corners.length + ' corners');
   
-  overlay=L.distortableImageOverlay(url, {corners: corners, editable:true, actions:['distort','rotate','scale']}).addTo(map); 
-  
-  alert('🔍 DEBUG: Overlay creato! Bounds: ' + overlay.getBounds());
+  try {
+    // Provo a creare overlay SENZA corners iniziali
+    overlay = L.distortableImageOverlay(url, {
+      editable: true,
+      actions: ['distort', 'rotate', 'scale']
+    });
+    
+    alert('🔍 DEBUG: Overlay creato (senza corners)');
+    
+    // Aggiungo alla mappa
+    overlay.addTo(map);
+    
+    alert('🔍 DEBUG: Overlay aggiunto alla mappa');
+    
+    // Ora imposto i corners
+    if (overlay.setCorners) {
+      overlay.setCorners(corners);
+      alert('🔍 DEBUG: Corners impostati con setCorners()');
+    } else {
+      alert('⚠️ ERRORE: overlay.setCorners non esiste!');
+    }
+    
+    alert('✅ DEBUG: Overlay completato! Bounds: ' + overlay.getBounds());
+  } catch(err) {
+    alert('❌ ERRORE nella creazione overlay: ' + err.message);
+    console.error('Errore overlay:', err);
+  }
   
   setTimeout(()=>{
     map.fitBounds(overlay.getBounds());
