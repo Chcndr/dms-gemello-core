@@ -334,6 +334,8 @@ function drawAlpha(updateOverlay=false){
   if(updateOverlay) refreshOverlay();
 }
 function placeOverlay(){ 
+  alert('🔍 DEBUG: placeOverlay() chiamata!\nCentro mappa: ' + map.getCenter());
+  
   const url=lastAlphaDataURL||img.src; 
   if(overlay) map.removeLayer(overlay); 
   
@@ -355,11 +357,16 @@ function placeOverlay(){
     L.latLng(center.lat + latDiff, center.lng - lngDiff)  // NW
   ];
   
+  alert('🔍 DEBUG: Creo overlay con ' + corners.length + ' corners');
+  
   overlay=L.distortableImageOverlay(url, {corners: corners, editable:true, actions:['distort','rotate','scale']}).addTo(map); 
+  
+  alert('🔍 DEBUG: Overlay creato! Bounds: ' + overlay.getBounds());
   
   setTimeout(()=>{
     map.fitBounds(overlay.getBounds());
     log('Overlay posizionato e mappa centrata.');
+    alert('✅ Overlay posizionato e mappa centrata!');
   }, 100);
 }
 function refreshOverlay(){ if(!overlay){placeOverlay();return;} overlay.setUrl(lastAlphaDataURL); }
