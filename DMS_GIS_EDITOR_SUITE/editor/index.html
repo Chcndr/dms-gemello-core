@@ -255,10 +255,10 @@ file.onchange=async()=>{
     const v=page.getViewport({scale:2});
     const cnv=document.createElement('canvas'); cnv.width=v.width; cnv.height=v.height;
     await page.render({canvasContext:cnv.getContext('2d'),viewport:v}).promise;
-    img.onload=()=>{pxSize={w:img.naturalWidth,h:img.naturalHeight}; drawAlpha(); placeOverlay(); log('PDF caricato.');};
+    img.onload=()=>{pxSize={w:img.naturalWidth,h:img.naturalHeight}; drawAlpha(); log('PDF caricato. Usa "PNG trasparente" per pulire e posizionare.');};
     img.src=cnv.toDataURL('image/png');
   } else {
-    img.onload=()=>{pxSize={w:img.naturalWidth,h:img.naturalHeight}; drawAlpha(); placeOverlay(); log('Immagine caricata.');};
+    img.onload=()=>{pxSize={w:img.naturalWidth,h:img.naturalHeight}; drawAlpha(); log('Immagine caricata. Usa "PNG trasparente" per pulire e posizionare.');};
     img.src=URL.createObjectURL(f);
   }
 };
