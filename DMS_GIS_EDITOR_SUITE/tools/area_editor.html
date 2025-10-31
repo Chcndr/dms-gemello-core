@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DMS • Area Editor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+<style>
+  html,body,#map{height:100%;margin:0}
+  .panel{position:fixed;left:12px;top:12px;z-index:1000;width:360px;
+         max-width:min(92vw,420px);height:calc(100% - 24px);overflow:auto;
+         background:#0f2330;color:#eaf1f5;padding:14px;border-radius:12px;
+         box-shadow:0 10px 28px rgba(0,0,0,.35);font:14px system-ui}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  button{background:#1f8f5f;border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  button.secondary{background:#2b3c48}
+  input[type=file]{display:block;margin-top:6px} .mut{color:#9fb1be} .small{font-size:12px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel">
+  <b>DMS • Area Editor</b>
+  <div class="small mut" style="margin-top:4px">Disegna l'area mercato. Carica (opz.) i posteggi GeoJSON per vederli.</div>
+  <div class="row">
+    <input id="fStalls" type="file" accept="application/geo+json,application/json">
+    <button id="btnExport" class="secondary">⬇️ Esporta Area GeoJSON</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+const map=L.map('map').setView([42.7633,11.1117],16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20}).addTo(map);
+
+const drawn = new L.FeatureGroup().addTo(map);
+const drawControl = new L.Control.Draw({
+  draw:{
+    marker:false, circle:false, circlemarker:false, polyline:false,
+    rectangle:{shapeOptions:{weight:1}}, polygon:{shapeOptions:{weight:1}}
+  },
+  edit:{ featureGroup: drawn }
+});
+map.addControl(drawControl);
+
+map.on(L.Draw.Event.CREATED, e=>{ drawn.addLayer(e.layer); map.fitBounds(drawn.getBounds(),{padding:[24,24]}); });
+
+document.getElementById('fStalls').onchange=async(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const gj=JSON.parse(await f.text());
+  const layer=L.geoJSON(gj,{style:{weight:1}}).addTo(map);
+  map.fitBounds(layer.getBounds(),{padding:[24,24]});
+};
+
+document.getElementById('btnExport').onclick=()=>{
+  if(!drawn.getLayers().length) return alert('Disegna almeno un poligono/rettangolo');
+  const gj=drawn.toGeoJSON();
+  const blob=new Blob([JSON.stringify(gj,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='area.geojson'; a.click(); URL.revokeObjectURL(a.href);
+};
+</script>
+</body>
+</html>
+

@@ -36,6 +36,8 @@
   .small{font-size:12px} .mut{color:var(--mut)}
   .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
   #log{max-height:120px;overflow:auto;background:#08131a;border-radius:8px;padding:6px;font-family:ui-monospace,monospace;margin-top:6px}
+  .btnLink{display:inline-block;background:var(--acc);color:#fff;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:13px;cursor:pointer}
+  .btnLink:hover{background:#25a570}
 
   /* TOGGLE (hamburger) fisso nell'angolo */
   .toggle{
@@ -121,6 +123,16 @@
       <button id="btnExportStalls" class="secondary">⬇️ Stalls GeoJSON</button>
     </div>
     <div id="log"></div>
+  </div>
+
+  <div class="group">
+    <b>Strumenti rapidi</b>
+    <div class="row">
+      <a class="btnLink" href="../tools/stalls_alpha_tool.html" target="_blank">PNG Trasparente</a>
+      <a class="btnLink" href="../tools/container_kit.html" target="_blank">GIS Container Kit</a>
+      <a class="btnLink" href="../tools/area_editor.html" target="_blank">Area Editor</a>
+    </div>
+    <div class="small mut" style="margin-top:6px">Si aprono in una nuova scheda.</div>
   </div>
 </div>
 
