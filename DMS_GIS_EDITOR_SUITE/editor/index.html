@@ -336,7 +336,24 @@ function drawAlpha(updateOverlay=false){
 function placeOverlay(){ 
   const url=lastAlphaDataURL||img.src; 
   if(overlay) map.removeLayer(overlay); 
-  overlay=L.distortableImageOverlay(url,{editable:true,actions:['distort','rotate','scale']}).addTo(map); 
+  
+  // Coordinate iniziali centrate su Grosseto
+  const center = map.getCenter();
+  const bounds = map.getBounds();
+  const ne = bounds.getNorthEast();
+  const sw = bounds.getSouthWest();
+  
+  // Creo un rettangolo che occupa circa metà della vista corrente
+  const latDiff = (ne.lat - sw.lat) * 0.25;
+  const lngDiff = (ne.lng - sw.lng) * 0.25;
+  
+  const initialBounds = [
+    [center.lat - latDiff, center.lng - lngDiff], // SW
+    [center.lat + latDiff, center.lng + lngDiff]  // NE
+  ];
+  
+  overlay=L.distortableImageOverlay(url, {corners: initialBounds, editable:true, actions:['distort','rotate','scale']}).addTo(map); 
+  
   setTimeout(()=>{
     map.fitBounds(overlay.getBounds());
     log('Overlay posizionato e mappa centrata.');
