@@ -61,6 +61,42 @@
   @media (max-width: 900px){
     body:not(.ui-collapsed) .leaflet-left{ left:12px; }
   }
+
+  /* MODALE PNG TRASPARENZA */
+  .png-modal{
+    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:var(--bg); z-index:20000;
+  }
+  .png-modal.active{ display:flex; }
+  .png-modal-sidebar{
+    width:360px; background:var(--panel); padding:20px; overflow-y:auto;
+    border-right:1px solid #1a3a4a;
+  }
+  .png-modal-canvas{
+    flex:1; display:flex; flex-direction:column; padding:20px; overflow:auto;
+  }
+  .png-modal-canvas-container{
+    display:grid; grid-template-columns:1fr 1fr; gap:20px; flex:1;
+  }
+  .png-modal-canvas-wrapper{
+    display:flex; flex-direction:column; background:var(--panel);
+    border-radius:12px; padding:16px; min-height:0;
+  }
+  .png-modal-canvas-wrapper h3{
+    font-size:14px; margin-bottom:12px; color:#4fc3a0;
+  }
+  .png-modal-canvas-wrapper canvas{
+    width:100%; height:100%; object-fit:contain; background:#111;
+    border:1px solid #223; border-radius:8px;
+  }
+  .png-modal-close{
+    position:absolute; top:20px; right:20px; background:#b84040;
+    border:0; color:#fff; padding:10px 14px; border-radius:8px;
+    cursor:pointer; font-size:16px; z-index:20001;
+  }
+  @media (max-width: 900px){
+    .png-modal-canvas-container{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -137,6 +173,47 @@
   </div>
 </div>
 
+<!-- MODALE PNG TRASPARENZA -->
+<div id="pngModal" class="png-modal">
+  <button id="closePngModal" class="png-modal-close">✕ Chiudi</button>
+  <div class="png-modal-sidebar">
+    <h2 style="font-size:18px;margin-bottom:16px;color:#4fc3a0">🎨 PNG Trasparente</h2>
+    <p style="font-size:12px;opacity:0.8;margin-bottom:16px">Regola i parametri e scarica quando sei soddisfatto</p>
+    
+    <label>Hue Min/Max <span id="modalHvals" class="small"></span></label>
+    <input id="modalHmin" type="range" min="0" max="360" value="70">
+    <input id="modalHmax" type="range" min="0" max="360" value="160">
+    
+    <label>Saturation Min <span id="modalSval" class="small"></span></label>
+    <input id="modalSmin" type="range" min="0" max="100" value="25">
+    
+    <label>Value Min <span id="modalVval" class="small"></span></label>
+    <input id="modalVmin" type="range" min="0" max="100" value="25">
+    
+    <label><input type="checkbox" id="modalKeepDigits" checked> Mantieni numeri scuri</label>
+    
+    <label>Pulizia/chiusura buchi <span id="modalCleanVal" class="small"></span></label>
+    <input id="modalCleanIter" type="range" min="0" max="3" value="1">
+    
+    <label>Despeckle <span id="modalDespeckleVal" class="small"></span></label>
+    <input id="modalDespeckle" type="range" min="0" max="2" value="1">
+    
+    <button id="downloadFromModal" style="width:100%;margin-top:16px">📥 Scarica PNG Trasparente</button>
+  </div>
+  <div class="png-modal-canvas">
+    <div class="png-modal-canvas-container">
+      <div class="png-modal-canvas-wrapper">
+        <h3>📷 Originale</h3>
+        <canvas id="modalSrc"></canvas>
+      </div>
+      <div class="png-modal-canvas-wrapper">
+        <h3>✨ Risultato (Trasparenza Applicata)</h3>
+        <canvas id="modalDst"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.distortableimage@0.12.0/dist/leaflet.distortableimage.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
@@ -201,7 +278,7 @@ preview.addEventListener('click', e=>{
 
 /* ===================== BOTTONI BASE ===================== */
 document.getElementById('applyAlpha').onclick=()=>drawAlpha(true);
-document.getElementById('downloadPng').onclick=()=>{ if(!lastAlphaDataURL) return alert('Nessuna immagine'); const a=document.createElement('a'); a.href=lastAlphaDataURL; a.download='stalls_transparent.png'; a.click(); };
+document.getElementById('downloadPng').onclick=()=>{ if(!img.naturalWidth) return alert('Carica prima un\'immagine'); openPngModal(); };
 document.getElementById('fixOverlay').onclick=()=>{ if(!overlay) return alert('Nessun overlay'); overlay.editing.disable(); log('Overlay fissato.'); };
 document.getElementById('unlock').onclick=()=>{ overlay?.editing.enable(); log('Overlay sbloccato.'); };
 document.getElementById('exportGCP').onclick=()=>{ if(!overlay||!pxSize) return alert('Niente GCP'); const ll=overlay.getCornerLatLngs(); const gcp=[{px:[0,0],ll:[ll[0].lat,ll[0].lng]},{px:[pxSize.w,0],ll:[ll[1].lat,ll[1].lng]},{px:[pxSize.w,pxSize.h],ll:[ll[2].lat,ll[2].lng]},{px:[0,pxSize.h],ll:[ll[3].lat,ll[3].lng]}]; downloadJSON({gcp,imageW:pxSize.w,imageH:pxSize.h},'gcp.json'); log('GCP esportati.'); };
@@ -422,6 +499,100 @@ toggleBtn.addEventListener('click', toggleUI);
 if(window.matchMedia('(min-width: 901px)').matches){
   document.body.classList.remove('ui-collapsed');
 }
+
+/* ===================== MODALE PNG TRASPARENZA ===================== */
+const pngModal = document.getElementById('pngModal');
+const modalSrc = document.getElementById('modalSrc');
+const modalDst = document.getElementById('modalDst');
+const modalHmin = document.getElementById('modalHmin');
+const modalHmax = document.getElementById('modalHmax');
+const modalSmin = document.getElementById('modalSmin');
+const modalVmin = document.getElementById('modalVmin');
+const modalKeepDigits = document.getElementById('modalKeepDigits');
+const modalCleanIter = document.getElementById('modalCleanIter');
+const modalDespeckle = document.getElementById('modalDespeckle');
+const modalHvals = document.getElementById('modalHvals');
+const modalSval = document.getElementById('modalSval');
+const modalVval = document.getElementById('modalVval');
+const modalCleanVal = document.getElementById('modalCleanVal');
+const modalDespeckleVal = document.getElementById('modalDespeckleVal');
+
+function openPngModal(){
+  if(!img.naturalWidth) return;
+  // Copia valori attuali nella modale
+  modalHmin.value = hmin.value;
+  modalHmax.value = hmax.value;
+  modalSmin.value = smin.value;
+  modalVmin.value = vmin.value;
+  modalKeepDigits.checked = keepDigits.checked;
+  modalCleanIter.value = cleanIter.value;
+  modalDespeckle.value = despeckle.value;
+  
+  pngModal.classList.add('active');
+  drawModalAlpha();
+}
+
+function closePngModal(){
+  pngModal.classList.remove('active');
+}
+
+function drawModalAlpha(){
+  if(!img.naturalWidth) return;
+  const W=img.naturalWidth, H=img.naturalHeight;
+  modalSrc.width=W; modalSrc.height=H;
+  modalDst.width=W; modalDst.height=H;
+  
+  const srcCtx = modalSrc.getContext('2d');
+  srcCtx.drawImage(img,0,0);
+  
+  const dstCtx = modalDst.getContext('2d');
+  dstCtx.drawImage(img,0,0);
+  
+  const imgData = dstCtx.getImageData(0,0,W,H);
+  const d = imgData.data;
+  const HMIN=+modalHmin.value, HMAX=+modalHmax.value;
+  const SMIN=+modalSmin.value/100, VMIN=+modalVmin.value/100;
+  
+  modalHvals.textContent = `${HMIN}–${HMAX}`;
+  modalSval.textContent = modalSmin.value;
+  modalVval.textContent = modalVmin.value;
+  modalCleanVal.textContent = modalCleanIter.value;
+  modalDespeckleVal.textContent = modalDespeckle.value;
+  
+  for(let i=0; i<d.length; i+=4){
+    const {h,s,v} = rgb2hsv(d[i], d[i+1], d[i+2]);
+    let keep = (h>=HMIN && h<=HMAX && s>=SMIN && v>=VMIN);
+    if(modalKeepDigits.checked){
+      const lum = 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+      if(lum<90) keep=true;
+    }
+    d[i+3] = keep ? 255 : 0;
+  }
+  
+  // Pulizia morfologica
+  if(+modalCleanIter.value>0 || +modalDespeckle.value>0){
+    let id = imgData;
+    if(+modalCleanIter.value>0){
+      id = closeAlpha(id, W, H, +modalCleanIter.value);
+    }
+    if(+modalDespeckle.value>0){
+      id = despeckleAlpha(id, W, H, +modalDespeckle.value);
+    }
+    dstCtx.putImageData(id, 0, 0);
+  } else {
+    dstCtx.putImageData(imgData, 0, 0);
+  }
+}
+
+[modalHmin,modalHmax,modalSmin,modalVmin,modalKeepDigits,modalCleanIter,modalDespeckle].forEach(el=>el.oninput=drawModalAlpha);
+
+document.getElementById('closePngModal').onclick = closePngModal;
+document.getElementById('downloadFromModal').onclick = ()=>{
+  const a = document.createElement('a');
+  a.href = modalDst.toDataURL('image/png');
+  a.download = 'stalls_transparent.png';
+  a.click();
+};
 </script>
 </body>
 </html>
