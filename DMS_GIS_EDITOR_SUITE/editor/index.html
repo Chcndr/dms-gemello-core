@@ -70,8 +70,12 @@
   .png-modal.active{ display:flex; }
   .png-modal-sidebar{
     width:360px; background:var(--panel); padding:20px; overflow-y:auto;
-    border-right:1px solid #1a3a4a;
+    border-right:1px solid #1a3a4a; color:var(--txt);
   }
+  .png-modal-sidebar label{ color:var(--txt); display:block; margin-top:12px; font-size:13px; }
+  .png-modal-sidebar .small{ color:#b0c4d0; }
+  .png-modal-sidebar input[type=range]{ width:100%; margin-top:4px; }
+  .png-modal-sidebar input[type=checkbox]{ width:auto; margin-right:8px; }
   .png-modal-canvas{
     flex:1; display:flex; flex-direction:column; padding:20px; overflow:auto;
   }
@@ -198,7 +202,8 @@
     <label>Despeckle <span id="modalDespeckleVal" class="small"></span></label>
     <input id="modalDespeckle" type="range" min="0" max="2" value="1">
     
-    <button id="downloadFromModal" style="width:100%;margin-top:16px">📥 Scarica PNG Trasparente</button>
+    <button id="rotateImageBtn" style="width:100%;margin-top:16px;background:#2b7a9a">🔄 Ruota 90°</button>
+    <button id="downloadFromModal" style="width:100%;margin-top:8px">📥 Scarica PNG Trasparente</button>
   </div>
   <div class="png-modal-canvas">
     <div class="png-modal-canvas-container">
@@ -587,6 +592,35 @@ function drawModalAlpha(){
 [modalHmin,modalHmax,modalSmin,modalVmin,modalKeepDigits,modalCleanIter,modalDespeckle].forEach(el=>el.oninput=drawModalAlpha);
 
 document.getElementById('closePngModal').onclick = closePngModal;
+
+let rotationAngle = 0;
+document.getElementById('rotateImageBtn').onclick = ()=>{
+  if(!img.naturalWidth) return;
+  rotationAngle = (rotationAngle + 90) % 360;
+  
+  // Creo un canvas temporaneo per ruotare l'immagine
+  const tempCanvas = document.createElement('canvas');
+  const W = img.naturalWidth, H = img.naturalHeight;
+  
+  // Per rotazioni di 90 o 270 gradi, scambio larghezza e altezza
+  if(rotationAngle === 90 || rotationAngle === 270){
+    tempCanvas.width = H;
+    tempCanvas.height = W;
+  } else {
+    tempCanvas.width = W;
+    tempCanvas.height = H;
+  }
+  
+  const ctx = tempCanvas.getContext('2d');
+  ctx.translate(tempCanvas.width/2, tempCanvas.height/2);
+  ctx.rotate(rotationAngle * Math.PI / 180);
+  ctx.drawImage(img, -W/2, -H/2);
+  
+  // Aggiorno l'immagine con quella ruotata
+  img.onload = ()=>{ drawModalAlpha(); };
+  img.src = tempCanvas.toDataURL('image/png');
+};
+
 document.getElementById('downloadFromModal').onclick = ()=>{
   const a = document.createElement('a');
   a.href = modalDst.toDataURL('image/png');
