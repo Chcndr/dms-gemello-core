@@ -288,7 +288,28 @@ document.getElementById('applyAlpha').onclick=()=>drawAlpha(true);
 document.getElementById('downloadPng').onclick=()=>{ if(!img.naturalWidth) return alert('Carica prima un\'immagine'); openPngModal(); };
 document.getElementById('fixOverlay').onclick=()=>{ if(!overlay) return alert('Nessun overlay'); overlay.editing.disable(); log('Overlay fissato.'); };
 document.getElementById('unlock').onclick=()=>{ overlay?.editing.enable(); log('Overlay sbloccato.'); };
-document.getElementById('exportGCP').onclick=()=>{ if(!overlay||!pxSize) return alert('Niente GCP'); const ll=overlay.getCornerLatLngs(); const gcp=[{px:[0,0],ll:[ll[0].lat,ll[0].lng]},{px:[pxSize.w,0],ll:[ll[1].lat,ll[1].lng]},{px:[pxSize.w,pxSize.h],ll:[ll[2].lat,ll[2].lng]},{px:[0,pxSize.h],ll:[ll[3].lat,ll[3].lng]}]; downloadJSON({gcp,imageW:pxSize.w,imageH:pxSize.h},'gcp.json'); log('GCP esportati.'); };
+document.getElementById('exportGCP').onclick=()=>{ 
+  if(!overlay||!pxSize) return alert('Niente GCP da esportare. Posiziona prima l\'overlay sulla mappa.'); 
+  
+  // Usa getCorners() invece di getCornerLatLngs()
+  const corners = overlay.getCorners(); 
+  
+  if(!corners || corners.length !== 4) {
+    return alert('Errore: overlay non ha 4 corners validi');
+  }
+  
+  // Crea GCP in formato: {px: [x,y], ll: [lat,lng]}
+  // Ordine corners: NW, NE, SW, SE
+  const gcp=[
+    {px:[0,0], ll:[corners[0].lat, corners[0].lng]},              // NW (top-left)
+    {px:[pxSize.w,0], ll:[corners[1].lat, corners[1].lng]},       // NE (top-right)
+    {px:[0,pxSize.h], ll:[corners[2].lat, corners[2].lng]},       // SW (bottom-left)
+    {px:[pxSize.w,pxSize.h], ll:[corners[3].lat, corners[3].lng]} // SE (bottom-right)
+  ]; 
+  
+  downloadJSON({gcp, imageW:pxSize.w, imageH:pxSize.h}, 'gcp.json'); 
+  log('✅ GCP esportati! Usa il file con GIS Container Kit per georeferenziare i posteggi.'); 
+};
 document.getElementById('clear').onclick=()=>{ [overlay,areaLayer,stallsLayer].forEach(l=>l&&map.removeLayer(l)); overlay=areaLayer=stallsLayer=null; lastAlphaDataURL=null; preview.width=0; preview.height=0; currentContainer=null; log('Pulito.'); };
 
 /* ===================== CORE: CROMAKEY + OVERLAY ===================== */
