@@ -335,67 +335,28 @@ function drawAlpha(updateOverlay=false){
   if(updateOverlay) refreshOverlay();
 }
 function placeOverlay(){ 
-  alert('🔍 DEBUG: placeOverlay() chiamata!\nCentro mappa: ' + map.getCenter());
-  
-  // VERIFICA SE LA LIBRERIA È CARICATA
-  alert('🔍 DEBUG: typeof L.distortableImageOverlay = ' + typeof L.distortableImageOverlay);
-  
   const url=lastAlphaDataURL||img.src; 
   if(overlay) map.removeLayer(overlay); 
   
-  // Coordinate iniziali centrate su Grosseto
-  const center = map.getCenter();
-  const bounds = map.getBounds();
-  const ne = bounds.getNorthEast();
-  const sw = bounds.getSouthWest();
-  
-  // Creo un rettangolo che occupa circa metà della vista corrente
-  const latDiff = (ne.lat - sw.lat) * 0.25;
-  const lngDiff = (ne.lng - sw.lng) * 0.25;
-  
-  // Creo 4 corner con L.latLng() in ordine NW, NE, SW, SE (a forma di Z)
-  const corners = [
-    L.latLng(center.lat + latDiff, center.lng - lngDiff), // NW
-    L.latLng(center.lat + latDiff, center.lng + lngDiff), // NE
-    L.latLng(center.lat - latDiff, center.lng - lngDiff), // SW
-    L.latLng(center.lat - latDiff, center.lng + lngDiff)  // SE
-  ];
-  
-  alert('🔍 DEBUG: Creo overlay con ' + corners.length + ' corners');
-  
   try {
-    // Provo a creare overlay SENZA corners iniziali
+    // Creo overlay senza specificare corners - la libreria li imposterà automaticamente
     overlay = L.distortableImageOverlay(url, {
       editable: true,
-      actions: ['distort', 'rotate', 'scale']
-    });
+      mode: 'distort'
+    }).addTo(map);
     
-    alert('🔍 DEBUG: Overlay creato (senza corners)');
+    log('Overlay posizionato sulla mappa. Usa i marker per distorcerlo.');
     
-    // Aggiungo alla mappa
-    overlay.addTo(map);
-    
-    alert('🔍 DEBUG: Overlay aggiunto alla mappa');
-    
-    // Ora imposto i corners
-    if (overlay.setCorners) {
-      overlay.setCorners(corners);
-      alert('🔍 DEBUG: Corners impostati con setCorners()');
-    } else {
-      alert('⚠️ ERRORE: overlay.setCorners non esiste!');
-    }
-    
-    alert('✅ DEBUG: Overlay completato! Bounds: ' + overlay.getBounds());
+    // Centro la mappa sull'overlay dopo un breve delay
+    setTimeout(() => {
+      if (overlay && overlay.getBounds) {
+        map.fitBounds(overlay.getBounds());
+      }
+    }, 200);
   } catch(err) {
-    alert('❌ ERRORE nella creazione overlay: ' + err.message);
+    log('❌ Errore creazione overlay: ' + err.message);
     console.error('Errore overlay:', err);
   }
-  
-  setTimeout(()=>{
-    map.fitBounds(overlay.getBounds());
-    log('Overlay posizionato e mappa centrata.');
-    alert('✅ Overlay posizionato e mappa centrata!');
-  }, 100);
 }
 function refreshOverlay(){ if(!overlay){placeOverlay();return;} overlay.setUrl(lastAlphaDataURL); }
 
