@@ -336,6 +336,9 @@ function drawAlpha(updateOverlay=false){
 function placeOverlay(){ 
   alert('🔍 DEBUG: placeOverlay() chiamata!\nCentro mappa: ' + map.getCenter());
   
+  // VERIFICA SE LA LIBRERIA È CARICATA
+  alert('🔍 DEBUG: typeof L.distortableImageOverlay = ' + typeof L.distortableImageOverlay);
+  
   const url=lastAlphaDataURL||img.src; 
   if(overlay) map.removeLayer(overlay); 
   
@@ -349,12 +352,12 @@ function placeOverlay(){
   const latDiff = (ne.lat - sw.lat) * 0.25;
   const lngDiff = (ne.lng - sw.lng) * 0.25;
   
-  // Creo 4 corner con L.latLng() come richiesto dalla libreria
+  // Creo 4 corner con L.latLng() in ordine NW, NE, SW, SE (a forma di Z)
   const corners = [
-    L.latLng(center.lat - latDiff, center.lng - lngDiff), // SW
-    L.latLng(center.lat - latDiff, center.lng + lngDiff), // SE
+    L.latLng(center.lat + latDiff, center.lng - lngDiff), // NW
     L.latLng(center.lat + latDiff, center.lng + lngDiff), // NE
-    L.latLng(center.lat + latDiff, center.lng - lngDiff)  // NW
+    L.latLng(center.lat - latDiff, center.lng - lngDiff), // SW
+    L.latLng(center.lat - latDiff, center.lng + lngDiff)  // SE
   ];
   
   alert('🔍 DEBUG: Creo overlay con ' + corners.length + ' corners');
