@@ -347,12 +347,15 @@ function placeOverlay(){
   const latDiff = (ne.lat - sw.lat) * 0.25;
   const lngDiff = (ne.lng - sw.lng) * 0.25;
   
-  const initialBounds = [
-    [center.lat - latDiff, center.lng - lngDiff], // SW
-    [center.lat + latDiff, center.lng + lngDiff]  // NE
+  // Creo 4 corner con L.latLng() come richiesto dalla libreria
+  const corners = [
+    L.latLng(center.lat - latDiff, center.lng - lngDiff), // SW
+    L.latLng(center.lat - latDiff, center.lng + lngDiff), // SE
+    L.latLng(center.lat + latDiff, center.lng + lngDiff), // NE
+    L.latLng(center.lat + latDiff, center.lng - lngDiff)  // NW
   ];
   
-  overlay=L.distortableImageOverlay(url, {corners: initialBounds, editable:true, actions:['distort','rotate','scale']}).addTo(map); 
+  overlay=L.distortableImageOverlay(url, {corners: corners, editable:true, actions:['distort','rotate','scale']}).addTo(map); 
   
   setTimeout(()=>{
     map.fitBounds(overlay.getBounds());
