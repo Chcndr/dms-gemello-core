@@ -371,11 +371,13 @@ function placeOverlay(){
       L.latLng(center.lat - latDiff, center.lng + lngDiff)  // SE
     ];
     
-    // Creo overlay con corners calcolati
+    // Creo overlay con corners calcolati e mode freeRotate per drag/rotate/scale
     overlay = L.distortableImageOverlay(url, {
       corners: corners,
       editable: true,
-      mode: 'distort'
+      mode: 'freeRotate',
+      selected: true,
+      actions: [L.FreeRotateAction, L.ScaleAction, L.OpacityAction, L.DeleteAction]
     }).addTo(map);
     
     log('Overlay posizionato sulla mappa. Usa i marker per distorcerlo.');
