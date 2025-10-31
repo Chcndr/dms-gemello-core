@@ -86,6 +86,12 @@
 
   <label><input type="checkbox" id="keepDigits" checked> Mantieni numeri/contorni scuri</label>
 
+  <label>Pulizia/chiusura buchi <span id="cleanVal" class="small"></span></label>
+  <input id="cleanIter" type="range" min="0" max="3" value="1">
+
+  <label>Despeckle (rimuovi puntini) <span id="despeckleVal" class="small"></span></label>
+  <input id="despeckle" type="range" min="0" max="2" value="1">
+
   <div class="row">
     <button id="applyAlpha" class="secondary">↻ Applica</button>
     <button id="fixOverlay">📌 Fissa</button>
@@ -132,7 +138,9 @@ map.createPane('stalls'); map.getPane('stalls').style.zIndex=460;
 let overlay=null, pxSize=null, lastAlphaDataURL=null, picking=false;
 const file=document.getElementById('file'), hmin=document.getElementById('hmin'), hmax=document.getElementById('hmax'),
       smin=document.getElementById('smin'), vmin=document.getElementById('vmin'), keepDigits=document.getElementById('keepDigits'),
+      cleanIter=document.getElementById('cleanIter'), despeckle=document.getElementById('despeckle'),
       hvals=document.getElementById('hvals'), sval=document.getElementById('sval'), vval=document.getElementById('vval'),
+      cleanVal=document.getElementById('cleanVal'), despeckleVal=document.getElementById('despeckleVal'),
       preview=document.getElementById('preview'), pickBtn=document.getElementById('pick'), logEl=document.getElementById('log');
 const img=new Image(); let srcCanvas=document.createElement('canvas'), srcCtx=srcCanvas.getContext('2d',{willReadFrequently:true});
 let currentContainer=null, areaLayer=null, stallsLayer=null;
@@ -176,7 +184,7 @@ preview.addEventListener('click', e=>{
 });
 
 /* ===================== SLIDER ===================== */
-[hmin,hmax,smin,vmin,keepDigits].forEach(el=>el.oninput=()=>drawAlpha(true));
+[hmin,hmax,smin,vmin,keepDigits,cleanIter,despeckle].forEach(el=>el.oninput=()=>drawAlpha(true));
 
 /* ===================== BOTTONI BASE ===================== */
 document.getElementById('applyAlpha').onclick=()=>drawAlpha(true);
@@ -207,6 +215,20 @@ function drawAlpha(updateOverlay=false){
     d[i+3]=keep?255:0;
   }
   ctx.putImageData(imgData,0,0);
+
+  // --- smoothing & cleanup opzionali ---
+  cleanVal.textContent=cleanIter.value; despeckleVal.textContent=despeckle.value;
+  if(+cleanIter.value>0 || +despeckle.value>0){
+    let id = ctx.getImageData(0,0,W,H);
+    if(+cleanIter.value>0){
+      id = closeAlpha(id, W, H, +cleanIter.value); // dilata + erodi => chiude piccoli buchi
+    }
+    if(+despeckle.value>0){
+      id = despeckleAlpha(id, W, H, +despeckle.value); // elimina puntini isolati
+    }
+    ctx.putImageData(id, 0, 0);
+  }
+
   lastAlphaDataURL=srcCanvas.toDataURL('image/png');
 
   const tmp=new Image();
@@ -318,6 +340,61 @@ function rgb2hsv(R,G,B){
   const M=Math.max(r,g,b), m=Math.min(r,g,b), C=M-m; let H=0;
   if(C!==0){ if(M===r) H=((g-b)/C)%6; else if(M===g) H=(b-r)/C+2; else H=(r-g)/C+4; H*=60; if(H<0) H+=360; }
   const V=M, S=M===0?0:C/M; return {h:H,s:S,v:V};
+}
+
+/* ===================== MORFOLOGIA ALPHA ===================== */
+function closeAlpha(imgData, W, H, iters){
+  // kernel 3x3 su canale alpha: dilata poi erodi (x iters)
+  const k=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  let id = imgData;
+  for(let t=0;t<iters;t++){
+    // dilate
+    let d = new Uint8ClampedArray(id.data);
+    for(let y=1;y<H-1;y++){
+      for(let x=1;x<W-1;x++){
+        let idx=(y*W+x)*4; if(d[idx+3]===255) continue;
+        for(const [dx,dy] of k){
+          const n=((y+dy)*W+(x+dx))*4;
+          if(d[n+3]===255){ id.data[idx+3]=255; break; }
+        }
+      }
+    }
+    // erode
+    d = new Uint8ClampedArray(id.data);
+    for(let y=1;y<H-1;y++){
+      for(let x=1;x<W-1;x++){
+        let idx=(y*W+x)*4; if(d[idx+3]===0) continue;
+        let hasHole=false;
+        for(const [dx,dy] of k){
+          const n=((y+dy)*W+(x+dx))*4;
+          if(d[n+3]===0){ hasHole=true; break; }
+        }
+        if(hasHole) id.data[idx+3]=0;
+      }
+    }
+  }
+  return id;
+}
+
+function despeckleAlpha(imgData, W, H, level){
+  // rimuove pixel/isolotti molto piccoli contando vicini opachi
+  const d = imgData.data;
+  const need = level===1?2:3; // vicini minimi per sopravvivere
+  for(let y=1;y<H-1;y++){
+    for(let x=1;x<W-1;x++){
+      const idx=(y*W+x)*4;
+      if(d[idx+3]===0) continue;
+      let cnt=0;
+      for(let dy=-1;dy<=1;dy++){
+        for(let dx=-1;dx<=1;dx++){
+          if(dx===0 && dy===0) continue;
+          const n=((y+dy)*W+(x+dx))*4; if(d[n+3]===255) cnt++;
+        }
+      }
+      if(cnt<need) d[idx+3]=0;
+    }
+  }
+  return imgData;
 }
 
 /* ===================== TOGGLE PANNELLO ===================== */
