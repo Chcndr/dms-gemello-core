@@ -333,7 +333,15 @@ function drawAlpha(updateOverlay=false){
 
   if(updateOverlay) refreshOverlay();
 }
-function placeOverlay(){ const url=lastAlphaDataURL||img.src; if(overlay) map.removeLayer(overlay); overlay=L.distortableImageOverlay(url,{editable:true,actions:['distort','rotate','scale']}).addTo(map); map.fitBounds(overlay.getBounds()); }
+function placeOverlay(){ 
+  const url=lastAlphaDataURL||img.src; 
+  if(overlay) map.removeLayer(overlay); 
+  overlay=L.distortableImageOverlay(url,{editable:true,actions:['distort','rotate','scale']}).addTo(map); 
+  setTimeout(()=>{
+    map.fitBounds(overlay.getBounds());
+    log('Overlay posizionato e mappa centrata.');
+  }, 100);
+}
 function refreshOverlay(){ if(!overlay){placeOverlay();return;} overlay.setUrl(lastAlphaDataURL); }
 
 /* ===================== CONTAINER → GEOJSON ===================== */
