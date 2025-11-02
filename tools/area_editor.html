@@ -289,6 +289,53 @@
     const slotsLayer = L.layerGroup();
     map.addLayer(slotsLayer);
     
+    // Layer per overlay immagine
+    let imageOverlay = null;
+    
+    // Auto-carica overlay dal bus
+    async function loadOverlayFromBus() {
+      try {
+        const blob = await DMSBUS.getBlob('png_transparent');
+        const gcp = await DMSBUS.getJSON('gcp');
+        
+        if (blob && gcp) {
+          // Crea URL da Blob
+          const url = URL.createObjectURL(blob);
+          
+          // Calcola bounds dai GCP
+          const corners = gcp.corners;
+          const lats = corners.map(c => c.ll[0]);
+          const lngs = corners.map(c => c.ll[1]);
+          const bounds = [
+            [Math.min(...lats), Math.min(...lngs)],
+            [Math.max(...lats), Math.max(...lngs)]
+          ];
+          
+          // Rimuovi overlay precedente
+          if (imageOverlay) {
+            map.removeLayer(imageOverlay);
+          }
+          
+          // Crea overlay
+          imageOverlay = L.imageOverlay(url, bounds, {
+            opacity: 0.6,
+            interactive: false,
+            zIndex: 400
+          }).addTo(map);
+          
+          // Centra sulla mappa
+          map.fitBounds(bounds);
+          
+          console.log('✅ Overlay caricato dal bus');
+        }
+      } catch (err) {
+        console.log('ℹ️ Nessun overlay nel bus:', err.message);
+      }
+    }
+    
+    // Carica overlay all'avvio
+    loadOverlayFromBus();
+    
     // Leaflet.Draw controls
     const drawControl = new L.Control.Draw({
       position: 'topleft',
