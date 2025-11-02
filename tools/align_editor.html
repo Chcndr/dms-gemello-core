@@ -32,6 +32,11 @@
   
   input[type=range]{width:100%;margin:6px 0}
   label{display:block;margin-top:8px;font-size:13px}
+  
+  /* Stile overlay trascinabile */
+  .leaflet-image-layer.draggable {
+    cursor: move !important;
+  }
 </style>
 </head>
 <body>
@@ -58,8 +63,8 @@
     <label>Scala: <span id="scaleVal">1.0</span>x</label>
     <input type="range" id="scale" min="0.1" max="5" value="1" step="0.1"/>
     
-    <label>Opacità: <span id="opVal">0.7</span></label>
-    <input type="range" id="opacity" min="0" max="1" value="0.7" step="0.05"/>
+    <label>Opacità: <span id="opVal">1.00</span></label>
+    <input type="range" id="opacity" min="0" max="1" value="1" step="0.05"/>
     
     <div class="row" style="margin-top:12px">
       <button class="btn secondary" id="resetTransform">↻ Reset</button>
@@ -110,11 +115,12 @@ const openKitBtn = document.getElementById('openContainerKit');
 
 // Stato
 let imageOverlay = null;
-let imageBounds = null;
+let draggable = null;
 let imageSize = {w: 0, h: 0};
 let currentRotation = 0;
 let currentScale = 1.0;
-let currentOpacity = 0.7;
+let currentOpacity = 1.0;
+let centerLatLng = null; // Centro dell'immagine
 
 // Funzioni di log
 function log(msg) {
@@ -138,34 +144,51 @@ document.getElementById('loadFromBus').onclick = async () => {
     // Crea URL da Blob
     const url = URL.createObjectURL(blob);
     
-    // Calcola bounds iniziali centrati sulla mappa
-    const center = map.getCenter();
-    const zoom = map.getZoom();
-    const metersPerPixel = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, zoom);
-    const widthMeters = imageSize.w * metersPerPixel * 0.5; // Scala iniziale 0.5x
-    const heightMeters = imageSize.h * metersPerPixel * 0.5;
+    // Centro iniziale = centro mappa
+    centerLatLng = map.getCenter();
     
-    const latOffset = (heightMeters / 111320);
-    const lngOffset = (widthMeters / (111320 * Math.cos(center.lat * Math.PI / 180)));
-    
-    imageBounds = [
-      [center.lat - latOffset, center.lng - lngOffset], // SW
-      [center.lat + latOffset, center.lng + lngOffset]  // NE
-    ];
-    
-    // Crea overlay
+    // Rimuovi overlay precedente
     if (imageOverlay) {
       map.removeLayer(imageOverlay);
+      if (draggable) {
+        draggable.disable();
+      }
     }
     
-    imageOverlay = L.imageOverlay(url, imageBounds, {
+    // Crea overlay
+    const bounds = calculateBounds();
+    imageOverlay = L.imageOverlay(url, bounds, {
       opacity: currentOpacity,
-      interactive: true
+      interactive: true,
+      className: 'draggable'
     }).addTo(map);
     
-    // Abilita drag
-    imageOverlay.dragging = new L.Handler.Drag(imageOverlay);
-    imageOverlay.dragging.enable();
+    // Abilita drag usando Leaflet.Draggable
+    const element = imageOverlay.getElement();
+    draggable = new L.Draggable(element);
+    draggable.enable();
+    
+    // Eventi drag
+    draggable.on('drag', function(e) {
+      // Calcola nuovo centro in base al movimento del mouse
+      const containerPoint = map.latLngToContainerPoint(centerLatLng);
+      const newContainerPoint = L.point(
+        containerPoint.x + draggable._newPos.x - draggable._startPoint.x,
+        containerPoint.y + draggable._newPos.y - draggable._startPoint.y
+      );
+      centerLatLng = map.containerPointToLatLng(newContainerPoint);
+    });
+    
+    draggable.on('dragend', function() {
+      // Resetta posizione CSS e aggiorna bounds
+      element.style.transform = `translate(0px, 0px) rotate(${currentRotation}deg)`;
+      element.style.transformOrigin = 'center';
+      const newBounds = calculateBounds();
+      imageOverlay.setBounds(newBounds);
+      draggable._startPoint = {x: 0, y: 0};
+      draggable._newPos = {x: 0, y: 0};
+      log('Centrato su mappa');
+    });
     
     log('Immagine caricata. Trascina per posizionare.');
     saveBtn.disabled = false;
@@ -177,6 +200,24 @@ document.getElementById('loadFromBus').onclick = async () => {
     log(`Errore caricamento: ${err}`);
   }
 };
+
+// Calcola bounds in base a centro, scala e dimensioni immagine
+function calculateBounds() {
+  if (!centerLatLng) return [[0,0],[0,0]];
+  
+  const zoom = map.getZoom();
+  const metersPerPixel = 156543.03392 * Math.cos(centerLatLng.lat * Math.PI / 180) / Math.pow(2, zoom);
+  const widthMeters = imageSize.w * metersPerPixel * currentScale * 0.3; // 0.3 = fattore scala iniziale
+  const heightMeters = imageSize.h * metersPerPixel * currentScale * 0.3;
+  
+  const latOffset = (heightMeters / 111320) / 2;
+  const lngOffset = (widthMeters / (111320 * Math.cos(centerLatLng.lat * Math.PI / 180))) / 2;
+  
+  return [
+    [centerLatLng.lat - latOffset, centerLatLng.lng - lngOffset], // SW
+    [centerLatLng.lat + latOffset, centerLatLng.lng + lngOffset]  // NE
+  ];
+}
 
 // 2. Controlli trasformazione
 rotInput.oninput = () => {
@@ -200,22 +241,10 @@ opInput.oninput = () => {
 };
 
 function updateTransform() {
-  if (!imageOverlay || !imageBounds) return;
+  if (!imageOverlay || !centerLatLng) return;
   
-  const center = L.latLngBounds(imageBounds).getCenter();
-  const originalWidth = imageBounds[1][1] - imageBounds[0][1];
-  const originalHeight = imageBounds[1][0] - imageBounds[0][0];
-  
-  // Applica scala
-  const newWidth = originalWidth * currentScale;
-  const newHeight = originalHeight * currentScale;
-  
-  // Calcola nuovi bounds
-  const newBounds = [
-    [center.lat - newHeight/2, center.lng - newWidth/2],
-    [center.lat + newHeight/2, center.lng + newWidth/2]
-  ];
-  
+  // Aggiorna bounds con nuova scala
+  const newBounds = calculateBounds();
   imageOverlay.setBounds(newBounds);
   
   // Applica rotazione (CSS transform)
@@ -231,13 +260,13 @@ function updateTransform() {
 document.getElementById('resetTransform').onclick = () => {
   rotInput.value = 0;
   scaleInput.value = 1;
-  opInput.value = 0.7;
+  opInput.value = 1;
   currentRotation = 0;
   currentScale = 1.0;
-  currentOpacity = 0.7;
+  currentOpacity = 1.0;
   rotVal.textContent = '0';
   scaleVal.textContent = '1.0';
-  opVal.textContent = '0.70';
+  opVal.textContent = '1.00';
   updateTransform();
   log('Reset trasformazioni');
 };
@@ -252,7 +281,7 @@ document.getElementById('centerOnMap').onclick = () => {
 // 3. Salva GCP
 document.getElementById('saveGCP').onclick = async () => {
   if (!imageOverlay) {
-    gcpStatus.textContent = '❌ Carica prima un\'immagine';
+    alert('Nessuna immagine caricata!');
     return;
   }
   
@@ -263,13 +292,13 @@ document.getElementById('saveGCP').onclick = async () => {
     const nw = L.latLng(ne.lat, sw.lng);
     const se = L.latLng(sw.lat, ne.lng);
     
-    // GCP: 4 angoli (NW, NE, SW, SE)
+    // GCP: 4 angoli (NW, NE, SW, SE) con coordinate pixel e geografiche
     const gcp = {
-      gcp: [
-        {px: [0, 0], ll: [nw.lat, nw.lng]},
-        {px: [imageSize.w, 0], ll: [ne.lat, ne.lng]},
-        {px: [0, imageSize.h], ll: [sw.lat, sw.lng]},
-        {px: [imageSize.w, imageSize.h], ll: [se.lat, se.lng]}
+      corners: [
+        {px: [0, 0], ll: [nw.lat, nw.lng]},                    // NW
+        {px: [imageSize.w, 0], ll: [ne.lat, ne.lng]},          // NE
+        {px: [0, imageSize.h], ll: [sw.lat, sw.lng]},          // SW
+        {px: [imageSize.w, imageSize.h], ll: [se.lat, se.lng]} // SE
       ],
       imageW: imageSize.w,
       imageH: imageSize.h,
@@ -278,22 +307,19 @@ document.getElementById('saveGCP').onclick = async () => {
     };
     
     await DMSBUS.putJSON('gcp', gcp);
-    await DMSBUS.putBlob('png_aligned', await DMSBUS.getBlob('png_transparent'));
-    
     gcpStatus.textContent = '✅ GCP salvati nel bus!';
-    log('GCP salvati con successo');
+    log('GCP salvati');
+    alert('✅ GCP salvati nel bus!');
     
   } catch (err) {
-    gcpStatus.textContent = `❌ Errore: ${err.message}`;
-    log(`Errore salvataggio GCP: ${err}`);
+    alert('❌ Errore: ' + err.message);
+    log('Errore salvataggio GCP: ' + err);
   }
 };
 
 document.getElementById('openContainerKit').onclick = () => {
-  window.open('../tools/container_kit.html', '_blank');
+  window.open('container_kit.html', '_blank');
 };
-
-log('Allineatore pronto');
 </script>
 </body>
 </html>
