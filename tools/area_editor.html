@@ -197,6 +197,22 @@
         <div id="alignStatus" style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
           Nessuna pianta caricata
         </div>
+        
+        <!-- Preview Immagine con Rettangolo Rosso -->
+        <div id="imagePreview" style="display: none; margin-top: 15px; position: relative; border: 3px solid #f44336; border-radius: 8px; padding: 10px; background: #fff;">
+          <div style="position: relative; display: inline-block; width: 100%;">
+            <img id="previewImg" style="width: 100%; height: auto; display: block; border-radius: 4px;" />
+            
+            <!-- Lettere Angoli -->
+            <div style="position: absolute; top: -8px; left: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">NW</div>
+            <div style="position: absolute; top: -8px; right: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">NE</div>
+            <div style="position: absolute; bottom: -8px; right: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">SE</div>
+            <div style="position: absolute; bottom: -8px; left: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">SW</div>
+          </div>
+          <p style="font-size: 12px; margin-top: 10px; text-align: center; color: #666;">
+            👆 Clicca su questi angoli nell'ordine: NW → NE → SE → SW
+          </p>
+        </div>
       </div>
       
       <!-- Carica Posteggi -->
@@ -323,14 +339,23 @@
         pngMeta = await DMSBUS.getJSON('png_meta');
         
         if (pngBlob && pngMeta) {
+          // Mostra status
           document.getElementById('alignStatus').textContent = `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)`;
           document.getElementById('btnAlign').disabled = false;
-          console.log('✅ PNG caricato dal bus');
+          
+          // Mostra preview immagine con rettangolo rosso
+          const url = URL.createObjectURL(pngBlob);
+          document.getElementById('previewImg').src = url;
+          document.getElementById('imagePreview').style.display = 'block';
+          
+          console.log('✅ PNG caricato dal bus e preview mostrata');
         } else {
           document.getElementById('alignStatus').textContent = '⚠️ Nessun PNG nel bus. Completa prima PNG Trasparente.';
+          document.getElementById('imagePreview').style.display = 'none';
         }
       } catch (err) {
         document.getElementById('alignStatus').textContent = '❌ Errore caricamento PNG';
+        document.getElementById('imagePreview').style.display = 'none';
         console.error(err);
       }
     }
