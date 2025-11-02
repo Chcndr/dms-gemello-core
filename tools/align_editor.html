@@ -177,15 +177,16 @@ document.getElementById('loadFromBus').onclick = async () => {
     // Centro iniziale = centro mappa
     const center = map.getCenter();
     
-    // Calcola scala base per far stare l'immagine nella vista
-    const bounds = map.getBounds();
-    const mapWidthMeters = bounds.getEast() - bounds.getWest();
-    const mapHeightMeters = bounds.getNorth() - bounds.getSouth();
-    
-    // Scala base: l'immagine occupa circa 1/3 della mappa
+    // Calcola scala base: immagine occupa circa 300 metri (indipendente dallo zoom)
     const zoom = map.getZoom();
     const metersPerPixel = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, zoom);
-    baseScale = (mapWidthMeters * 0.3) / (imageSize.w * metersPerPixel);
+    
+    // Scala base: l'immagine più grande (w o h) = 300 metri
+    const maxDimension = Math.max(imageSize.w, imageSize.h);
+    const targetMeters = 300; // metri sulla mappa
+    baseScale = targetMeters / (maxDimension * metersPerPixel);
+    
+    log(`baseScale=${baseScale.toFixed(3)}, metersPerPixel=${metersPerPixel.toFixed(3)}`);
     
     // Crea marker invisibile trascinabile al centro
     imageMarker = L.marker(center, {
@@ -196,10 +197,15 @@ document.getElementById('loadFromBus').onclick = async () => {
     
     // Crea overlay
     const initialBounds = calculateBounds(center);
+    log(`Bounds: SW=${initialBounds[0]}, NE=${initialBounds[1]}`);
+    
     imageOverlay = L.imageOverlay(url, initialBounds, {
       opacity: currentOpacity,
-      interactive: false
+      interactive: false,
+      zIndex: 1000
     }).addTo(map);
+    
+    log('Overlay creato e aggiunto alla mappa');
     
     // Quando il marker viene trascinato, aggiorna l'overlay
     imageMarker.on('drag', function() {
@@ -213,7 +219,10 @@ document.getElementById('loadFromBus').onclick = async () => {
       log('Posizione aggiornata');
     });
     
-    log('Immagine caricata. Trascina per posizionare.');
+    // Centra la mappa sull'overlay
+    map.fitBounds(initialBounds);
+    
+    log('Immagine caricata e centrata. Trascina per posizionare.');
     saveBtn.disabled = false;
     openKitBtn.disabled = false;
     gcpStatus.textContent = 'Immagine pronta. Allinea e salva GCP.';
