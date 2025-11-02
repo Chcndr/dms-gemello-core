@@ -199,6 +199,70 @@
     const areaInfo = document.getElementById('area-info');
     const pdfInfo = document.getElementById('pdf-info');
     const modeInfo = document.getElementById('mode-info');
+    
+    // Auto-carica area e overlay dal bus
+    async function loadFromBus() {
+      try {
+        // Carica area
+        const areaGeoJSON = await DMSBUS.getJSON('area_geojson');
+        if (areaGeoJSON) {
+          if (areaLayer) map.removeLayer(areaLayer);
+          
+          areaLayer = L.geoJSON(areaGeoJSON, {
+            style: { color: '#4CAF50', weight: 2, fillOpacity: 0.2 }
+          }).addTo(map);
+          
+          areaInfo.textContent = `✅ Area caricata dal bus (${ areaGeoJSON.features ? areaGeoJSON.features.length : 1} feature)`;
+          console.log('✅ Area caricata dal bus');
+        }
+        
+        // Carica overlay
+        const blob = await DMSBUS.getBlob('png_transparent');
+        const gcp = await DMSBUS.getJSON('gcp');
+        
+        if (blob && gcp) {
+          // Crea URL da Blob
+          const url = URL.createObjectURL(blob);
+          
+          // Calcola bounds dai GCP
+          const corners = gcp.corners;
+          const lats = corners.map(c => c.ll[0]);
+          const lngs = corners.map(c => c.ll[1]);
+          const bounds = [
+            [Math.min(...lats), Math.min(...lngs)],
+            [Math.max(...lats), Math.max(...lngs)]
+          ];
+          
+          // Rimuovi overlay precedente
+          if (pdfOverlay) {
+            map.removeLayer(pdfOverlay);
+          }
+          
+          // Crea overlay
+          pdfOverlay = L.imageOverlay(url, bounds, {
+            opacity: 0.6,
+            interactive: false,
+            zIndex: 400
+          }).addTo(map);
+          
+          pdfInfo.textContent = '✅ Pianta caricata dal bus (già allineata)';
+          console.log('✅ Overlay caricato dal bus');
+        }
+        
+        // Centra sulla mappa
+        if (areaLayer) {
+          map.fitBounds(areaLayer.getBounds());
+        } else if (pdfOverlay) {
+          map.fitBounds(pdfOverlay.getBounds());
+        }
+        
+      } catch (err) {
+        console.log('ℹ️ Errore caricamento dal bus:', err.message);
+      }
+    }
+    
+    // Carica dal bus all'avvio
+    loadFromBus();
 
     // Load area
     areaFile.addEventListener('change', async (e) => {
