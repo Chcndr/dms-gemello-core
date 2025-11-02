@@ -369,6 +369,7 @@
     let currentScale = 1.0;
     let currentOpacity = 0.7;
     let imageUrl = null;
+    let originalBounds = null; // Bounds originali per calcoli trasformazione
     
     // Carica PNG dal bus all'avvio
     async function loadPNGFromBus() {
@@ -419,6 +420,12 @@
         [center.lat - latOffset/2, center.lng - lngOffset/2],
         [center.lat + latOffset/2, center.lng + lngOffset/2]
       ];
+      
+      // Salva bounds originali
+      originalBounds = {
+        latDiff: latOffset/2,
+        lngDiff: lngOffset/2
+      };
       
       // Crea overlay immagine
       if (imageOverlay) map.removeLayer(imageOverlay);
@@ -493,10 +500,13 @@
     
     // Aggiorna posizione overlay quando trascini il centro
     function updateOverlayPosition() {
+      if (!originalBounds) return;
+      
       const newCenter = centerMarker.getLatLng();
-      const oldBounds = imageOverlay.getBounds();
-      const latDiff = (oldBounds.getNorth() - oldBounds.getSouth()) / 2;
-      const lngDiff = (oldBounds.getEast() - oldBounds.getWest()) / 2;
+      
+      // Usa bounds originali scalati
+      const latDiff = originalBounds.latDiff * currentScale;
+      const lngDiff = originalBounds.lngDiff * currentScale;
       
       const newBounds = [
         [newCenter.lat - latDiff, newCenter.lng - lngDiff],
@@ -506,6 +516,15 @@
       imageOverlay.setBounds(newBounds);
       overlayRect.setBounds(newBounds);
       createCornerMarkers(newBounds);
+      
+      // Riapplica rotazione dopo spostamento
+      setTimeout(() => {
+        const imgElement = imageOverlay.getElement();
+        if (imgElement) {
+          imgElement.style.transform = `rotate(${currentRotation}deg)`;
+          imgElement.style.transformOrigin = 'center';
+        }
+      }, 50);
     }
     
     // Funzioni trasformazione
@@ -548,16 +567,13 @@
     }
     
     function applyTransform() {
-      if (!imageOverlay || !centerMarker) return;
+      if (!imageOverlay || !centerMarker || !originalBounds) return;
       
       const center = centerMarker.getLatLng();
-      const baseBounds = imageOverlay.getBounds();
-      const baseLatDiff = (baseBounds.getNorth() - baseBounds.getSouth()) / 2;
-      const baseLngDiff = (baseBounds.getEast() - baseBounds.getWest()) / 2;
       
-      // Applica scala
-      const newLatDiff = baseLatDiff * currentScale;
-      const newLngDiff = baseLngDiff * currentScale;
+      // Usa bounds ORIGINALI come base, non quelli attuali!
+      const newLatDiff = originalBounds.latDiff * currentScale;
+      const newLngDiff = originalBounds.lngDiff * currentScale;
       
       const newBounds = [
         [center.lat - newLatDiff, center.lng - newLngDiff],
@@ -569,11 +585,14 @@
       createCornerMarkers(newBounds);
       
       // Applica rotazione (CSS transform sull'elemento immagine)
-      const imgElement = imageOverlay.getElement();
-      if (imgElement) {
-        imgElement.style.transform = `rotate(${currentRotation}deg)`;
-        imgElement.style.transformOrigin = 'center';
-      }
+      // Aspetta che l'elemento sia caricato
+      setTimeout(() => {
+        const imgElement = imageOverlay.getElement();
+        if (imgElement) {
+          imgElement.style.transform = `rotate(${currentRotation}deg)`;
+          imgElement.style.transformOrigin = 'center';
+        }
+      }, 100);
     }
     
     function resetTransform() {
