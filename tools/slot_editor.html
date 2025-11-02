@@ -183,6 +183,9 @@
     let addMode = false;
     let alignMode = false;
     let alignCorners = [];
+    let container = null;
+    let gcp = null;
+    let pngMeta = null;
 
     // Elements
     const areaFile = document.getElementById('area-file');
@@ -216,9 +219,17 @@
           console.log('✅ Area caricata dal bus');
         }
         
+        // Carica container e GCP
+        container = await DMSBUS.getJSON('container');
+        gcp = await DMSBUS.getJSON('gcp');
+        pngMeta = await DMSBUS.getJSON('png_meta');
+        
+        if (container) {
+          console.log('✅ Container caricato dal bus');
+        }
+        
         // Carica overlay
         const blob = await DMSBUS.getBlob('png_transparent');
-        const gcp = await DMSBUS.getJSON('gcp');
         
         if (blob && gcp) {
           // Crea URL da Blob
@@ -263,6 +274,26 @@
     
     // Carica dal bus all'avvio
     loadFromBus();
+    
+    // Converti coordinate geografiche in pixel
+    function latLngToPixel(latlng, gcp, pngMeta) {
+      // Estrai bounds dai GCP
+      const corners = gcp.corners;
+      const latMin = Math.min(corners.nw[0], corners.ne[0], corners.se[0], corners.sw[0]);
+      const latMax = Math.max(corners.nw[0], corners.ne[0], corners.se[0], corners.sw[0]);
+      const lngMin = Math.min(corners.nw[1], corners.ne[1], corners.se[1], corners.sw[1]);
+      const lngMax = Math.max(corners.nw[1], corners.ne[1], corners.se[1], corners.sw[1]);
+      
+      // Normalizza coordinate (0-1)
+      const latNorm = (latlng.lat - latMin) / (latMax - latMin);
+      const lngNorm = (latlng.lng - lngMin) / (lngMax - lngMin);
+      
+      // Converti in pixel (inverti latNorm perché le coordinate pixel crescono verso il basso)
+      const x = lngNorm * pngMeta.w;
+      const y = (1 - latNorm) * pngMeta.h;
+      
+      return [x, y];
+    }
 
     // Load area
     areaFile.addEventListener('change', async (e) => {
@@ -371,6 +402,7 @@
       const orientValue = slotOrientation.value;
       const angle = orientValue === 'custom' ? parseInt(customAngle.value) : parseInt(orientValue);
 
+      // GeoJSON per visualizzazione
       const slot = {
         type: 'Feature',
         geometry: {
@@ -387,6 +419,27 @@
       };
 
       slots.push(slot);
+      
+      // Salva in container (coordinate pixel)
+      if (container && gcp && pngMeta) {
+        const pixelCoords = latLngToPixel(latlng, gcp, pngMeta);
+        
+        const stallPx = {
+          id: number,
+          center_px: pixelCoords,
+          width_px: 3,  // 3 metri
+          height_px: 6, // 6 metri
+          angle: angle,
+          orientation: angle
+        };
+        
+        container.stalls_px.push(stallPx);
+        
+        // Salva container aggiornato nel bus
+        DMSBUS.putJSON('container', container).then(() => {
+          console.log(`✅ Posteggio ${number} salvato in container`);
+        });
+      }
 
       // Add marker
       const marker = L.marker(latlng, {
