@@ -23,20 +23,16 @@
     font:14px system-ui;
   }
   .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .btn{background:var(--acc);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  .btn{background:var(--acc);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer;flex:1}
   .btn.secondary{background:#2b3c48}
   .btn.danger{background:#b84040}
+  .btn.zoom{background:#ff9800;flex:0 0 auto;min-width:44px;font-size:18px;font-weight:bold}
   .btn:disabled{opacity:0.5;cursor:not-allowed}
   .mut{color:var(--mut)} .small{font-size:12px}
   .group{border-top:1px solid #1a2d3a;margin-top:10px;padding-top:10px}
   
   input[type=range]{width:100%;margin:6px 0}
   label{display:block;margin-top:8px;font-size:13px}
-  
-  /* Stile overlay trascinabile */
-  .leaflet-image-layer.draggable {
-    cursor: move !important;
-  }
 </style>
 </head>
 <body>
@@ -61,10 +57,14 @@
     <input type="range" id="rotation" min="0" max="360" value="0" step="1"/>
     
     <label>Scala: <span id="scaleVal">1.0</span>x</label>
-    <input type="range" id="scale" min="0.1" max="5" value="1" step="0.1"/>
+    <div class="row">
+      <button class="btn zoom" id="zoomOut">−</button>
+      <input type="range" id="scale" min="0.1" max="5" value="1" step="0.1" style="flex:1"/>
+      <button class="btn zoom" id="zoomIn">+</button>
+    </div>
     
-    <label>Opacità: <span id="opVal">1.00</span></label>
-    <input type="range" id="opacity" min="0" max="1" value="1" step="0.05"/>
+    <label>Opacità: <span id="opVal">0.70</span></label>
+    <input type="range" id="opacity" min="0" max="1" value="0.7" step="0.05"/>
     
     <div class="row" style="margin-top:12px">
       <button class="btn secondary" id="resetTransform">↻ Reset</button>
@@ -112,15 +112,17 @@ const scaleVal = document.getElementById('scaleVal');
 const opVal = document.getElementById('opVal');
 const saveBtn = document.getElementById('saveGCP');
 const openKitBtn = document.getElementById('openContainerKit');
+const zoomInBtn = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
 
 // Stato
 let imageOverlay = null;
-let draggable = null;
+let imageMarker = null; // Marker invisibile per il drag
 let imageSize = {w: 0, h: 0};
 let currentRotation = 0;
 let currentScale = 1.0;
-let currentOpacity = 1.0;
-let centerLatLng = null; // Centro dell'immagine
+let currentOpacity = 0.7;
+let baseScale = 1.0; // Scala base calcolata all'inizio
 
 // Funzioni di log
 function log(msg) {
@@ -144,50 +146,51 @@ document.getElementById('loadFromBus').onclick = async () => {
     // Crea URL da Blob
     const url = URL.createObjectURL(blob);
     
-    // Centro iniziale = centro mappa
-    centerLatLng = map.getCenter();
-    
     // Rimuovi overlay precedente
     if (imageOverlay) {
       map.removeLayer(imageOverlay);
-      if (draggable) {
-        draggable.disable();
-      }
+    }
+    if (imageMarker) {
+      map.removeLayer(imageMarker);
     }
     
-    // Crea overlay
-    const bounds = calculateBounds();
-    imageOverlay = L.imageOverlay(url, bounds, {
-      opacity: currentOpacity,
-      interactive: true,
-      className: 'draggable'
+    // Centro iniziale = centro mappa
+    const center = map.getCenter();
+    
+    // Calcola scala base per far stare l'immagine nella vista
+    const bounds = map.getBounds();
+    const mapWidthMeters = bounds.getEast() - bounds.getWest();
+    const mapHeightMeters = bounds.getNorth() - bounds.getSouth();
+    
+    // Scala base: l'immagine occupa circa 1/3 della mappa
+    const zoom = map.getZoom();
+    const metersPerPixel = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, zoom);
+    baseScale = (mapWidthMeters * 0.3) / (imageSize.w * metersPerPixel);
+    
+    // Crea marker invisibile trascinabile al centro
+    imageMarker = L.marker(center, {
+      draggable: true,
+      opacity: 0,
+      icon: L.divIcon({className: '', iconSize: [0, 0]})
     }).addTo(map);
     
-    // Abilita drag usando Leaflet.Draggable
-    const element = imageOverlay.getElement();
-    draggable = new L.Draggable(element);
-    draggable.enable();
+    // Crea overlay
+    const initialBounds = calculateBounds(center);
+    imageOverlay = L.imageOverlay(url, initialBounds, {
+      opacity: currentOpacity,
+      interactive: false
+    }).addTo(map);
     
-    // Eventi drag
-    draggable.on('drag', function(e) {
-      // Calcola nuovo centro in base al movimento del mouse
-      const containerPoint = map.latLngToContainerPoint(centerLatLng);
-      const newContainerPoint = L.point(
-        containerPoint.x + draggable._newPos.x - draggable._startPoint.x,
-        containerPoint.y + draggable._newPos.y - draggable._startPoint.y
-      );
-      centerLatLng = map.containerPointToLatLng(newContainerPoint);
+    // Quando il marker viene trascinato, aggiorna l'overlay
+    imageMarker.on('drag', function() {
+      const newCenter = imageMarker.getLatLng();
+      const newBounds = calculateBounds(newCenter);
+      imageOverlay.setBounds(newBounds);
+      applyRotation();
     });
     
-    draggable.on('dragend', function() {
-      // Resetta posizione CSS e aggiorna bounds
-      element.style.transform = `translate(0px, 0px) rotate(${currentRotation}deg)`;
-      element.style.transformOrigin = 'center';
-      const newBounds = calculateBounds();
-      imageOverlay.setBounds(newBounds);
-      draggable._startPoint = {x: 0, y: 0};
-      draggable._newPos = {x: 0, y: 0};
-      log('Centrato su mappa');
+    imageMarker.on('dragend', function() {
+      log('Posizione aggiornata');
     });
     
     log('Immagine caricata. Trascina per posizionare.');
@@ -202,35 +205,68 @@ document.getElementById('loadFromBus').onclick = async () => {
 };
 
 // Calcola bounds in base a centro, scala e dimensioni immagine
-function calculateBounds() {
-  if (!centerLatLng) return [[0,0],[0,0]];
-  
+function calculateBounds(center) {
   const zoom = map.getZoom();
-  const metersPerPixel = 156543.03392 * Math.cos(centerLatLng.lat * Math.PI / 180) / Math.pow(2, zoom);
-  const widthMeters = imageSize.w * metersPerPixel * currentScale * 0.3; // 0.3 = fattore scala iniziale
-  const heightMeters = imageSize.h * metersPerPixel * currentScale * 0.3;
+  const metersPerPixel = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, zoom);
   
-  const latOffset = (heightMeters / 111320) / 2;
-  const lngOffset = (widthMeters / (111320 * Math.cos(centerLatLng.lat * Math.PI / 180))) / 2;
+  const scaledWidth = imageSize.w * metersPerPixel * baseScale * currentScale;
+  const scaledHeight = imageSize.h * metersPerPixel * baseScale * currentScale;
+  
+  const latOffset = (scaledHeight / 111320) / 2;
+  const lngOffset = (scaledWidth / (111320 * Math.cos(center.lat * Math.PI / 180))) / 2;
   
   return [
-    [centerLatLng.lat - latOffset, centerLatLng.lng - lngOffset], // SW
-    [centerLatLng.lat + latOffset, centerLatLng.lng + lngOffset]  // NE
+    [center.lat - latOffset, center.lng - lngOffset], // SW
+    [center.lat + latOffset, center.lng + lngOffset]  // NE
   ];
+}
+
+// Applica rotazione CSS
+function applyRotation() {
+  if (!imageOverlay) return;
+  const el = imageOverlay.getElement();
+  if (el) {
+    el.style.transform = `rotate(${currentRotation}deg)`;
+    el.style.transformOrigin = 'center';
+  }
 }
 
 // 2. Controlli trasformazione
 rotInput.oninput = () => {
   currentRotation = parseFloat(rotInput.value);
   rotVal.textContent = currentRotation;
-  updateTransform();
+  applyRotation();
+  log(`Rotazione: ${currentRotation}°`);
 };
 
 scaleInput.oninput = () => {
   currentScale = parseFloat(scaleInput.value);
   scaleVal.textContent = currentScale.toFixed(1);
-  updateTransform();
+  updateScale();
 };
+
+zoomInBtn.onclick = () => {
+  currentScale = Math.min(5, currentScale + 0.1);
+  scaleInput.value = currentScale;
+  scaleVal.textContent = currentScale.toFixed(1);
+  updateScale();
+};
+
+zoomOutBtn.onclick = () => {
+  currentScale = Math.max(0.1, currentScale - 0.1);
+  scaleInput.value = currentScale;
+  scaleVal.textContent = currentScale.toFixed(1);
+  updateScale();
+};
+
+function updateScale() {
+  if (!imageOverlay || !imageMarker) return;
+  const center = imageMarker.getLatLng();
+  const newBounds = calculateBounds(center);
+  imageOverlay.setBounds(newBounds);
+  applyRotation();
+  log(`Scala: ${currentScale.toFixed(1)}x`);
+}
 
 opInput.oninput = () => {
   currentOpacity = parseFloat(opInput.value);
@@ -240,34 +276,17 @@ opInput.oninput = () => {
   }
 };
 
-function updateTransform() {
-  if (!imageOverlay || !centerLatLng) return;
-  
-  // Aggiorna bounds con nuova scala
-  const newBounds = calculateBounds();
-  imageOverlay.setBounds(newBounds);
-  
-  // Applica rotazione (CSS transform)
-  const el = imageOverlay.getElement();
-  if (el) {
-    el.style.transform = `rotate(${currentRotation}deg)`;
-    el.style.transformOrigin = 'center';
-  }
-  
-  log(`Trasformato: rot=${currentRotation}° scala=${currentScale}x`);
-}
-
 document.getElementById('resetTransform').onclick = () => {
   rotInput.value = 0;
   scaleInput.value = 1;
-  opInput.value = 1;
+  opInput.value = 0.7;
   currentRotation = 0;
   currentScale = 1.0;
-  currentOpacity = 1.0;
+  currentOpacity = 0.7;
   rotVal.textContent = '0';
   scaleVal.textContent = '1.0';
-  opVal.textContent = '1.00';
-  updateTransform();
+  opVal.textContent = '0.70';
+  updateScale();
   log('Reset trasformazioni');
 };
 
@@ -280,7 +299,7 @@ document.getElementById('centerOnMap').onclick = () => {
 
 // 3. Salva GCP
 document.getElementById('saveGCP').onclick = async () => {
-  if (!imageOverlay) {
+  if (!imageOverlay || !imageMarker) {
     alert('Nessuna immagine caricata!');
     return;
   }
