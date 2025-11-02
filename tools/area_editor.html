@@ -186,32 +186,66 @@
       <div class="section">
         <h3>🗺️ Allinea Pianta</h3>
         <p style="font-size: 13px; margin-bottom: 12px; opacity: 0.8;">
-          Carica e allinea la pianta PNG sulla mappa.
+          Trascina, ruota e scala la pianta sulla mappa.
         </p>
-        <button onclick="startAlignment()" id="btnAlign">
-          📍 Allinea Pianta (4 Click)
+        
+        <button onclick="showOverlay()" id="btnShow">
+          📍 Mostra Pianta sulla Mappa
         </button>
-        <button onclick="clearOverlay()" class="secondary" id="btnClearOverlay" disabled>
-          🗑️ Rimuovi Overlay
+        <button onclick="fixOverlay()" id="btnFix" disabled>
+          ✅ Fissa Pianta
         </button>
+        
         <div id="alignStatus" style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
           Nessuna pianta caricata
         </div>
         
-        <!-- Preview Immagine con Rettangolo Rosso -->
-        <div id="imagePreview" style="display: none; margin-top: 15px; position: relative; border: 3px solid #f44336; border-radius: 8px; padding: 10px; background: #fff;">
-          <div style="position: relative; display: inline-block; width: 100%;">
-            <img id="previewImg" style="width: 100%; height: auto; display: block; border-radius: 4px;" />
-            
-            <!-- Lettere Angoli -->
-            <div style="position: absolute; top: -8px; left: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">NW</div>
-            <div style="position: absolute; top: -8px; right: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">NE</div>
-            <div style="position: absolute; bottom: -8px; right: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">SE</div>
-            <div style="position: absolute; bottom: -8px; left: -8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">SW</div>
+        <!-- Controlli Trasformazione -->
+        <div id="transformControls" style="display: none; margin-top: 15px;">
+          
+          <!-- Rotazione -->
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
+              🔄 Rotazione: <span id="rotationValue">0</span>°
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button onclick="adjustRotation(-5)" class="secondary" style="padding: 8px 12px;">−</button>
+              <input type="range" id="rotationSlider" min="0" max="360" value="0" 
+                     style="flex: 1;" oninput="updateRotation(this.value)">
+              <button onclick="adjustRotation(5)" class="secondary" style="padding: 8px 12px;">+</button>
+            </div>
           </div>
-          <p style="font-size: 12px; margin-top: 10px; text-align: center; color: #666;">
-            👆 Clicca su questi angoli nell'ordine: NW → NE → SE → SW
-          </p>
+          
+          <!-- Scala -->
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
+              🔍 Scala: <span id="scaleValue">1.0</span>x
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button onclick="adjustScale(-0.1)" class="secondary" style="padding: 8px 12px;">−</button>
+              <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1" 
+                     style="flex: 1;" oninput="updateScale(this.value)">
+              <button onclick="adjustScale(0.1)" class="secondary" style="padding: 8px 12px;">+</button>
+            </div>
+          </div>
+          
+          <!-- Opacità -->
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
+              🔆 Opacità: <span id="opacityValue">0.7</span>
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button onclick="adjustOpacity(-0.1)" class="secondary" style="padding: 8px 12px;">−</button>
+              <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" value="0.7" 
+                     style="flex: 1;" oninput="updateOpacity(this.value)">
+              <button onclick="adjustOpacity(0.1)" class="secondary" style="padding: 8px 12px;">+</button>
+            </div>
+          </div>
+          
+          <button onclick="resetTransform()" class="secondary" style="width: 100%;">
+            🔄 Reset Trasformazioni
+          </button>
+          
         </div>
       </div>
       
@@ -327,10 +361,14 @@
     let pngBlob = null;
     let pngMeta = null;
     
-    // Stato allineamento
-    let alignMode = false;
-    let alignCorners = [];
-    let alignMarkers = [];
+    // Stato allineamento con rettangolo rosso
+    let overlayRect = null;
+    let centerMarker = null;
+    let cornerMarkers = [];
+    let currentRotation = 0;
+    let currentScale = 1.0;
+    let currentOpacity = 0.7;
+    let imageUrl = null;
     
     // Carica PNG dal bus all'avvio
     async function loadPNGFromBus() {
@@ -339,16 +377,14 @@
         pngMeta = await DMSBUS.getJSON('png_meta');
         
         if (pngBlob && pngMeta) {
+          // Salva URL immagine
+          imageUrl = URL.createObjectURL(pngBlob);
+          
           // Mostra status
-          document.getElementById('alignStatus').textContent = `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)`;
-          document.getElementById('btnAlign').disabled = false;
+          document.getElementById('alignStatus').textContent = `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px) - Pronto per allineamento`;
+          document.getElementById('btnShow').disabled = false;
           
-          // Mostra preview immagine con rettangolo rosso
-          const url = URL.createObjectURL(pngBlob);
-          document.getElementById('previewImg').src = url;
-          document.getElementById('imagePreview').style.display = 'block';
-          
-          console.log('✅ PNG caricato dal bus e preview mostrata');
+          console.log('✅ PNG caricato dal bus');
         } else {
           document.getElementById('alignStatus').textContent = '⚠️ Nessun PNG nel bus. Completa prima PNG Trasparente.';
           document.getElementById('imagePreview').style.display = 'none';
@@ -360,131 +396,260 @@
       }
     }
     
-    // Avvia modalità allineamento
-    function startAlignment() {
-      if (!pngBlob) {
-        alert('❌ Nessun PNG caricato! Completa prima PNG Trasparente.');
+    // Mostra rettangolo rosso sulla mappa
+    function showOverlay() {
+      if (!imageUrl) {
+        alert('❌ Nessun PNG caricato!');
         return;
       }
       
-      alignMode = true;
-      alignCorners = [];
+      // Centro mappa (Grosseto)
+      const center = map.getCenter();
       
-      // Rimuovi marker precedenti
-      alignMarkers.forEach(m => map.removeLayer(m));
-      alignMarkers = [];
+      // Calcola dimensioni rettangolo (proporzionali all'immagine)
+      const aspectRatio = pngMeta.w / pngMeta.h;
+      const heightMeters = 300; // 300 metri di altezza base
+      const widthMeters = heightMeters * aspectRatio;
       
-      document.getElementById('alignStatus').innerHTML = `
-        <strong style="color: #4CAF50">📍 Modalità Allineamento Attiva</strong><br>
-        Clicca sui 4 angoli della pianta:<br>
-        1. Nord-Ovest (in alto a sinistra)<br>
-        2. Nord-Est (in alto a destra)<br>
-        3. Sud-Est (in basso a destra)<br>
-        4. Sud-Ovest (in basso a sinistra)
-      `;
+      // Calcola bounds iniziali
+      const latOffset = heightMeters / 111320; // 1 grado lat ≈ 111.32 km
+      const lngOffset = widthMeters / (111320 * Math.cos(center.lat * Math.PI / 180));
       
-      document.getElementById('btnAlign').textContent = '❌ Annulla Allineamento';
-      document.getElementById('btnAlign').onclick = cancelAlignment;
-    }
-    
-    // Annulla allineamento
-    function cancelAlignment() {
-      alignMode = false;
-      alignCorners = [];
-      alignMarkers.forEach(m => map.removeLayer(m));
-      alignMarkers = [];
-      
-      document.getElementById('alignStatus').textContent = pngBlob ? `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)` : 'Nessuna pianta caricata';
-      document.getElementById('btnAlign').textContent = '📍 Allinea Pianta (4 Click)';
-      document.getElementById('btnAlign').onclick = startAlignment;
-    }
-    
-    // Click sulla mappa per allineamento
-    map.on('click', async function(e) {
-      if (!alignMode) return;
-      
-      const latlng = e.latlng;
-      alignCorners.push([latlng.lat, latlng.lng]);
-      
-      // Aggiungi marker
-      const cornerNames = ['NW', 'NE', 'SE', 'SW'];
-      const marker = L.marker(latlng, {
-        icon: L.divIcon({
-          className: 'corner-marker',
-          html: `<div style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${cornerNames[alignCorners.length - 1]}</div>`,
-          iconSize: null
-        })
-      }).addTo(map);
-      alignMarkers.push(marker);
-      
-      document.getElementById('alignStatus').innerHTML = `
-        <strong style="color: #4CAF50">📍 Click ${alignCorners.length}/4</strong><br>
-        ${alignCorners.length < 4 ? `Prossimo: ${cornerNames[alignCorners.length]}` : 'Creazione overlay...'}
-      `;
-      
-      // Se abbiamo 4 corner, crea overlay
-      if (alignCorners.length === 4) {
-        await createOverlay();
-      }
-    });
-    
-    // Crea overlay georeferenziato
-    async function createOverlay() {
-      alignMode = false;
-      
-      // Crea URL da Blob
-      const url = URL.createObjectURL(pngBlob);
-      
-      // Calcola bounds dai 4 corner
-      const lats = alignCorners.map(c => c[0]);
-      const lngs = alignCorners.map(c => c[1]);
       const bounds = [
-        [Math.min(...lats), Math.min(...lngs)],
-        [Math.max(...lats), Math.max(...lngs)]
+        [center.lat - latOffset/2, center.lng - lngOffset/2],
+        [center.lat + latOffset/2, center.lng + lngOffset/2]
       ];
       
-      // Rimuovi overlay precedente
-      if (imageOverlay) {
-        map.removeLayer(imageOverlay);
-      }
-      
-      // Crea overlay
-      imageOverlay = L.imageOverlay(url, bounds, {
-        opacity: 0.6,
+      // Crea overlay immagine
+      if (imageOverlay) map.removeLayer(imageOverlay);
+      imageOverlay = L.imageOverlay(imageUrl, bounds, {
+        opacity: currentOpacity,
         interactive: false,
         zIndex: 400
       }).addTo(map);
       
+      // Crea rettangolo rosso
+      if (overlayRect) map.removeLayer(overlayRect);
+      overlayRect = L.rectangle(bounds, {
+        color: '#f44336',
+        weight: 3,
+        fillOpacity: 0,
+        interactive: false
+      }).addTo(map);
+      
+      // Crea marker centrale trascinabile
+      if (centerMarker) map.removeLayer(centerMarker);
+      centerMarker = L.marker(center, {
+        draggable: true,
+        icon: L.divIcon({
+          className: 'center-marker',
+          html: '<div style="background: #f44336; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: move;"></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        })
+      }).addTo(map);
+      
+      // Evento drag marker centrale
+      centerMarker.on('drag', updateOverlayPosition);
+      
+      // Crea marker angoli con numeri
+      createCornerMarkers(bounds);
+      
+      // Mostra controlli
+      document.getElementById('transformControls').style.display = 'block';
+      document.getElementById('btnFix').disabled = false;
+      document.getElementById('btnShow').disabled = true;
+      document.getElementById('alignStatus').innerHTML = '<strong style="color: #4CAF50">✅ Trascina il centro, ruota e scala!</strong>';
+      
+      console.log('✅ Rettangolo rosso mostrato sulla mappa');
+    }
+    
+    // Crea marker angoli con numeri
+    function createCornerMarkers(bounds) {
+      // Rimuovi marker precedenti
+      cornerMarkers.forEach(m => map.removeLayer(m));
+      cornerMarkers = [];
+      
+      const corners = [
+        {pos: [bounds[1][0], bounds[0][1]], num: '1'}, // NW
+        {pos: [bounds[1][0], bounds[1][1]], num: '2'}, // NE
+        {pos: [bounds[0][0], bounds[1][1]], num: '3'}, // SE
+        {pos: [bounds[0][0], bounds[0][1]], num: '4'}  // SW
+      ];
+      
+      corners.forEach(corner => {
+        const marker = L.marker(corner.pos, {
+          icon: L.divIcon({
+            className: 'corner-number',
+            html: `<div style="background: #f44336; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${corner.num}</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          }),
+          interactive: false
+        }).addTo(map);
+        cornerMarkers.push(marker);
+      });
+    }
+    
+    // Aggiorna posizione overlay quando trascini il centro
+    function updateOverlayPosition() {
+      const newCenter = centerMarker.getLatLng();
+      const oldBounds = imageOverlay.getBounds();
+      const latDiff = (oldBounds.getNorth() - oldBounds.getSouth()) / 2;
+      const lngDiff = (oldBounds.getEast() - oldBounds.getWest()) / 2;
+      
+      const newBounds = [
+        [newCenter.lat - latDiff, newCenter.lng - lngDiff],
+        [newCenter.lat + latDiff, newCenter.lng + lngDiff]
+      ];
+      
+      imageOverlay.setBounds(newBounds);
+      overlayRect.setBounds(newBounds);
+      createCornerMarkers(newBounds);
+    }
+    
+    // Funzioni trasformazione
+    function updateRotation(value) {
+      currentRotation = parseFloat(value);
+      document.getElementById('rotationValue').textContent = Math.round(currentRotation);
+      applyTransform();
+    }
+    
+    function updateScale(value) {
+      currentScale = parseFloat(value);
+      document.getElementById('scaleValue').textContent = currentScale.toFixed(1);
+      applyTransform();
+    }
+    
+    function updateOpacity(value) {
+      currentOpacity = parseFloat(value);
+      document.getElementById('opacityValue').textContent = currentOpacity.toFixed(1);
+      if (imageOverlay) {
+        imageOverlay.setOpacity(currentOpacity);
+      }
+    }
+    
+    function adjustRotation(delta) {
+      const newValue = Math.max(0, Math.min(360, currentRotation + delta));
+      document.getElementById('rotationSlider').value = newValue;
+      updateRotation(newValue);
+    }
+    
+    function adjustScale(delta) {
+      const newValue = Math.max(0.1, Math.min(3, currentScale + delta));
+      document.getElementById('scaleSlider').value = newValue;
+      updateScale(newValue);
+    }
+    
+    function adjustOpacity(delta) {
+      const newValue = Math.max(0.1, Math.min(1, currentOpacity + delta));
+      document.getElementById('opacitySlider').value = newValue;
+      updateOpacity(newValue);
+    }
+    
+    function applyTransform() {
+      if (!imageOverlay || !centerMarker) return;
+      
+      const center = centerMarker.getLatLng();
+      const baseBounds = imageOverlay.getBounds();
+      const baseLatDiff = (baseBounds.getNorth() - baseBounds.getSouth()) / 2;
+      const baseLngDiff = (baseBounds.getEast() - baseBounds.getWest()) / 2;
+      
+      // Applica scala
+      const newLatDiff = baseLatDiff * currentScale;
+      const newLngDiff = baseLngDiff * currentScale;
+      
+      const newBounds = [
+        [center.lat - newLatDiff, center.lng - newLngDiff],
+        [center.lat + newLatDiff, center.lng + newLngDiff]
+      ];
+      
+      imageOverlay.setBounds(newBounds);
+      overlayRect.setBounds(newBounds);
+      createCornerMarkers(newBounds);
+      
+      // Applica rotazione (CSS transform sull'elemento immagine)
+      const imgElement = imageOverlay.getElement();
+      if (imgElement) {
+        imgElement.style.transform = `rotate(${currentRotation}deg)`;
+        imgElement.style.transformOrigin = 'center';
+      }
+    }
+    
+    function resetTransform() {
+      currentRotation = 0;
+      currentScale = 1.0;
+      currentOpacity = 0.7;
+      
+      document.getElementById('rotationSlider').value = 0;
+      document.getElementById('scaleSlider').value = 1;
+      document.getElementById('opacitySlider').value = 0.7;
+      
+      document.getElementById('rotationValue').textContent = '0';
+      document.getElementById('scaleValue').textContent = '1.0';
+      document.getElementById('opacityValue').textContent = '0.7';
+      
+      applyTransform();
+    }
+    
+    // Fissa overlay e salva GCP
+    async function fixOverlay() {
+      if (!imageOverlay || !centerMarker) {
+        alert('❌ Nessun overlay da fissare!');
+        return;
+      }
+      
+      const bounds = imageOverlay.getBounds();
+      const corners = [
+        [bounds.getNorth(), bounds.getWest()],  // NW
+        [bounds.getNorth(), bounds.getEast()],  // NE
+        [bounds.getSouth(), bounds.getEast()],  // SE
+        [bounds.getSouth(), bounds.getWest()]   // SW
+      ];
+      
       // Salva GCP nel bus
       const gcp = {
         corners: {
-          nw: alignCorners[0],
-          ne: alignCorners[1],
-          se: alignCorners[2],
-          sw: alignCorners[3]
+          nw: corners[0],
+          ne: corners[1],
+          se: corners[2],
+          sw: corners[3]
         },
         image: {
           width: pngMeta.w,
           height: pngMeta.h
         },
+        rotation: currentRotation,
+        scale: currentScale,
         timestamp: new Date().toISOString()
       };
       
-      await DMSBUS.putJSON('gcp', gcp);
-      
-      document.getElementById('alignStatus').innerHTML = `
-        <strong style="color: #4CAF50">✅ Pianta allineata!</strong><br>
-        GCP salvati nel bus
-      `;
-      
-      document.getElementById('btnAlign').textContent = '🔄 Riallinea Pianta';
-      document.getElementById('btnAlign').onclick = startAlignment;
-      document.getElementById('btnClearOverlay').disabled = false;
-      
-      console.log('✅ Overlay creato e GCP salvati');
+      try {
+        await DMSBUS.putJSON('gcp', gcp);
+        
+        // Rimuovi marker e rettangolo rosso
+        if (centerMarker) map.removeLayer(centerMarker);
+        if (overlayRect) map.removeLayer(overlayRect);
+        cornerMarkers.forEach(m => map.removeLayer(m));
+        
+        centerMarker = null;
+        overlayRect = null;
+        cornerMarkers = [];
+        
+        // Nascondi controlli
+        document.getElementById('transformControls').style.display = 'none';
+        document.getElementById('btnFix').disabled = true;
+        document.getElementById('btnShow').disabled = false;
+        document.getElementById('alignStatus').innerHTML = '<strong style="color: #4CAF50">✅ Pianta fissata! GCP salvati nel bus.</strong>';
+        
+        alert('✅ Pianta fissata! Ora puoi disegnare l\'area mercato.');
+        console.log('✅ GCP salvati nel bus:', gcp);
+      } catch (err) {
+        alert('❌ Errore salvataggio GCP: ' + err.message);
+      }
     }
     
-    // Rimuovi overlay
+    // Rimuovi overlay (funzione legacy, ora usiamo fixOverlay)
     function clearOverlay() {
       if (imageOverlay) {
         map.removeLayer(imageOverlay);
