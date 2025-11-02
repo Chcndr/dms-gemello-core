@@ -435,9 +435,15 @@
         zIndex: 400
       }).addTo(map);
       
-      // Crea rettangolo rosso
+      // Crea rettangolo rosso (come polygon per supportare rotazione)
       if (overlayRect) map.removeLayer(overlayRect);
-      overlayRect = L.rectangle(bounds, {
+      const rectCorners = [
+        [bounds[1][0], bounds[0][1]], // NW
+        [bounds[1][0], bounds[1][1]], // NE
+        [bounds[0][0], bounds[1][1]], // SE
+        [bounds[0][0], bounds[0][1]]  // SW
+      ];
+      overlayRect = L.polygon(rectCorners, {
         color: '#f44336',
         weight: 3,
         fillOpacity: 0,
@@ -472,16 +478,24 @@
     }
     
     // Crea marker angoli con numeri
-    function createCornerMarkers(bounds) {
+    function createCornerMarkers(bounds, rotatedPositions = null) {
       // Rimuovi marker precedenti
       cornerMarkers.forEach(m => map.removeLayer(m));
       cornerMarkers = [];
       
+      // Usa posizioni ruotate se fornite, altrimenti usa bounds normali
+      const positions = rotatedPositions || [
+        [bounds[1][0], bounds[0][1]], // NW
+        [bounds[1][0], bounds[1][1]], // NE
+        [bounds[0][0], bounds[1][1]], // SE
+        [bounds[0][0], bounds[0][1]]  // SW
+      ];
+      
       const corners = [
-        {pos: [bounds[1][0], bounds[0][1]], num: '1'}, // NW
-        {pos: [bounds[1][0], bounds[1][1]], num: '2'}, // NE
-        {pos: [bounds[0][0], bounds[1][1]], num: '3'}, // SE
-        {pos: [bounds[0][0], bounds[0][1]], num: '4'}  // SW
+        {pos: positions[0], num: '1'}, // NW
+        {pos: positions[1], num: '2'}, // NE
+        {pos: positions[2], num: '3'}, // SE
+        {pos: positions[3], num: '4'}  // SW
       ];
       
       corners.forEach(corner => {
@@ -496,6 +510,24 @@
         }).addTo(map);
         cornerMarkers.push(marker);
       });
+    }
+    
+    // Calcola coordinate ruotate
+    function rotatePoint(lat, lng, centerLat, centerLng, angleDeg) {
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      
+      // Trasla al centro
+      const latRel = lat - centerLat;
+      const lngRel = lng - centerLng;
+      
+      // Ruota
+      const latRotated = latRel * cos - lngRel * sin;
+      const lngRotated = latRel * sin + lngRel * cos;
+      
+      // Trasla indietro
+      return [centerLat + latRotated, centerLng + lngRotated];
     }
     
     // Aggiorna posizione overlay quando trascini il centro
@@ -513,9 +545,27 @@
         [newCenter.lat + latDiff, newCenter.lng + lngDiff]
       ];
       
+      // Aggiorna bounds immagine
       imageOverlay.setBounds(newBounds);
-      overlayRect.setBounds(newBounds);
-      createCornerMarkers(newBounds);
+      
+      // Calcola angoli rettangolo ruotati
+      const rectCorners = [
+        [newBounds[1][0], newBounds[0][1]], // NW
+        [newBounds[1][0], newBounds[1][1]], // NE
+        [newBounds[0][0], newBounds[1][1]], // SE
+        [newBounds[0][0], newBounds[0][1]]  // SW
+      ];
+      
+      // Ruota gli angoli se necessario
+      const rotatedCorners = rectCorners.map(corner => 
+        rotatePoint(corner[0], corner[1], newCenter.lat, newCenter.lng, currentRotation)
+      );
+      
+      // Aggiorna rettangolo rosso con angoli ruotati
+      overlayRect.setLatLngs(rotatedCorners);
+      
+      // Aggiorna marker angoli con posizioni ruotate
+      createCornerMarkers(newBounds, rotatedCorners);
       
       // Riapplica rotazione dopo spostamento
       setTimeout(() => {
@@ -580,9 +630,27 @@
         [center.lat + newLatDiff, center.lng + newLngDiff]
       ];
       
+      // Aggiorna bounds immagine
       imageOverlay.setBounds(newBounds);
-      overlayRect.setBounds(newBounds);
-      createCornerMarkers(newBounds);
+      
+      // Calcola angoli rettangolo ruotati
+      const rectCorners = [
+        [newBounds[1][0], newBounds[0][1]], // NW
+        [newBounds[1][0], newBounds[1][1]], // NE
+        [newBounds[0][0], newBounds[1][1]], // SE
+        [newBounds[0][0], newBounds[0][1]]  // SW
+      ];
+      
+      // Ruota gli angoli se necessario
+      const rotatedCorners = rectCorners.map(corner => 
+        rotatePoint(corner[0], corner[1], center.lat, center.lng, currentRotation)
+      );
+      
+      // Aggiorna rettangolo rosso con angoli ruotati
+      overlayRect.setLatLngs(rotatedCorners);
+      
+      // Aggiorna marker angoli con posizioni ruotate
+      createCornerMarkers(newBounds, rotatedCorners);
       
       // Applica rotazione (CSS transform sull'elemento immagine)
       // Aspetta che l'elemento sia caricato
