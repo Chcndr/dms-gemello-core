@@ -58,6 +58,7 @@
     <span>Mantieni numeri scuri</span>
   </label>
   
+  <button id="rotate" disabled style="background: #ff9800;">🔄 Ruota 90°</button>
   <button id="download" disabled>📥 Scarica PNG Trasparente</button>
   <button id="sendToBus" disabled style="background: #2a7a9f;">➡️ Invia ad Allineatore</button>
   <p style="font-size: 11px; opacity: 0.6; margin-top: 8px;">Regola i parametri finché il risultato è soddisfacente, poi scarica o invia all'Allineatore</p>
@@ -83,7 +84,9 @@ const f=document.getElementById('file'), sC=document.getElementById('src'), dC=d
 const hmin=document.getElementById('hmin'), hmax=document.getElementById('hmax'), smin=document.getElementById('smin'), vmin=document.getElementById('vmin'), keepDigits=document.getElementById('keepDigits');
 const hvals=document.getElementById('hvals'), sval=document.getElementById('sval'), vval=document.getElementById('vval');
 const downloadBtn=document.getElementById('download');
+const rotateBtn=document.getElementById('rotate');
 let img=new Image();
+let rotationAngle=0;
 
 f.onchange=async()=>{
   const file=f.files[0]; if(!file) return;
@@ -98,10 +101,10 @@ f.onchange=async()=>{
     const canvas=document.createElement('canvas');
     canvas.width=v.width; canvas.height=v.height;
     await page.render({canvasContext:canvas.getContext('2d'),viewport:v}).promise;
-    img.onload=()=>{ draw(); downloadBtn.disabled=false; sendBtn.disabled=false; };
+    img.onload=()=>{ draw(); downloadBtn.disabled=false; sendBtn.disabled=false; rotateBtn.disabled=false; };
     img.src=canvas.toDataURL('image/png');
   } else {
-    img.onload=()=>{ draw(); downloadBtn.disabled=false; sendBtn.disabled=false; };
+    img.onload=()=>{ draw(); downloadBtn.disabled=false; sendBtn.disabled=false; rotateBtn.disabled=false; };
     img.src=URL.createObjectURL(file);
   }
 };
@@ -120,7 +123,7 @@ sendBtn.onclick=async()=>{
   try{
     dC.toBlob(async(blob)=>{
       await DMSBUS.putBlob('png_transparent', blob);
-      await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height});
+      await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
       alert('✅ PNG salvato nel bus! Apro Allineatore...');
       window.open('../tools/align_editor.html', '_blank');
     }, 'image/png');
@@ -129,21 +132,42 @@ sendBtn.onclick=async()=>{
   }
 };
 
+rotateBtn.onclick=()=>{
+  rotationAngle=(rotationAngle+90)%360;
+  draw();
+};
+
 function draw(){
   if(!img.naturalWidth) return;
   const W=img.naturalWidth,H=img.naturalHeight;
-  sC.width=W; sC.height=H; dC.width=W; dC.height=H;
   
-  const sctx=sC.getContext('2d'); sctx.drawImage(img,0,0);
-  const dctx=dC.getContext('2d'); dctx.drawImage(img,0,0);
+  // Scambia dimensioni se rotazione è 90° o 270°
+  const isRotated=(rotationAngle===90||rotationAngle===270);
+  sC.width=isRotated?H:W; sC.height=isRotated?W:H;
+  dC.width=isRotated?H:W; dC.height=isRotated?W:H;
   
-  const imgData=dctx.getImageData(0,0,W,H); const d=imgData.data;
+  const sctx=sC.getContext('2d');
+  sctx.save();
+  sctx.translate(sC.width/2, sC.height/2);
+  sctx.rotate(rotationAngle*Math.PI/180);
+  sctx.drawImage(img, -W/2, -H/2);
+  sctx.restore();
+  
+  const dctx=dC.getContext('2d');
+  dctx.save();
+  dctx.translate(dC.width/2, dC.height/2);
+  dctx.rotate(rotationAngle*Math.PI/180);
+  dctx.drawImage(img, -W/2, -H/2);
+  dctx.restore();
+  
+  const imgData=dctx.getImageData(0,0,dC.width,dC.height); const d=imgData.data;
   const HMIN=+hmin.value,HMAX=+hmax.value,SMIN=+smin.value/100,VMIN=+vmin.value/100;
   
   hvals.textContent=`${HMIN}–${HMAX}`;
   sval.textContent=smin.value;
   vval.textContent=vmin.value;
   
+  // Applica trasparenza
   for(let i=0;i<d.length;i+=4){
     const hsv=rgb2hsv(d[i],d[i+1],d[i+2]);
     let keep=(hsv.h>=HMIN&&hsv.h<=HMAX&&hsv.s>=SMIN&&hsv.v>=VMIN);
