@@ -60,8 +60,8 @@
   
   <button id="rotate" disabled style="background: #ff9800;">🔄 Ruota 90°</button>
   <button id="download" disabled>📥 Scarica PNG Trasparente</button>
-  <button id="sendToBus" disabled style="background: #2a7a9f;">➡️ Invia ad Allineatore</button>
-  <p style="font-size: 11px; opacity: 0.6; margin-top: 8px;">Regola i parametri finché il risultato è soddisfacente, poi scarica o invia all'Allineatore</p>
+  <button id="sendToBus" disabled style="background: #2a7a9f;">➡️ Invia ad Area Editor</button>
+  <p style="font-size: 11px; opacity: 0.6; margin-top: 8px;">Regola i parametri finché il risultato è soddisfacente, poi scarica o invia all'Area Editor</p>
 </div>
 
 <div class="canvas-area">
@@ -124,8 +124,8 @@ sendBtn.onclick=async()=>{
     dC.toBlob(async(blob)=>{
       await DMSBUS.putBlob('png_transparent', blob);
       await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
-      alert('✅ PNG salvato nel bus! Apro Allineatore...');
-      window.open('../tools/align_editor.html', '_blank');
+      alert('✅ PNG salvato nel bus! Apro Area Editor...');
+      window.open('../tools/area_editor.html', '_blank');
     }, 'image/png');
   }catch(err){
     alert('❌ Errore: '+err.message);
