@@ -182,6 +182,23 @@
         </ul>
       </div>
       
+      <!-- Allinea Pianta -->
+      <div class="section">
+        <h3>🗺️ Allinea Pianta</h3>
+        <p style="font-size: 13px; margin-bottom: 12px; opacity: 0.8;">
+          Carica e allinea la pianta PNG sulla mappa.
+        </p>
+        <button onclick="startAlignment()" id="btnAlign">
+          📍 Allinea Pianta (4 Click)
+        </button>
+        <button onclick="clearOverlay()" class="secondary" id="btnClearOverlay" disabled>
+          🗑️ Rimuovi Overlay
+        </button>
+        <div id="alignStatus" style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
+          Nessuna pianta caricata
+        </div>
+      </div>
+      
       <!-- Carica Posteggi -->
       <div class="section">
         <h3>📍 Carica Posteggi (Opzionale)</h3>
@@ -291,50 +308,175 @@
     
     // Layer per overlay immagine
     let imageOverlay = null;
+    let pngBlob = null;
+    let pngMeta = null;
     
-    // Auto-carica overlay dal bus
-    async function loadOverlayFromBus() {
+    // Stato allineamento
+    let alignMode = false;
+    let alignCorners = [];
+    let alignMarkers = [];
+    
+    // Carica PNG dal bus all'avvio
+    async function loadPNGFromBus() {
       try {
-        const blob = await DMSBUS.getBlob('png_transparent');
-        const gcp = await DMSBUS.getJSON('gcp');
+        pngBlob = await DMSBUS.getBlob('png_transparent');
+        pngMeta = await DMSBUS.getJSON('png_meta');
         
-        if (blob && gcp) {
-          // Crea URL da Blob
-          const url = URL.createObjectURL(blob);
-          
-          // Calcola bounds dai GCP
-          const corners = gcp.corners;
-          const lats = corners.map(c => c.ll[0]);
-          const lngs = corners.map(c => c.ll[1]);
-          const bounds = [
-            [Math.min(...lats), Math.min(...lngs)],
-            [Math.max(...lats), Math.max(...lngs)]
-          ];
-          
-          // Rimuovi overlay precedente
-          if (imageOverlay) {
-            map.removeLayer(imageOverlay);
-          }
-          
-          // Crea overlay
-          imageOverlay = L.imageOverlay(url, bounds, {
-            opacity: 0.6,
-            interactive: false,
-            zIndex: 400
-          }).addTo(map);
-          
-          // Centra sulla mappa
-          map.fitBounds(bounds);
-          
-          console.log('✅ Overlay caricato dal bus');
+        if (pngBlob && pngMeta) {
+          document.getElementById('alignStatus').textContent = `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)`;
+          document.getElementById('btnAlign').disabled = false;
+          console.log('✅ PNG caricato dal bus');
+        } else {
+          document.getElementById('alignStatus').textContent = '⚠️ Nessun PNG nel bus. Completa prima PNG Trasparente.';
         }
       } catch (err) {
-        console.log('ℹ️ Nessun overlay nel bus:', err.message);
+        document.getElementById('alignStatus').textContent = '❌ Errore caricamento PNG';
+        console.error(err);
       }
     }
     
-    // Carica overlay all'avvio
-    loadOverlayFromBus();
+    // Avvia modalità allineamento
+    function startAlignment() {
+      if (!pngBlob) {
+        alert('❌ Nessun PNG caricato! Completa prima PNG Trasparente.');
+        return;
+      }
+      
+      alignMode = true;
+      alignCorners = [];
+      
+      // Rimuovi marker precedenti
+      alignMarkers.forEach(m => map.removeLayer(m));
+      alignMarkers = [];
+      
+      document.getElementById('alignStatus').innerHTML = `
+        <strong style="color: #4CAF50">📍 Modalità Allineamento Attiva</strong><br>
+        Clicca sui 4 angoli della pianta:<br>
+        1. Nord-Ovest (in alto a sinistra)<br>
+        2. Nord-Est (in alto a destra)<br>
+        3. Sud-Est (in basso a destra)<br>
+        4. Sud-Ovest (in basso a sinistra)
+      `;
+      
+      document.getElementById('btnAlign').textContent = '❌ Annulla Allineamento';
+      document.getElementById('btnAlign').onclick = cancelAlignment;
+    }
+    
+    // Annulla allineamento
+    function cancelAlignment() {
+      alignMode = false;
+      alignCorners = [];
+      alignMarkers.forEach(m => map.removeLayer(m));
+      alignMarkers = [];
+      
+      document.getElementById('alignStatus').textContent = pngBlob ? `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)` : 'Nessuna pianta caricata';
+      document.getElementById('btnAlign').textContent = '📍 Allinea Pianta (4 Click)';
+      document.getElementById('btnAlign').onclick = startAlignment;
+    }
+    
+    // Click sulla mappa per allineamento
+    map.on('click', async function(e) {
+      if (!alignMode) return;
+      
+      const latlng = e.latlng;
+      alignCorners.push([latlng.lat, latlng.lng]);
+      
+      // Aggiungi marker
+      const cornerNames = ['NW', 'NE', 'SE', 'SW'];
+      const marker = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'corner-marker',
+          html: `<div style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${cornerNames[alignCorners.length - 1]}</div>`,
+          iconSize: null
+        })
+      }).addTo(map);
+      alignMarkers.push(marker);
+      
+      document.getElementById('alignStatus').innerHTML = `
+        <strong style="color: #4CAF50">📍 Click ${alignCorners.length}/4</strong><br>
+        ${alignCorners.length < 4 ? `Prossimo: ${cornerNames[alignCorners.length]}` : 'Creazione overlay...'}
+      `;
+      
+      // Se abbiamo 4 corner, crea overlay
+      if (alignCorners.length === 4) {
+        await createOverlay();
+      }
+    });
+    
+    // Crea overlay georeferenziato
+    async function createOverlay() {
+      alignMode = false;
+      
+      // Crea URL da Blob
+      const url = URL.createObjectURL(pngBlob);
+      
+      // Calcola bounds dai 4 corner
+      const lats = alignCorners.map(c => c[0]);
+      const lngs = alignCorners.map(c => c[1]);
+      const bounds = [
+        [Math.min(...lats), Math.min(...lngs)],
+        [Math.max(...lats), Math.max(...lngs)]
+      ];
+      
+      // Rimuovi overlay precedente
+      if (imageOverlay) {
+        map.removeLayer(imageOverlay);
+      }
+      
+      // Crea overlay
+      imageOverlay = L.imageOverlay(url, bounds, {
+        opacity: 0.6,
+        interactive: false,
+        zIndex: 400
+      }).addTo(map);
+      
+      // Salva GCP nel bus
+      const gcp = {
+        corners: {
+          nw: alignCorners[0],
+          ne: alignCorners[1],
+          se: alignCorners[2],
+          sw: alignCorners[3]
+        },
+        image: {
+          width: pngMeta.w,
+          height: pngMeta.h
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      await DMSBUS.putJSON('gcp', gcp);
+      
+      document.getElementById('alignStatus').innerHTML = `
+        <strong style="color: #4CAF50">✅ Pianta allineata!</strong><br>
+        GCP salvati nel bus
+      `;
+      
+      document.getElementById('btnAlign').textContent = '🔄 Riallinea Pianta';
+      document.getElementById('btnAlign').onclick = startAlignment;
+      document.getElementById('btnClearOverlay').disabled = false;
+      
+      console.log('✅ Overlay creato e GCP salvati');
+    }
+    
+    // Rimuovi overlay
+    function clearOverlay() {
+      if (imageOverlay) {
+        map.removeLayer(imageOverlay);
+        imageOverlay = null;
+      }
+      alignMarkers.forEach(m => map.removeLayer(m));
+      alignMarkers = [];
+      alignCorners = [];
+      
+      document.getElementById('alignStatus').textContent = pngBlob ? `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)` : 'Nessuna pianta caricata';
+      document.getElementById('btnAlign').textContent = '📍 Allinea Pianta (4 Click)';
+      document.getElementById('btnAlign').onclick = startAlignment;
+      document.getElementById('btnClearOverlay').disabled = true;
+    }
+    
+    // Carica PNG all'avvio
+    loadPNGFromBus();
     
     // Leaflet.Draw controls
     const drawControl = new L.Control.Draw({
