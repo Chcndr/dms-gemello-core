@@ -34,18 +34,9 @@
   input[type=range]{width:100%;margin:6px 0}
   label{display:block;margin-top:8px;font-size:13px}
   
-  /* Custom overlay image */
-  .custom-image-overlay {
-    position: absolute;
-    cursor: move;
-    user-select: none;
-    pointer-events: auto;
-    transform-origin: center center;
-  }
-  .custom-image-overlay img {
-    width: 100%;
-    height: 100%;
-    display: block;
+  /* Overlay draggable */
+  .leaflet-image-layer.draggable {
+    cursor: move !important;
   }
 </style>
 </head>
@@ -123,7 +114,7 @@
 <script>
 // Mappa
 const map = L.map('map', {
-  zoomControl: false
+  zoomControl: false // Rimuoviamo i controlli default, usiamo i nostri
 }).setView([42.7633, 11.1117], 16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -146,56 +137,28 @@ const openKitBtn = document.getElementById('openContainerKit');
 
 // Stato
 let imageOverlay = null;
-let imageUrl = null;
+let imageElement = null;
 let imageSize = {w: 0, h: 0};
-let centerLatLng = null; // Centro dell'immagine in coordinate geografiche
 let currentRotation = 0;
 let currentScale = 1.0;
 let currentOpacity = 0.7;
-let baseWidthMeters = 300; // Larghezza base in metri
+let isDragging = false;
+let dragStart = {x: 0, y: 0};
+let imagePosition = {x: 0, y: 0}; // Offset in pixel
 
 // Funzioni di log
 function log(msg) {
   debugEl.textContent = `[${new Date().toTimeString().slice(0,8)}] ${msg}`;
 }
 
-// Calcola bounds dall'immagine
-function calculateBounds() {
-  if (!centerLatLng || !imageSize.w || !imageSize.h) return null;
+// Applica trasformazioni CSS
+function applyTransform() {
+  if (!imageElement) return;
   
-  // Calcola dimensioni in metri con scala applicata
-  const aspectRatio = imageSize.w / imageSize.h;
-  const widthMeters = baseWidthMeters * currentScale;
-  const heightMeters = widthMeters / aspectRatio;
-  
-  // Converti metri in gradi (approssimazione)
-  const latOffset = (heightMeters / 111320) / 2;
-  const lngOffset = (widthMeters / (111320 * Math.cos(centerLatLng.lat * Math.PI / 180))) / 2;
-  
-  return [
-    [centerLatLng.lat - latOffset, centerLatLng.lng - lngOffset],
-    [centerLatLng.lat + latOffset, centerLatLng.lng + lngOffset]
-  ];
-}
-
-// Aggiorna overlay
-function updateOverlay() {
-  if (!imageOverlay) return;
-  
-  const bounds = calculateBounds();
-  if (!bounds) return;
-  
-  // Aggiorna bounds
-  imageOverlay.setBounds(bounds);
-  
-  // Aggiorna stile
-  const el = imageOverlay.getElement();
-  if (el) {
-    el.style.transform = `rotate(${currentRotation}deg)`;
-    el.style.opacity = currentOpacity;
-  }
-  
-  log(`Aggiornato: rot=${currentRotation}° scala=${currentScale.toFixed(1)}x`);
+  const transform = `translate(${imagePosition.x}px, ${imagePosition.y}px) rotate(${currentRotation}deg) scale(${currentScale})`;
+  imageElement.style.transform = transform;
+  imageElement.style.transformOrigin = 'center';
+  imageElement.style.opacity = currentOpacity;
 }
 
 // 1. Carica PNG dal Bus
@@ -213,16 +176,15 @@ document.getElementById('loadFromBus').onclick = async () => {
     loadStatus.textContent = `✅ PNG caricato (${imageSize.w}x${imageSize.h})`;
     
     // Crea URL da Blob
-    if (imageUrl) URL.revokeObjectURL(imageUrl);
-    imageUrl = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     
     // Rimuovi overlay precedente
     if (imageOverlay) {
       map.removeLayer(imageOverlay);
     }
     
-    // Reset stato
-    centerLatLng = map.getCenter();
+    // Reset posizione
+    imagePosition = {x: 0, y: 0};
     currentRotation = 0;
     currentScale = 1.0;
     currentOpacity = 0.7;
@@ -234,65 +196,49 @@ document.getElementById('loadFromBus').onclick = async () => {
     scaleVal.textContent = '1.0';
     opVal.textContent = '0.70';
     
-    // Calcola bounds iniziali
-    const bounds = calculateBounds();
+    // Centro mappa
+    const center = map.getCenter();
+    
+    // Calcola dimensione overlay: max 400px sulla mappa
+    const maxSize = 400;
+    const ratio = Math.max(imageSize.w, imageSize.h) / maxSize;
+    const displayW = imageSize.w / ratio;
+    const displayH = imageSize.h / ratio;
+    
+    // Crea bounds centrati
+    const metersPerPixel = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, map.getZoom());
+    const widthMeters = displayW * metersPerPixel;
+    const heightMeters = displayH * metersPerPixel;
+    
+    const latOffset = (heightMeters / 111320) / 2;
+    const lngOffset = (widthMeters / (111320 * Math.cos(center.lat * Math.PI / 180))) / 2;
+    
+    const bounds = [
+      [center.lat - latOffset, center.lng - lngOffset],
+      [center.lat + latOffset, center.lng + lngOffset]
+    ];
     
     // Crea overlay
-    imageOverlay = L.imageOverlay(imageUrl, bounds, {
+    imageOverlay = L.imageOverlay(url, bounds, {
       opacity: currentOpacity,
-      interactive: true
+      interactive: true,
+      className: 'draggable'
     }).addTo(map);
     
     // Aspetta che l'elemento sia nel DOM
     setTimeout(() => {
-      const el = imageOverlay.getElement();
-      if (el) {
-        el.style.cursor = 'move';
-        el.style.transformOrigin = 'center center';
+      imageElement = imageOverlay.getElement();
+      if (imageElement) {
+        imageElement.style.cursor = 'move';
         
-        // Setup drag
-        let isDragging = false;
-        let dragStartLatLng = null;
-        let dragStartMouseLatLng = null;
-        
-        el.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          dragStartLatLng = L.latLng(centerLatLng.lat, centerLatLng.lng);
-          dragStartMouseLatLng = map.mouseEventToLatLng(e);
-          el.style.cursor = 'grabbing';
-          e.preventDefault();
-          e.stopPropagation();
-        });
-        
-        map.on('mousemove', (e) => {
-          if (!isDragging) return;
-          
-          const currentMouseLatLng = e.latlng;
-          const latDiff = currentMouseLatLng.lat - dragStartMouseLatLng.lat;
-          const lngDiff = currentMouseLatLng.lng - dragStartMouseLatLng.lng;
-          
-          centerLatLng = L.latLng(
-            dragStartLatLng.lat + latDiff,
-            dragStartLatLng.lng + lngDiff
-          );
-          
-          updateOverlay();
-        });
-        
-        map.on('mouseup', () => {
-          if (isDragging) {
-            isDragging = false;
-            if (el) el.style.cursor = 'move';
-            log(`Nuova posizione: ${centerLatLng.lat.toFixed(6)}, ${centerLatLng.lng.toFixed(6)}`);
-          }
-        });
+        // Eventi drag
+        imageElement.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', onDragEnd);
         
         log('Immagine caricata. Trascina per posizionare!');
       }
     }, 100);
-    
-    // Centra sulla mappa
-    map.fitBounds(bounds);
     
     saveBtn.disabled = false;
     openKitBtn.disabled = false;
@@ -304,69 +250,99 @@ document.getElementById('loadFromBus').onclick = async () => {
   }
 };
 
+// Drag handlers
+function onDragStart(e) {
+  if (!imageElement) return;
+  isDragging = true;
+  dragStart = {
+    x: e.clientX - imagePosition.x,
+    y: e.clientY - imagePosition.y
+  };
+  imageElement.style.cursor = 'grabbing';
+  e.preventDefault();
+}
+
+function onDrag(e) {
+  if (!isDragging) return;
+  imagePosition = {
+    x: e.clientX - dragStart.x,
+    y: e.clientY - dragStart.y
+  };
+  applyTransform();
+}
+
+function onDragEnd() {
+  if (!isDragging) return;
+  isDragging = false;
+  if (imageElement) {
+    imageElement.style.cursor = 'move';
+  }
+  log(`Posizione: x=${imagePosition.x}, y=${imagePosition.y}`);
+}
+
 // 2. Controlli trasformazione
 
 // Rotazione
 rotInput.oninput = () => {
   currentRotation = parseFloat(rotInput.value);
   rotVal.textContent = currentRotation;
-  updateOverlay();
+  applyTransform();
 };
 
 document.getElementById('rotPlus').onclick = () => {
   currentRotation = (currentRotation + 5) % 360;
   rotInput.value = currentRotation;
   rotVal.textContent = currentRotation;
-  updateOverlay();
+  applyTransform();
 };
 
 document.getElementById('rotMinus').onclick = () => {
   currentRotation = (currentRotation - 5 + 360) % 360;
   rotInput.value = currentRotation;
   rotVal.textContent = currentRotation;
-  updateOverlay();
+  applyTransform();
 };
 
 // Scala
 scaleInput.oninput = () => {
   currentScale = parseFloat(scaleInput.value);
   scaleVal.textContent = currentScale.toFixed(1);
-  updateOverlay();
+  applyTransform();
 };
 
 document.getElementById('zoomIn').onclick = () => {
   currentScale = Math.min(5, currentScale + 0.1);
   scaleInput.value = currentScale;
   scaleVal.textContent = currentScale.toFixed(1);
-  updateOverlay();
+  applyTransform();
 };
 
 document.getElementById('zoomOut').onclick = () => {
   currentScale = Math.max(0.1, currentScale - 0.1);
   scaleInput.value = currentScale;
   scaleVal.textContent = currentScale.toFixed(1);
-  updateOverlay();
+  applyTransform();
 };
 
 // Opacità
 opInput.oninput = () => {
   currentOpacity = parseFloat(opInput.value);
   opVal.textContent = currentOpacity.toFixed(2);
-  updateOverlay();
+  applyTransform();
 };
 
 document.getElementById('opPlus').onclick = () => {
   currentOpacity = Math.min(1, currentOpacity + 0.05);
   opInput.value = currentOpacity;
   opVal.textContent = currentOpacity.toFixed(2);
-  updateOverlay();
+  applyTransform();
 };
 
 document.getElementById('opMinus').onclick = () => {
   currentOpacity = Math.max(0, currentOpacity - 0.05);
   opInput.value = currentOpacity;
   opVal.textContent = currentOpacity.toFixed(2);
-  updateOverlay();
+  applyTransform();
 };
 
 // Zoom mappa
@@ -381,7 +357,7 @@ document.getElementById('mapZoomOut').onclick = () => {
 };
 
 document.getElementById('resetTransform').onclick = () => {
-  centerLatLng = map.getCenter();
+  imagePosition = {x: 0, y: 0};
   currentRotation = 0;
   currentScale = 1.0;
   currentOpacity = 0.7;
@@ -393,48 +369,69 @@ document.getElementById('resetTransform').onclick = () => {
   scaleVal.textContent = '1.0';
   opVal.textContent = '0.70';
   
-  updateOverlay();
+  applyTransform();
   log('Reset trasformazioni');
 };
 
 document.getElementById('centerOnMap').onclick = () => {
   if (imageOverlay) {
-    const bounds = calculateBounds();
-    if (bounds) {
-      map.fitBounds(bounds);
-      log('Centrato su mappa');
-    }
+    map.fitBounds(imageOverlay.getBounds());
+    log('Centrato su mappa');
   }
 };
 
 // 3. Salva GCP
 document.getElementById('saveGCP').onclick = async () => {
-  if (!imageOverlay || !centerLatLng) {
+  if (!imageOverlay || !imageElement) {
     alert('Nessuna immagine caricata!');
     return;
   }
   
   try {
-    // Calcola i 4 angoli dell'immagine
-    const bounds = calculateBounds();
-    const sw = L.latLng(bounds[0][0], bounds[0][1]);
-    const ne = L.latLng(bounds[1][0], bounds[1][1]);
+    // Ottieni i 4 angoli dell'immagine in coordinate geografiche
+    // Usa i bounds originali dell'overlay e applica le trasformazioni
+    const bounds = imageOverlay.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
     const nw = L.latLng(ne.lat, sw.lng);
     const se = L.latLng(sw.lat, ne.lng);
+    
+    // Calcola il centro dell'immagine in coordinate schermo
+    const centerPoint = map.latLngToContainerPoint(bounds.getCenter());
+    
+    // Applica offset dal drag
+    const transformedCenter = {
+      x: centerPoint.x + imagePosition.x,
+      y: centerPoint.y + imagePosition.y
+    };
+    
+    // Converti il centro trasformato in lat/lng
+    const transformedLatLng = map.containerPointToLatLng(transformedCenter);
+    
+    // Calcola i 4 angoli ruotati e scalati
+    const halfW = (ne.lng - sw.lng) * currentScale / 2;
+    const halfH = (ne.lat - sw.lat) * currentScale / 2;
+    
+    const corners = {
+      nw: [transformedLatLng.lat + halfH, transformedLatLng.lng - halfW],
+      ne: [transformedLatLng.lat + halfH, transformedLatLng.lng + halfW],
+      sw: [transformedLatLng.lat - halfH, transformedLatLng.lng - halfW],
+      se: [transformedLatLng.lat - halfH, transformedLatLng.lng + halfW]
+    };
     
     // GCP: 4 angoli (NW, NE, SW, SE) con coordinate pixel e geografiche
     const gcp = {
       corners: [
-        {px: [0, 0], ll: [nw.lat, nw.lng]},
-        {px: [imageSize.w, 0], ll: [ne.lat, ne.lng]},
-        {px: [0, imageSize.h], ll: [sw.lat, sw.lng]},
-        {px: [imageSize.w, imageSize.h], ll: [se.lat, se.lng]}
+        {px: [0, 0], ll: corners.nw},
+        {px: [imageSize.w, 0], ll: corners.ne},
+        {px: [0, imageSize.h], ll: corners.sw},
+        {px: [imageSize.w, imageSize.h], ll: corners.se}
       ],
       imageW: imageSize.w,
       imageH: imageSize.h,
       rotation: currentRotation,
       scale: currentScale,
-      center: [centerLatLng.lat, centerLatLng.lng]
+      center: [transformedLatLng.lat, transformedLatLng.lng]
     };
     
     await DMSBUS.putJSON('gcp', gcp);
