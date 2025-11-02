@@ -694,11 +694,68 @@
       }
       
       try {
+        // Salva area GeoJSON
         await DMSBUS.putJSON('area_geojson', geojson);
-        alert('✅ Area salvata nel bus!');
+        
+        // Crea container.json
+        const gcp = await DMSBUS.getJSON('gcp');
+        if (gcp && alignCorners.length === 4) {
+          const container = {
+            id: document.getElementById('areaName').value.toLowerCase().replace(/\s+/g, '-'),
+            name: document.getElementById('areaName').value,
+            type: document.getElementById('areaType').value,
+            description: document.getElementById('areaDesc').value,
+            timestamp: new Date().toISOString(),
+            image: {
+              width: pngMeta.w,
+              height: pngMeta.h
+            },
+            gcp: [
+              {
+                px: [0, 0],
+                ll: gcp.corners.nw,
+                note: 'Angolo nord-ovest'
+              },
+              {
+                px: [pngMeta.w, 0],
+                ll: gcp.corners.ne,
+                note: 'Angolo nord-est'
+              },
+              {
+                px: [pngMeta.w, pngMeta.h],
+                ll: gcp.corners.se,
+                note: 'Angolo sud-est'
+              },
+              {
+                px: [0, pngMeta.h],
+                ll: gcp.corners.sw,
+                note: 'Angolo sud-ovest'
+              }
+            ],
+            area_px: extractAreaPixels(geojson, gcp),
+            stalls_px: [] // Sarà popolato da Slot Editor
+          };
+          
+          await DMSBUS.putJSON('container', container);
+          console.log('✅ Container.json creato e salvato nel bus');
+        }
+        
+        alert('✅ Area e container salvati nel bus!');
       } catch (err) {
         alert('❌ Errore: ' + err.message);
       }
+    }
+    
+    // Estrai coordinate pixel dell'area dal GeoJSON
+    function extractAreaPixels(geojson, gcp) {
+      // Per ora restituisce i 4 corner in pixel
+      // In futuro potrebbe convertire il poligono area in coordinate pixel
+      return [
+        [0, 0],
+        [pngMeta.w, 0],
+        [pngMeta.w, pngMeta.h],
+        [0, pngMeta.h]
+      ];
     }
     
     // Export GeoJSON
