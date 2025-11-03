@@ -1022,11 +1022,11 @@
     updateWorkflowStatus();
     updateCheckpointList();
 
-    // Auto-refresh ogni 5 secondi
+    // Auto-refresh ogni 30 secondi
     setInterval(() => {
       updateWorkflowStatus();
       autoSaveCheckpoint();
-    }, 5000);
+    }, 30000);
   </script>
 </body>
 </html>
