@@ -652,7 +652,7 @@
     }
 
     // Funzione per aggiornare preview mappa
-    function updateMapPreview(gcp, areaGeoJSON, hubGeoJSON, stallsGeoJSON) {
+    async function updateMapPreview(gcp, areaGeoJSON, hubGeoJSON, stallsGeoJSON) {
       // Rimuovi layer esistenti
       if (overlayLayer) {
         previewMap.removeLayer(overlayLayer);
@@ -669,7 +669,33 @@
 
       // Aggiungi overlay se presente
       if (gcp && gcp.corners) {
-        // TODO: Aggiungere overlay quando disponibile
+        try {
+          // Leggi PNG dal bus
+          const pngBlob = await DMSBUS.getBlob('png_transparent');
+          if (pngBlob) {
+            // Crea URL blob
+            const imageUrl = URL.createObjectURL(pngBlob);
+            
+            // Calcola bounds geografici (NW e SE corner)
+            const bounds = [
+              [gcp.corners.nw[0], gcp.corners.nw[1]], // NW
+              [gcp.corners.se[0], gcp.corners.se[1]]  // SE
+            ];
+            
+            // Crea overlay geografico
+            overlayLayer = L.imageOverlay(imageUrl, bounds, {
+              opacity: 0.7,
+              interactive: false
+            }).addTo(previewMap);
+            
+            // Centra mappa sull'overlay
+            previewMap.fitBounds(bounds);
+            
+            console.log('✅ Overlay geografico aggiunto alla preview mappa');
+          }
+        } catch (err) {
+          console.error('❌ Errore caricamento overlay:', err);
+        }
       }
 
       // Aggiungi area mercato
