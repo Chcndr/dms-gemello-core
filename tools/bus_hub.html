@@ -269,6 +269,56 @@
       border-left: 4px solid #4CAF50;
       color: #c8e6c9;
     }
+    
+    .checkpoint-item {
+      background: #1a4a5a;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border-left: 4px solid #4CAF50;
+    }
+    
+    .checkpoint-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    
+    .checkpoint-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #4fc3a0;
+    }
+    
+    .checkpoint-time {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    .checkpoint-desc {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+    
+    .checkpoint-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .checkpoint-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+      margin: 0;
+    }
+    
+    .checkpoint-empty {
+      text-align: center;
+      padding: 20px;
+      opacity: 0.5;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -312,6 +362,14 @@
         <h2>📦 Dati nel Bus</h2>
         <div id="bus-data-list">
           <div class="bus-data-empty">Caricamento...</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>💾 Timeline Progetto</h2>
+        <button id="btn-save-checkpoint" class="success">💾 Salva Checkpoint</button>
+        <div id="checkpoint-list" style="margin-top: 12px;">
+          <div class="checkpoint-empty">Nessun checkpoint salvato</div>
         </div>
       </div>
     </aside>
@@ -725,11 +783,167 @@
       input.click();
     });
 
+    // ========== CHECKPOINT MANAGEMENT ==========
+    
+    function saveCheckpoint(name) {
+      try {
+        const timestamp = new Date().toISOString();
+        const checkpointId = 'checkpoint_' + Date.now();
+        
+        // Leggi stato attuale dal bus
+        const checkpoint = {
+          id: checkpointId,
+          name: name || 'Checkpoint ' + new Date().toLocaleString('it-IT'),
+          timestamp: timestamp,
+          data: {}
+        };
+        
+        // Salva tutti i dati dal bus
+        const keys = ['png_transparent', 'png_meta', 'gcp', 'container', 'area_geojson', 'hub_geojson', 'stalls_geojson'];
+        keys.forEach(key => {
+          try {
+            const data = localStorage.getItem('dmsbus_' + key);
+            if (data) checkpoint.data[key] = data;
+          } catch (err) {}
+        });
+        
+        // Salva checkpoint in localStorage
+        localStorage.setItem(checkpointId, JSON.stringify(checkpoint));
+        
+        // Aggiorna lista
+        updateCheckpointList();
+        
+        return checkpointId;
+      } catch (err) {
+        console.error('Errore salvataggio checkpoint:', err);
+        return null;
+      }
+    }
+    
+    function loadCheckpoint(checkpointId) {
+      try {
+        const checkpointData = localStorage.getItem(checkpointId);
+        if (!checkpointData) {
+          alert('❌ Checkpoint non trovato!');
+          return;
+        }
+        
+        const checkpoint = JSON.parse(checkpointData);
+        
+        // Ripristina dati nel bus
+        for (const [key, value] of Object.entries(checkpoint.data)) {
+          localStorage.setItem('dmsbus_' + key, value);
+        }
+        
+        alert('✅ Checkpoint ripristinato: ' + checkpoint.name);
+        updateWorkflowStatus();
+      } catch (err) {
+        alert('❌ Errore ripristino checkpoint: ' + err.message);
+      }
+    }
+    
+    function deleteCheckpoint(checkpointId) {
+      if (confirm('⚠️ Sei sicuro di voler eliminare questo checkpoint?')) {
+        localStorage.removeItem(checkpointId);
+        updateCheckpointList();
+      }
+    }
+    
+    function updateCheckpointList() {
+      const container = document.getElementById('checkpoint-list');
+      container.innerHTML = '';
+      
+      // Trova tutti i checkpoint
+      const checkpoints = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('checkpoint_')) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            checkpoints.push(data);
+          } catch (err) {}
+        }
+      }
+      
+      // Ordina per timestamp (più recenti prima)
+      checkpoints.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      if (checkpoints.length === 0) {
+        container.innerHTML = '<div class="checkpoint-empty">Nessun checkpoint salvato</div>';
+        return;
+      }
+      
+      // Mostra checkpoint
+      checkpoints.forEach(cp => {
+        const item = document.createElement('div');
+        item.className = 'checkpoint-item';
+        
+        const dataCount = Object.keys(cp.data).length;
+        const date = new Date(cp.timestamp).toLocaleString('it-IT');
+        
+        item.innerHTML = `
+          <div class="checkpoint-header">
+            <div class="checkpoint-title">${cp.name}</div>
+            <div class="checkpoint-time">${date}</div>
+          </div>
+          <div class="checkpoint-desc">${dataCount} dati salvati</div>
+          <div class="checkpoint-actions">
+            <button class="secondary" onclick="loadCheckpoint('${cp.id}')">Ripristina</button>
+            <button class="danger" onclick="deleteCheckpoint('${cp.id}')">Elimina</button>
+          </div>
+        `;
+        
+        container.appendChild(item);
+      });
+    }
+    
+    // Auto-save checkpoint quando cambiano i dati
+    let lastDataHash = '';
+    function autoSaveCheckpoint() {
+      try {
+        // Calcola hash dei dati attuali
+        const keys = ['png_transparent', 'png_meta', 'gcp', 'container', 'area_geojson', 'hub_geojson', 'stalls_geojson'];
+        let currentHash = '';
+        keys.forEach(key => {
+          const data = localStorage.getItem('dmsbus_' + key);
+          if (data) currentHash += key + ':' + data.length + ';';
+        });
+        
+        // Se i dati sono cambiati, salva checkpoint
+        if (currentHash !== lastDataHash && currentHash !== '') {
+          lastDataHash = currentHash;
+          
+          // Determina nome checkpoint basato su step completati
+          let checkpointName = 'Auto-save';
+          if (localStorage.getItem('dmsbus_png_transparent')) checkpointName = 'Step 1: PNG Transparent';
+          if (localStorage.getItem('dmsbus_gcp')) checkpointName = 'Step 2: Area Editor';
+          if (localStorage.getItem('dmsbus_stalls_geojson')) checkpointName = 'Step 3: Slot Editor';
+          
+          saveCheckpoint(checkpointName);
+        }
+      } catch (err) {
+        console.error('Errore auto-save:', err);
+      }
+    }
+    
+    // Event listeners checkpoint
+    document.getElementById('btn-save-checkpoint').addEventListener('click', () => {
+      const name = prompt('💾 Nome checkpoint:', 'Checkpoint manuale ' + new Date().toLocaleTimeString('it-IT'));
+      if (name) {
+        saveCheckpoint(name);
+        alert('✅ Checkpoint salvato!');
+      }
+    });
+    
     // Aggiorna stato all'avvio
     updateWorkflowStatus();
+    updateCheckpointList();
 
     // Auto-refresh ogni 5 secondi
-    setInterval(updateWorkflowStatus, 5000);
+    setInterval(() => {
+      updateWorkflowStatus();
+      autoSaveCheckpoint();
+    }, 5000);
   </script>
 </body>
 </html>
