@@ -233,6 +233,38 @@
     const pdfInfo = document.getElementById('pdf-info');
     const modeInfo = document.getElementById('mode-info');
     
+    // Funzione per ruotare immagine con canvas
+    function rotateImage(imageUrl, rotation) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calcola dimensioni canvas ruotato
+          const rad = (rotation * Math.PI) / 180;
+          const cos = Math.abs(Math.cos(rad));
+          const sin = Math.abs(Math.sin(rad));
+          const newWidth = img.width * cos + img.height * sin;
+          const newHeight = img.width * sin + img.height * cos;
+          
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          
+          // Ruota e disegna
+          ctx.translate(newWidth / 2, newHeight / 2);
+          ctx.rotate(rad);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          
+          // Converti in blob
+          canvas.toBlob((blob) => {
+            resolve(URL.createObjectURL(blob));
+          }, 'image/png');
+        };
+        img.src = imageUrl;
+      });
+    }
+
     // Auto-carica area e overlay dal bus
     async function loadFromBus() {
       try {
@@ -263,15 +295,21 @@
         
         if (blob && gcp) {
           // Crea URL da Blob
-          const url = URL.createObjectURL(blob);
+          let url = URL.createObjectURL(blob);
           
-          // Calcola bounds dai GCP
-          const corners = gcp.corners;
-          const lats = corners.map(c => c.ll[0]);
-          const lngs = corners.map(c => c.ll[1]);
+          // Leggi metadata per ottenere rotazione
+          const rotation = pngMeta?.rotation || 0;
+          
+          // Se c'è rotazione, ruota l'immagine prima (INVERTI IL SEGNO!)
+          if (rotation !== 0) {
+            url = await rotateImage(url, -rotation); // NEGATIVO!
+            console.log('🔄 Immagine ruotata per overlay:', -rotation + '°');
+          }
+          
+          // Calcola bounds geografici usando NW e SE corner (NON min/max!)
           const bounds = [
-            [Math.min(...lats), Math.min(...lngs)],
-            [Math.max(...lats), Math.max(...lngs)]
+            [gcp.corners.nw[0], gcp.corners.nw[1]], // NW
+            [gcp.corners.se[0], gcp.corners.se[1]]  // SE
           ];
           
           // Rimuovi overlay precedente
@@ -287,7 +325,7 @@
           }).addTo(map);
           
           pdfInfo.textContent = '✅ Pianta caricata dal bus (già allineata)';
-          console.log('✅ Overlay caricato dal bus');
+          console.log('✅ Overlay caricato dal bus con rotazione:', -rotation + '°');
         }
         
         // Centra sulla mappa
