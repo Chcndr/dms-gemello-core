@@ -651,6 +651,38 @@
       }
     }
 
+    // Funzione per ruotare immagine con canvas
+    function rotateImage(imageUrl, rotation) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calcola dimensioni canvas ruotato
+          const rad = (rotation * Math.PI) / 180;
+          const cos = Math.abs(Math.cos(rad));
+          const sin = Math.abs(Math.sin(rad));
+          const newWidth = img.width * cos + img.height * sin;
+          const newHeight = img.width * sin + img.height * cos;
+          
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          
+          // Ruota e disegna
+          ctx.translate(newWidth / 2, newHeight / 2);
+          ctx.rotate(rad);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          
+          // Converti in blob
+          canvas.toBlob((blob) => {
+            resolve(URL.createObjectURL(blob));
+          }, 'image/png');
+        };
+        img.src = imageUrl;
+      });
+    }
+
     // Funzione per aggiornare preview mappa
     async function updateMapPreview(gcp, areaGeoJSON, hubGeoJSON, stallsGeoJSON) {
       // Rimuovi layer esistenti
@@ -674,7 +706,17 @@
           const pngBlob = await DMSBUS.getBlob('png_transparent');
           if (pngBlob) {
             // Crea URL blob
-            const imageUrl = URL.createObjectURL(pngBlob);
+            let imageUrl = URL.createObjectURL(pngBlob);
+            
+            // Leggi metadata per ottenere rotazione
+            const pngMeta = await DMSBUS.getJSON('png_meta');
+            const rotation = pngMeta?.rotation || 0;
+            
+            // Se c'è rotazione, ruota l'immagine prima
+            if (rotation !== 0) {
+              imageUrl = await rotateImage(imageUrl, rotation);
+              console.log('🔄 Immagine ruotata per preview:', rotation + '°');
+            }
             
             // Calcola bounds geografici (NW e SE corner)
             const bounds = [
