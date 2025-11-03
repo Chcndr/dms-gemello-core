@@ -939,7 +939,13 @@
         const pngBlob = await DMSBUS.getBlob('png_transparent');
         
         if (gcp && pngBlob) {
-          const imageUrl = URL.createObjectURL(pngBlob);
+          let imageUrl = URL.createObjectURL(pngBlob);
+          
+          // Se c'è rotazione, ruota l'immagine
+          if (gcp.rotation && gcp.rotation !== 0) {
+            imageUrl = await rotateImage(imageUrl, gcp.rotation);
+          }
+          
           const bounds = [
             gcp.corners.nw,
             gcp.corners.ne,
