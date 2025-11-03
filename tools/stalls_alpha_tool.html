@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>DMS • Stalls → PNG trasparente</title>
+<link rel="stylesheet" href="../shared/dms-console.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font: 14px system-ui; background: #0b1c26; color: #eaf1f5; display: flex; height: 100vh; }
@@ -103,6 +104,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
 <script src="../shared/dms-bus.js"></script>
+<script src="../shared/dms-console.js"></script>
 <script>
 const f=document.getElementById('file'), sC=document.getElementById('src'), dC=document.getElementById('dst');
 const hmin=document.getElementById('hmin'), hmax=document.getElementById('hmax'), smin=document.getElementById('smin'), vmin=document.getElementById('vmin'), keepDigits=document.getElementById('keepDigits');
@@ -114,43 +116,70 @@ let rotationAngle=0;
 
 f.onchange=async()=>{
   const file=f.files[0]; if(!file) return;
+  DMSConsole.log('Caricamento file: ' + file.name);
   downloadBtn.disabled=true;
   sendBtn.disabled=true;
+  saveToBusBtn.disabled=true;
   
-  if(file.type==='application/pdf'){
-    const buf=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-    const page=await pdf.getPage(1);
-    const v=page.getViewport({scale:2});
-    const canvas=document.createElement('canvas');
-    canvas.width=v.width; canvas.height=v.height;
-    await page.render({canvasContext:canvas.getContext('2d'),viewport:v}).promise;
-    img.onload=()=>{ draw(); downloadBtn.disabled=false; sendBtn.disabled=false; rotateBtn.disabled=false; };
-    img.src=canvas.toDataURL('image/png');
-  } else {
-    img.onload=()=>{ draw(); downloadBtn.disabled=false; sendBtn.disabled=false; rotateBtn.disabled=false; };
-    img.src=URL.createObjectURL(file);
+  try {
+    if(file.type==='application/pdf'){
+      DMSConsole.log('Conversione PDF in immagine...');
+      const buf=await file.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      const page=await pdf.getPage(1);
+      const v=page.getViewport({scale:2});
+      const canvas=document.createElement('canvas');
+      canvas.width=v.width; canvas.height=v.height;
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:v}).promise;
+      img.onload=()=>{ 
+        draw(); 
+        downloadBtn.disabled=false; 
+        sendBtn.disabled=false; 
+        saveToBusBtn.disabled=false;
+        rotateBtn.disabled=false;
+        DMSConsole.success('PDF caricato e convertito (' + v.width + 'x' + v.height + ')');
+      };
+      img.src=canvas.toDataURL('image/png');
+    } else {
+      DMSConsole.log('Caricamento immagine...');
+      img.onload=()=>{ 
+        draw(); 
+        downloadBtn.disabled=false; 
+        sendBtn.disabled=false;
+        saveToBusBtn.disabled=false;
+        rotateBtn.disabled=false;
+        DMSConsole.success('Immagine caricata (' + img.naturalWidth + 'x' + img.naturalHeight + ')');
+      };
+      img.src=URL.createObjectURL(file);
+    }
+  } catch(err) {
+    DMSConsole.error('Errore caricamento file: ' + err.message);
   }
 };
 
 [hmin,hmax,smin,vmin,keepDigits].forEach(el=>el.oninput=draw);
 
 downloadBtn.onclick=()=>{
+  DMSConsole.log('Download PNG trasparente...');
   const a=document.createElement('a');
   a.href=dC.toDataURL('image/png');
   a.download='stalls_transparent.png';
   a.click();
+  DMSConsole.success('PNG scaricato: stalls_transparent.png');
 };
 
 const saveBtn=document.getElementById('saveToBus');
 saveBtn.onclick=async()=>{
   try{
+    DMSConsole.log('Salvataggio nel bus...');
     dC.toBlob(async(blob)=>{
       await DMSBUS.putBlob('png_transparent', blob);
       await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
+      DMSConsole.success('PNG salvato nel bus (' + dC.width + 'x' + dC.height + ', rot:' + rotationAngle + '°)');
       alert('✅ PNG salvato nel bus!');
     }, 'image/png');
   }catch(err){
+    DMSConsole.error('Errore salvataggio: '+err.message);
     alert('❌ Errore: '+err.message);
   }
 };
@@ -158,19 +187,25 @@ saveBtn.onclick=async()=>{
 const sendBtn=document.getElementById('sendToBus');
 sendBtn.onclick=async()=>{
   try{
+    DMSConsole.log('Invio ad Area Editor v2...');
     dC.toBlob(async(blob)=>{
       await DMSBUS.putBlob('png_transparent', blob);
       await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
+      DMSConsole.success('PNG salvato nel bus, apertura Area Editor v2');
       alert('✅ PNG salvato nel bus! Apro Area Editor...');
       window.open('area_editor_v2.html', '_blank');
     }, 'image/png');
   }catch(err){
+    DMSConsole.error('Errore invio: '+err.message);
     alert('❌ Errore: '+err.message);
   }
 };
 
+const saveToBusBtn=document.getElementById('saveToBus');
+
 rotateBtn.onclick=()=>{
   rotationAngle=(rotationAngle+90)%360;
+  DMSConsole.log('Rotazione immagine: ' + rotationAngle + '°');
   draw();
 };
 

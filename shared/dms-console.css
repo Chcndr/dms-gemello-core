@@ -1,0 +1,169 @@
+/**
+ * DMS Console - Stili
+ * Versione: 1.0
+ */
+
+.dms-console {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 450px;
+  max-width: calc(100vw - 40px);
+  background: #0f2830;
+  border: 1px solid #1a4a5a;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.dms-console.collapsed .dms-console-body {
+  display: none;
+}
+
+.dms-console-header {
+  background: #1a4a5a;
+  color: #d5f0e6;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dms-console-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.dms-console-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.dms-console-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #d5f0e6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.dms-console-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dms-console-body {
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.dms-console-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.dms-console-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  line-height: 1.4;
+}
+
+.dms-console-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dms-console-time {
+  color: #81C784;
+  font-weight: 600;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.dms-console-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.dms-console-msg {
+  color: #d5f0e6;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Tipi di messaggio */
+.dms-console-success {
+  border-left: 3px solid #4CAF50;
+}
+
+.dms-console-warning {
+  border-left: 3px solid #FF9800;
+}
+
+.dms-console-warning .dms-console-msg {
+  color: #FFB74D;
+}
+
+.dms-console-error {
+  border-left: 3px solid #F44336;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.dms-console-error .dms-console-msg {
+  color: #EF5350;
+  font-weight: 600;
+}
+
+.dms-console-info {
+  border-left: 3px solid #2196F3;
+}
+
+/* Scrollbar custom */
+.dms-console-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dms-console-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.dms-console-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.dms-console-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dms-console {
+    width: calc(100vw - 40px);
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .dms-console-body {
+    max-height: 200px;
+  }
+  
+  .dms-console-list {
+    max-height: 200px;
+  }
+}
+
