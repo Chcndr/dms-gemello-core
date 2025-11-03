@@ -244,10 +244,10 @@
           <span id="rotationValue">0°</span>
         </div>
         <div class="slider-controls">
-          <button onclick="adjustRotation(-1)">−</button>
-          <input type="range" id="rotationSlider" min="0" max="360" value="0" 
+          <button onclick="adjustRotation(-0.5)">−</button>
+          <input type="range" id="rotationSlider" min="0" max="360" step="0.5" value="0" 
                  oninput="updateRotation(this.value)">
-          <button onclick="adjustRotation(1)">+</button>
+          <button onclick="adjustRotation(0.5)">+</button>
         </div>
       </div>
       
@@ -258,10 +258,10 @@
           <span id="scaleValue">1.0x</span>
         </div>
         <div class="slider-controls">
-          <button onclick="adjustScale(-0.02)">−</button>
-          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.02" value="1.0" 
+          <button onclick="adjustScale(-0.01)">−</button>
+          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.01" value="1.0" 
                  oninput="updateScale(this.value)">
-          <button onclick="adjustScale(0.02)">+</button>
+          <button onclick="adjustScale(0.01)">+</button>
         </div>
       </div>
       
