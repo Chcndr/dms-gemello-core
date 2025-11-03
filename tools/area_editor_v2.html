@@ -733,9 +733,27 @@
         gcp.corners[name] = [latlng.lat, latlng.lng];
       });
       
+      // Crea container per Slot Editor
+      const container = {
+        id: 'mercato_' + Date.now(),
+        name: 'Mercato',
+        type: 'mercato',
+        timestamp: gcp.timestamp,
+        image: gcp.image,
+        gcp: [
+          { px: [0, 0], ll: gcp.corners.nw, note: 'NW' },
+          { px: [gcp.image.width, 0], ll: gcp.corners.ne, note: 'NE' },
+          { px: [gcp.image.width, gcp.image.height], ll: gcp.corners.se, note: 'SE' },
+          { px: [0, gcp.image.height], ll: gcp.corners.sw, note: 'SW' }
+        ],
+        area_px: [[0, 0], [gcp.image.width, 0], [gcp.image.width, gcp.image.height], [0, gcp.image.height]],
+        stalls_px: []
+      };
+      
       // Salva nel bus
       try {
         await DMSBUS.putJSON('gcp', gcp);
+        await DMSBUS.putJSON('container', container);
         
         // Rimuovi overlay pixel
         if (overlayDiv) {
