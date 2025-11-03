@@ -33,9 +33,30 @@
     .sidebar { width: 100%; max-height: 50vh; }
     .canvas-container { grid-template-columns: 1fr; }
   }
+  
+  /* Topbar */
+  .topbar {
+    background: #0f2830;
+    color: #d5f0e6;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .brand { font-weight: 600; font-size: 16px; }
+  .ver { font-size: 12px; opacity: 0.7; }
+  
+  body { flex-direction: column; }
+  .content-wrapper { display: flex; flex: 1; overflow: hidden; }
 </style>
 </head>
 <body>
+<header class="topbar">
+  <div class="brand">DMS • GEMELLO DIGITALE — PNG Transparent Tool</div>
+  <div class="ver">v1.0</div>
+</header>
+<div class="content-wrapper">
 <div class="sidebar">
   <h2>🎨 PNG Trasparente</h2>
   <p style="font-size: 12px; opacity: 0.8; margin-bottom: 16px;">Rimuovi lo sfondo e mantieni solo i posteggi verdi</p>
@@ -76,6 +97,7 @@
       <canvas id="dst"></canvas>
     </div>
   </div>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>

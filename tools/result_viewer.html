@@ -37,9 +37,34 @@
     font-weight:bold;
     padding:2px 6px!important;
   }
+  
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #0f2830;
+    color: #d5f0e6;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 20000;
+    height: 48px;
+  }
+  .brand { font-weight: 600; font-size: 16px; }
+  .ver { font-size: 12px; opacity: 0.7; }
+  
+  #map { margin-top: 48px; height: calc(100% - 48px); }
+  .ui { top: 60px; }
 </style>
 </head>
 <body>
+<header class="topbar">
+  <div class="brand">DMS • GEMELLO DIGITALE — Result Viewer</div>
+  <div class="ver">v1.0</div>
+</header>
 <div id="map"></div>
 
 <div class="ui">
