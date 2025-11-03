@@ -155,6 +155,20 @@
       pointer-events: none;
       transform: translate(-50%, -50%);
     }
+    
+    #center-marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: #f44336;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      cursor: move;
+      pointer-events: auto;
+      transform: translate(-50%, -50%);
+      z-index: 500;
+    }
   </style>
 </head>
 <body>
@@ -182,10 +196,10 @@
           <span id="rotationValue">0°</span>
         </div>
         <div class="slider-controls">
-          <button onclick="adjustRotation(-5)">−</button>
+          <button onclick="adjustRotation(-1)">−</button>
           <input type="range" id="rotationSlider" min="0" max="360" value="0" 
                  oninput="updateRotation(this.value)">
-          <button onclick="adjustRotation(5)">+</button>
+          <button onclick="adjustRotation(1)">+</button>
         </div>
       </div>
       
@@ -196,10 +210,10 @@
           <span id="scaleValue">1.0x</span>
         </div>
         <div class="slider-controls">
-          <button onclick="adjustScale(-0.1)">−</button>
-          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1.0" 
+          <button onclick="adjustScale(-0.02)">−</button>
+          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.02" value="1.0" 
                  oninput="updateScale(this.value)">
-          <button onclick="adjustScale(0.1)">+</button>
+          <button onclick="adjustScale(0.02)">+</button>
         </div>
       </div>
       
@@ -374,6 +388,15 @@
       rectElement.id = 'pixel-rect';
       overlayDiv.appendChild(rectElement);
       
+      // Crea punto rosso centrale
+      const centerMarker = document.createElement('div');
+      centerMarker.id = 'center-marker';
+      overlayDiv.appendChild(centerMarker);
+      
+      // Eventi drag per punto centrale
+      centerMarker.addEventListener('mousedown', startCenterDrag);
+      centerMarker.addEventListener('touchstart', startCenterDrag);
+      
       // Crea marker angoli
       for (let i = 1; i <= 4; i++) {
         const marker = document.createElement('div');
@@ -405,7 +428,7 @@
       console.log('✅ Overlay pixel mostrato');
     }
     
-    // Drag handlers
+    // Drag handlers per immagine
     function startDrag(e) {
       isDragging = true;
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
@@ -415,6 +438,20 @@
       dragStartImgX = currentX;
       dragStartImgY = currentY;
       e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Drag handlers per punto centrale
+    function startCenterDrag(e) {
+      isDragging = true;
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      dragStartX = clientX;
+      dragStartY = clientY;
+      dragStartImgX = currentX;
+      dragStartImgY = currentY;
+      e.preventDefault();
+      e.stopPropagation();
     }
     
     function drag(e) {
@@ -528,6 +565,13 @@
         cornerMarkers[i].style.left = (currentX + rotX) + 'px';
         cornerMarkers[i].style.top = (currentY + rotY) + 'px';
       });
+      
+      // Aggiorna punto centrale
+      const centerMarker = document.getElementById('center-marker');
+      if (centerMarker) {
+        centerMarker.style.left = currentX + 'px';
+        centerMarker.style.top = currentY + 'px';
+      }
     }
     
     // Fissa pianta (converti pixel → coordinate geografiche)
