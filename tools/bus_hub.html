@@ -452,7 +452,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/dmsbus.js"></script>
+  <script src="../shared/dms-bus.js"></script>
   <script src="../shared/dms-console.js"></script>
   <script>
     // Inizializza mappa preview
@@ -785,7 +785,7 @@
 
     // ========== CHECKPOINT MANAGEMENT ==========
     
-    function saveCheckpoint(name) {
+    async function saveCheckpoint(name) {
       try {
         const timestamp = new Date().toISOString();
         const checkpointId = 'checkpoint_' + Date.now();
@@ -798,14 +798,19 @@
           data: {}
         };
         
-        // Salva tutti i dati dal bus
+        // Salva tutti i dati dal bus (usando DMSBUS)
         const keys = ['png_transparent', 'png_meta', 'gcp', 'container', 'area_geojson', 'hub_geojson', 'stalls_geojson'];
-        keys.forEach(key => {
+        for (const key of keys) {
           try {
-            const data = localStorage.getItem('dmsbus_' + key);
+            let data;
+            if (key === 'png_transparent') {
+              data = await DMSBUS.get(key);
+            } else {
+              data = await DMSBUS.getJSON(key);
+            }
             if (data) checkpoint.data[key] = data;
           } catch (err) {}
-        });
+        }
         
         // Salva checkpoint in localStorage
         localStorage.setItem(checkpointId, JSON.stringify(checkpoint));
@@ -820,7 +825,7 @@
       }
     }
     
-    function loadCheckpoint(checkpointId) {
+    async function loadCheckpoint(checkpointId) {
       try {
         const checkpointData = localStorage.getItem(checkpointId);
         if (!checkpointData) {
@@ -830,9 +835,13 @@
         
         const checkpoint = JSON.parse(checkpointData);
         
-        // Ripristina dati nel bus
+        // Ripristina dati nel bus (usando DMSBUS)
         for (const [key, value] of Object.entries(checkpoint.data)) {
-          localStorage.setItem('dmsbus_' + key, value);
+          if (key === 'png_transparent') {
+            await DMSBUS.put(key, value);
+          } else {
+            await DMSBUS.putJSON(key, value);
+          }
         }
         
         alert('✅ Checkpoint ripristinato: ' + checkpoint.name);
@@ -899,15 +908,21 @@
     
     // Auto-save checkpoint quando cambiano i dati
     let lastDataHash = '';
-    function autoSaveCheckpoint() {
+    async function autoSaveCheckpoint() {
       try {
-        // Calcola hash dei dati attuali
+        // Calcola hash dei dati attuali (usando DMSBUS)
         const keys = ['png_transparent', 'png_meta', 'gcp', 'container', 'area_geojson', 'hub_geojson', 'stalls_geojson'];
         let currentHash = '';
-        keys.forEach(key => {
-          const data = localStorage.getItem('dmsbus_' + key);
-          if (data) currentHash += key + ':' + data.length + ';';
-        });
+        
+        for (const key of keys) {
+          try {
+            const data = await DMSBUS.get(key);
+            if (data) {
+              const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+              currentHash += key + ':' + dataStr.length + ';';
+            }
+          } catch (err) {}
+        }
         
         // Se i dati sono cambiati, salva checkpoint
         if (currentHash !== lastDataHash && currentHash !== '') {
@@ -915,11 +930,11 @@
           
           // Determina nome checkpoint basato su step completati
           let checkpointName = 'Auto-save';
-          if (localStorage.getItem('dmsbus_png_transparent')) checkpointName = 'Step 1: PNG Transparent';
-          if (localStorage.getItem('dmsbus_gcp')) checkpointName = 'Step 2: Area Editor';
-          if (localStorage.getItem('dmsbus_stalls_geojson')) checkpointName = 'Step 3: Slot Editor';
+          if (await DMSBUS.get('png_transparent')) checkpointName = 'Step 1: PNG Transparent';
+          if (await DMSBUS.getJSON('gcp')) checkpointName = 'Step 2: Area Editor';
+          if (await DMSBUS.getJSON('stalls_geojson')) checkpointName = 'Step 3: Slot Editor';
           
-          saveCheckpoint(checkpointName);
+          await saveCheckpoint(checkpointName);
         }
       } catch (err) {
         console.error('Errore auto-save:', err);
@@ -927,10 +942,10 @@
     }
     
     // Event listeners checkpoint
-    document.getElementById('btn-save-checkpoint').addEventListener('click', () => {
+    document.getElementById('btn-save-checkpoint').addEventListener('click', async () => {
       const name = prompt('💾 Nome checkpoint:', 'Checkpoint manuale ' + new Date().toLocaleTimeString('it-IT'));
       if (name) {
-        saveCheckpoint(name);
+        await saveCheckpoint(name);
         alert('✅ Checkpoint salvato!');
       }
     });
