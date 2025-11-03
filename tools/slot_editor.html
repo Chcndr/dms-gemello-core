@@ -304,8 +304,8 @@
           
           // Se c'è rotazione, ruota l'immagine prima
           if (rotation !== 0) {
-            url = await rotateImage(url, rotation);
-            console.log('🔄 Immagine ruotata per overlay:', rotation + '°');
+            url = await rotateImage(url, -rotation);
+            console.log('🔄 Immagine ruotata per overlay:', -rotation + '°');
           }
           
           // Calcola bounds geografici usando NW e SE corner (NON min/max!)
