@@ -17,17 +17,61 @@
     
     #sidebar {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      width: 320px;
-      max-height: calc(100vh - 20px);
-      background: rgba(30, 40, 50, 0.95);
+      top: 0;
+      left: 0;
+      width: 340px;
+      height: 100vh;
+      background: linear-gradient(180deg, rgba(20, 30, 40, 0.98) 0%, rgba(30, 40, 50, 0.98) 100%);
       color: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 4px 0 24px rgba(0,0,0,0.5);
       overflow-y: auto;
       z-index: 1000;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #sidebar-header {
       padding: 20px;
+      background: rgba(0,0,0,0.2);
+      border-bottom: 2px solid rgba(33, 150, 243, 0.3);
+      flex-shrink: 0;
+    }
+    
+    #sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    
+    #sidebar-footer {
+      padding: 15px 20px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    
+    #preview-container {
+      margin-top: 10px;
+      border: 2px solid rgba(33, 150, 243, 0.5);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.3);
+    }
+    
+    #preview-label {
+      padding: 8px;
+      background: rgba(33, 150, 243, 0.2);
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      border-bottom: 1px solid rgba(33, 150, 243, 0.3);
+    }
+    
+    #preview-map {
+      width: 100%;
+      height: 180px;
+      background: #1e2838;
     }
     
     h2 { font-size: 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
@@ -175,8 +219,12 @@
   <div id="map"></div>
   
   <div id="sidebar">
-    <h2>🗺️ Area Editor v2</h2>
-    <p style="font-size: 11px; opacity: 0.6;">Versione pixel-based</p>
+    <div id="sidebar-header">
+      <h2>🗺️ Area Editor v2</h2>
+      <p style="font-size: 11px; opacity: 0.6; margin: 0;">Versione pixel-based</p>
+    </div>
+    
+    <div id="sidebar-content">
     
     <!-- STEP 1: Blocca Mappa -->
     <h3>1️⃣ Blocca Mappa</h3>
@@ -251,11 +299,19 @@
     <h3>4️⃣ Salva</h3>
     <p>Salva area nel bus e vai a Slot Editor.</p>
     
-    <button onclick="saveArea()" id="btnSave" disabled>💾 Salva Area nel Bus</button>
-    <button onclick="goToSlotEditor()" id="btnNext" disabled>➡️ Vai a Slot Editor</button>
+    <button onclick="saveArea()" id="btnSave" disabled>💾 Salva Area nel Bus</button>    <button onclick="goToSlotEditor()" id="btnNext" disabled">➡️ Vai a Slot Editor</button>
     
     <div id="saveStatus" class="status" style="display: none;">Pronto per salvare</div>
-  </div>
+    
+    </div><!-- fine sidebar-content -->
+    
+    <div id="sidebar-footer">
+      <div id="preview-container">
+        <div id="preview-label">🗺️ Preview Mappa Salvata</div>
+        <div id="preview-map"></div>
+      </div>
+    </div>
+  </div><!-- fine sidebar -->
   
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -659,6 +715,9 @@
         // Abilita pulsanti disegno
         document.getElementById('btnDrawMercato').disabled = false;
         document.getElementById('btnDrawHub').disabled = false;
+        
+        // Aggiorna preview
+        setTimeout(() => updatePreview(), 500);
       } catch (err) {
         alert('❌ Errore salvataggio GCP: ' + err.message);
       }
@@ -788,8 +847,87 @@
       window.location.href = 'slot_editor.html';
     }
     
+    // Inizializza preview map
+    let previewMap = null;
+    let previewOverlay = null;
+    
+    function initPreviewMap() {
+      if (previewMap) return;
+      
+      previewMap = L.map('preview-map', {
+        center: [42.758, 11.114],
+        zoom: 14,
+        zoomControl: false,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        tap: false
+      });
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '',
+        maxZoom: 19
+      }).addTo(previewMap);
+    }
+    
+    async function updatePreview() {
+      if (!previewMap) {
+        initPreviewMap();
+      }
+      
+      try {
+        const gcp = await DMSBUS.getJSON('gcp');
+        const pngBlob = await DMSBUS.getBlob('png_transparent');
+        
+        if (gcp && pngBlob) {
+          const imageUrl = URL.createObjectURL(pngBlob);
+          const bounds = [
+            gcp.corners.nw,
+            gcp.corners.ne,
+            gcp.corners.se,
+            gcp.corners.sw
+          ];
+          
+          // Rimuovi overlay precedente
+          if (previewOverlay) {
+            previewMap.removeLayer(previewOverlay);
+          }
+          
+          // Crea nuovo overlay
+          previewOverlay = L.imageOverlay(imageUrl, [
+            [bounds[0][0], bounds[0][1]],
+            [bounds[2][0], bounds[2][1]]
+          ], {
+            opacity: 0.7,
+            interactive: false
+          }).addTo(previewMap);
+          
+          // Fit bounds
+          previewMap.fitBounds([
+            [bounds[0][0], bounds[0][1]],
+            [bounds[2][0], bounds[2][1]]
+          ]);
+          
+          document.getElementById('preview-label').innerHTML = '✅ Pianta Georeferenziata';
+        } else {
+          document.getElementById('preview-label').innerHTML = '⚠️ Nessuna pianta salvata';
+        }
+      } catch (err) {
+        console.error('Errore preview:', err);
+      }
+    }
+    
     // Carica PNG all'avvio
     loadPNGFromBus();
+    
+    // Inizializza preview dopo 1 secondo
+    setTimeout(() => {
+      initPreviewMap();
+      updatePreview();
+    }, 1000);
   </script>
 </body>
 </html>
