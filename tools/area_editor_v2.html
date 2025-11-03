@@ -700,6 +700,19 @@
           cornerMarkers = [];
         }
         
+        // Crea overlay geografico (L.imageOverlay) con i GCP
+        const geoBounds = [
+          [gcp.corners.nw[0], gcp.corners.nw[1]],
+          [gcp.corners.se[0], gcp.corners.se[1]]
+        ];
+        
+        const geoOverlay = L.imageOverlay(imageUrl, geoBounds, {
+          opacity: currentOpacity,
+          interactive: false
+        }).addTo(map);
+        
+        console.log('✅ Overlay geografico creato:', geoBounds);
+        
         // Sblocca mappa
         mapLocked = false;
         toggleMapLock(); // Chiama per aggiornare UI
