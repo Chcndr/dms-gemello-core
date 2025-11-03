@@ -239,10 +239,22 @@
     <div id="alignStatus" class="status">Carica PNG dal PNG Trasparente tool</div>
     
     <!-- STEP 3: Disegna Area -->
-    <h3>3️⃣ Disegna Area Mercato</h3>
-    <p>Usa i pulsanti sulla mappa per disegnare.</p>
+    <h3>3️⃣ Disegna Area</h3>
+    <p>Disegna poligono libero sulla mappa.</p>
     
-    <!-- TODO: resto dell'UI per disegno area e salvataggio -->
+    <button onclick="startDrawArea('mercato')" id="btnDrawMercato" disabled>🏪 Disegna Area Mercato</button>
+    <button onclick="startDrawArea('hub')" id="btnDrawHub" disabled>🏢 Disegna Area HUB</button>
+    
+    <div id="drawStatus" class="status" style="display: none;">Click sulla mappa per iniziare</div>
+    
+    <!-- STEP 4: Salva -->
+    <h3>4️⃣ Salva</h3>
+    <p>Salva area nel bus e vai a Slot Editor.</p>
+    
+    <button onclick="saveArea()" id="btnSave" disabled>💾 Salva Area nel Bus</button>
+    <button onclick="goToSlotEditor()" id="btnNext" disabled>➡️ Vai a Slot Editor</button>
+    
+    <div id="saveStatus" class="status" style="display: none;">Pronto per salvare</div>
   </div>
   
   <!-- Leaflet JS -->
@@ -287,6 +299,13 @@
     let dragStartY = 0;
     let dragStartImgX = 0;
     let dragStartImgY = 0;
+    
+    // Stato disegno area
+    let drawControl = null;
+    let drawnItems = null;
+    let currentAreaType = null; // 'mercato' o 'hub'
+    let areaLayer = null;
+    let areaGeoJSON = null;
     
     // Carica PNG dal bus
     async function loadPNGFromBus() {
@@ -636,9 +655,137 @@
         
         alert('✅ Pianta fissata! Ora puoi disegnare l\'area mercato.');
         console.log('✅ GCP salvati:', gcp);
+        
+        // Abilita pulsanti disegno
+        document.getElementById('btnDrawMercato').disabled = false;
+        document.getElementById('btnDrawHub').disabled = false;
       } catch (err) {
         alert('❌ Errore salvataggio GCP: ' + err.message);
       }
+    }
+    
+    // Inizializza Leaflet.draw
+    function initDraw() {
+      drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
+      
+      drawControl = new L.Control.Draw({
+        draw: {
+          polygon: {
+            allowIntersection: false,
+            showArea: true,
+            drawError: {
+              color: '#e1e100',
+              message: '<strong>Errore:</strong> il poligono non può intersecarsi!'
+            },
+            shapeOptions: {
+              color: '#f44336',
+              weight: 3,
+              opacity: 0.8,
+              fillOpacity: 0.3
+            }
+          },
+          polyline: false,
+          rectangle: false,
+          circle: false,
+          marker: false,
+          circlemarker: false
+        },
+        edit: {
+          featureGroup: drawnItems,
+          remove: true
+        }
+      });
+      
+      // Eventi disegno
+      map.on(L.Draw.Event.CREATED, function(e) {
+        const layer = e.layer;
+        
+        // Rimuovi layer precedente se esiste
+        if (areaLayer) {
+          drawnItems.removeLayer(areaLayer);
+        }
+        
+        areaLayer = layer;
+        drawnItems.addLayer(layer);
+        
+        // Crea GeoJSON
+        const geojson = layer.toGeoJSON();
+        geojson.properties = {
+          type: currentAreaType,
+          name: currentAreaType === 'mercato' ? 'Mercato Esperanto' : 'HUB Esperanto',
+          description: '',
+          timestamp: new Date().toISOString()
+        };
+        
+        areaGeoJSON = geojson;
+        
+        // Abilita salvataggio
+        document.getElementById('btnSave').disabled = false;
+        document.getElementById('drawStatus').style.display = 'block';
+        document.getElementById('drawStatus').innerHTML = 
+          '<strong style="color: #4CAF50">✅ Area disegnata! Clicca Salva.</strong>';
+        
+        console.log('✅ Area disegnata:', geojson);
+      });
+      
+      map.on(L.Draw.Event.DELETED, function() {
+        areaLayer = null;
+        areaGeoJSON = null;
+        document.getElementById('btnSave').disabled = true;
+        document.getElementById('drawStatus').innerHTML = 'Click sulla mappa per iniziare';
+      });
+    }
+    
+    // Inizia disegno area
+    function startDrawArea(type) {
+      currentAreaType = type;
+      
+      // Inizializza draw se non già fatto
+      if (!drawControl) {
+        initDraw();
+      }
+      
+      // Aggiungi controllo draw alla mappa
+      if (!map.hasLayer(drawControl)) {
+        map.addControl(drawControl);
+      }
+      
+      document.getElementById('drawStatus').style.display = 'block';
+      document.getElementById('drawStatus').innerHTML = 
+        `<strong>Disegna ${type === 'mercato' ? 'Area Mercato' : 'Area HUB'}</strong><br>` +
+        'Click sulla mappa per iniziare. Doppio click per chiudere.';
+      
+      // Attiva automaticamente il tool poligono
+      new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
+    }
+    
+    // Salva area nel bus
+    async function saveArea() {
+      if (!areaGeoJSON) {
+        alert('❌ Disegna prima un\'area!');
+        return;
+      }
+      
+      try {
+        await DMSBUS.putJSON('area_geojson', areaGeoJSON);
+        
+        document.getElementById('saveStatus').style.display = 'block';
+        document.getElementById('saveStatus').innerHTML = 
+          '<strong style="color: #4CAF50">✅ Area salvata nel bus!</strong>';
+        
+        document.getElementById('btnNext').disabled = false;
+        
+        alert('✅ Area salvata! Vai a Slot Editor per aggiungere i posteggi.');
+        console.log('✅ Area salvata nel bus:', areaGeoJSON);
+      } catch (err) {
+        alert('❌ Errore salvataggio area: ' + err.message);
+      }
+    }
+    
+    // Vai a Slot Editor
+    function goToSlotEditor() {
+      window.location.href = 'slot_editor.html';
     }
     
     // Carica PNG all'avvio
