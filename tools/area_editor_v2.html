@@ -649,6 +649,38 @@
       }
     }
     
+    // Ruota immagine con canvas
+    function rotateImage(imageUrl, rotation) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calcola dimensioni canvas ruotato
+          const rad = (rotation * Math.PI) / 180;
+          const cos = Math.abs(Math.cos(rad));
+          const sin = Math.abs(Math.sin(rad));
+          const newWidth = img.width * cos + img.height * sin;
+          const newHeight = img.width * sin + img.height * cos;
+          
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          
+          // Ruota e disegna
+          ctx.translate(newWidth / 2, newHeight / 2);
+          ctx.rotate(rad);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          
+          // Converti in blob
+          canvas.toBlob((blob) => {
+            resolve(URL.createObjectURL(blob));
+          }, 'image/png');
+        };
+        img.src = imageUrl;
+      });
+    }
+    
     // Fissa pianta (converti pixel → coordinate geografiche)
     async function fixOverlay() {
       if (!imageElement) return;
@@ -700,13 +732,21 @@
           cornerMarkers = [];
         }
         
+        // Se c'è rotazione, ruota l'immagine prima
+        let finalImageUrl = imageUrl;
+        if (currentRotation !== 0) {
+          finalImageUrl = await rotateImage(imageUrl, currentRotation);
+          console.log('🔄 Immagine ruotata:', currentRotation + '°');
+        }
+        
         // Crea overlay geografico (L.imageOverlay) con i GCP
+        // Usa bounds del rettangolo (senza rotazione, perché immagine è già ruotata)
         const geoBounds = [
           [gcp.corners.nw[0], gcp.corners.nw[1]],
           [gcp.corners.se[0], gcp.corners.se[1]]
         ];
         
-        const geoOverlay = L.imageOverlay(imageUrl, geoBounds, {
+        const geoOverlay = L.imageOverlay(finalImageUrl, geoBounds, {
           opacity: currentOpacity,
           interactive: false
         }).addTo(map);
