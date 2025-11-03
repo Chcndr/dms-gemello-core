@@ -133,6 +133,12 @@
       </p>
 
       <div class="section">
+        <h2>🚌 Carica dal Bus</h2>
+        <button id="load-from-bus-btn" class="secondary">🚌 Carica Dati dal Bus</button>
+        <div class="info" id="bus-info">Carica automaticamente area e pianta dal workflow</div>
+      </div>
+
+      <div class="section">
         <h2>1. Carica Area Mercato</h2>
         <input type="file" id="area-file" accept=".geojson,.json">
         <div class="info" id="area-info">Nessuna area caricata</div>
@@ -210,6 +216,8 @@
     let pngMeta = null;
 
     // Elements
+    const loadFromBusBtn = document.getElementById('load-from-bus-btn');
+    const busInfo = document.getElementById('bus-info');
     const areaFile = document.getElementById('area-file');
     const pdfFile = document.getElementById('pdf-file');
     const alignBtn = document.getElementById('align-btn');
@@ -316,6 +324,20 @@
       
       return [x, y];
     }
+
+    // Load from bus
+    loadFromBusBtn.addEventListener('click', async () => {
+      try {
+        busInfo.textContent = '⏳ Caricamento dal bus...';
+        await loadFromBus();
+        busInfo.textContent = '✅ Dati caricati dal bus con successo!';
+        pdfInfo.textContent = '✅ Pianta caricata dal bus';
+        alignBtn.disabled = true; // Disabilita align perché già georeferenziata
+      } catch (err) {
+        busInfo.textContent = '❌ Errore: ' + err.message;
+        console.error('Errore caricamento dal bus:', err);
+      }
+    });
 
     // Load area
     areaFile.addEventListener('change', async (e) => {
