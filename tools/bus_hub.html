@@ -783,7 +783,7 @@
         try {
           const keys = ['png_transparent', 'png_meta', 'gcp', 'container', 'area_geojson', 'hub_geojson', 'stalls_geojson'];
           for (const key of keys) {
-            await DMSBUS.delete(key);
+            await DMSBUS.deleteKey(key);
           }
           alert('✅ Bus pulito con successo!');
           updateWorkflowStatus();
