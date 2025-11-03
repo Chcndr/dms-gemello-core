@@ -172,12 +172,13 @@ const saveBtn=document.getElementById('saveToBus');
 saveBtn.onclick=async()=>{
   try{
     DMSConsole.log('Salvataggio nel bus...');
-    dC.toBlob(async(blob)=>{
-      await DMSBUS.putBlob('png_transparent', blob);
-      await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
-      DMSConsole.success('PNG salvato nel bus (' + dC.width + 'x' + dC.height + ', rot:' + rotationAngle + '°)');
-      alert('✅ PNG salvato nel bus!');
-    }, 'image/png');
+    const blob = await new Promise((resolve, reject) => {
+      dC.toBlob(b => b ? resolve(b) : reject(new Error('Blob creation failed')), 'image/png');
+    });
+    await DMSBUS.putBlob('png_transparent', blob);
+    await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
+    DMSConsole.success('PNG salvato nel bus (' + dC.width + 'x' + dC.height + ', rot:' + rotationAngle + '°)');
+    alert('✅ PNG salvato nel bus!');
   }catch(err){
     DMSConsole.error('Errore salvataggio: '+err.message);
     alert('❌ Errore: '+err.message);
@@ -188,13 +189,14 @@ const sendBtn=document.getElementById('sendToBus');
 sendBtn.onclick=async()=>{
   try{
     DMSConsole.log('Invio ad Area Editor v2...');
-    dC.toBlob(async(blob)=>{
-      await DMSBUS.putBlob('png_transparent', blob);
-      await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
-      DMSConsole.success('PNG salvato nel bus, apertura Area Editor v2');
-      alert('✅ PNG salvato nel bus! Apro Area Editor...');
-      window.open('area_editor_v2.html', '_blank');
-    }, 'image/png');
+    const blob = await new Promise((resolve, reject) => {
+      dC.toBlob(b => b ? resolve(b) : reject(new Error('Blob creation failed')), 'image/png');
+    });
+    await DMSBUS.putBlob('png_transparent', blob);
+    await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
+    DMSConsole.success('PNG salvato nel bus, apertura Area Editor v2');
+    alert('✅ PNG salvato nel bus! Apro Area Editor...');
+    window.open('area_editor_v2.html', '_blank');
   }catch(err){
     DMSConsole.error('Errore invio: '+err.message);
     alert('❌ Errore: '+err.message);
