@@ -712,10 +712,10 @@
             const pngMeta = await DMSBUS.getJSON('png_meta');
             const rotation = pngMeta?.rotation || 0;
             
-            // Se c'è rotazione, ruota l'immagine prima (INVERTI IL SEGNO!)
+            // Se c'è rotazione, ruota l'immagine prima
             if (rotation !== 0) {
-              imageUrl = await rotateImage(imageUrl, -rotation); // NEGATIVO!
-              console.log('🔄 Immagine ruotata per preview:', -rotation + '°');
+              imageUrl = await rotateImage(imageUrl, rotation);
+              console.log('🔄 Immagine ruotata per preview:', rotation + '°');
             }
             
             // Calcola bounds geografici (NW e SE corner)

@@ -148,6 +148,7 @@
         <h2>2. Sovrapponi Pianta PDF</h2>
         <input type="file" id="pdf-file" accept=".pdf,.png,.jpg,.jpeg">
         <button id="align-btn" disabled>Posiziona Pianta</button>
+        <button id="clear-plant-btn" class="danger" style="margin-top: 0.5rem;">🗑️ Pulisci Pianta</button>
         <div class="info" id="pdf-info">Nessuna pianta caricata</div>
       </div>
 
@@ -221,6 +222,7 @@
     const areaFile = document.getElementById('area-file');
     const pdfFile = document.getElementById('pdf-file');
     const alignBtn = document.getElementById('align-btn');
+    const clearPlantBtn = document.getElementById('clear-plant-btn');
     const addModeBtn = document.getElementById('add-mode-btn');
     const slotNumber = document.getElementById('slot-number');
     const slotOrientation = document.getElementById('slot-orientation');
@@ -300,10 +302,10 @@
           // Leggi metadata per ottenere rotazione
           const rotation = pngMeta?.rotation || 0;
           
-          // Se c'è rotazione, ruota l'immagine prima (INVERTI IL SEGNO!)
+          // Se c'è rotazione, ruota l'immagine prima
           if (rotation !== 0) {
-            url = await rotateImage(url, -rotation); // NEGATIVO!
-            console.log('🔄 Immagine ruotata per overlay:', -rotation + '°');
+            url = await rotateImage(url, rotation);
+            console.log('🔄 Immagine ruotata per overlay:', rotation + '°');
           }
           
           // Calcola bounds geografici usando NW e SE corner (NON min/max!)
@@ -406,6 +408,18 @@
         alignBtn.disabled = false;
       };
       reader.readAsDataURL(file);
+    });
+
+    // Clear plant overlay
+    clearPlantBtn.addEventListener('click', () => {
+      if (pdfOverlay) {
+        map.removeLayer(pdfOverlay);
+        pdfOverlay = null;
+        pdfInfo.textContent = '✅ Pianta rimossa. Clicca "Carica Dati dal Bus" per ricaricare.';
+        console.log('🗑️ Overlay pianta rimosso');
+      } else {
+        pdfInfo.textContent = '⚠️ Nessuna pianta da rimuovere';
+      }
     });
 
     // Align PDF
