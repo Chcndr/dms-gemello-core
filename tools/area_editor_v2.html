@@ -687,11 +687,15 @@
       
       const imgWidth = parseFloat(imageElement.style.width) * currentScale;
       const imgHeight = parseFloat(imageElement.style.height) * currentScale;
-      const halfW = imgWidth / 2;
-      const halfH = imgHeight / 2;
       const rad = (currentRotation * Math.PI) / 180;
       const cos = Math.cos(rad);
       const sin = Math.sin(rad);
+      
+      // Calcola dimensioni dopo rotazione (cambiano!)
+      const rotatedWidth = Math.abs(imgWidth * Math.cos(rad)) + Math.abs(imgHeight * Math.sin(rad));
+      const rotatedHeight = Math.abs(imgWidth * Math.sin(rad)) + Math.abs(imgHeight * Math.cos(rad));
+      const halfW = rotatedWidth / 2;
+      const halfH = rotatedHeight / 2;
       
       // Calcola angoli in pixel
       const corners = [
@@ -711,10 +715,9 @@
       };
       
       ['nw', 'ne', 'se', 'sw'].forEach((name, i) => {
-        const rotX = corners[i].x * cos - corners[i].y * sin;
-        const rotY = corners[i].x * sin + corners[i].y * cos;
-        const pixelX = currentX + rotX;
-        const pixelY = currentY + rotY;
+        // Non ruotare i corners perché l'immagine sarà già ruotata dal canvas
+        const pixelX = currentX + corners[i].x;
+        const pixelY = currentY + corners[i].y;
         const latlng = map.containerPointToLatLng([pixelX, pixelY]);
         gcp.corners[name] = [latlng.lat, latlng.lng];
       });
