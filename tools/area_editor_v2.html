@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DMS • AREA EDITOR v2 — Disegna Mercati e Hub</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    
+    #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+    
+    #sidebar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 320px;
+      max-height: calc(100vh - 20px);
+      background: rgba(30, 40, 50, 0.95);
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      overflow-y: auto;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    h2 { font-size: 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    h3 { font-size: 15px; margin-top: 20px; margin-bottom: 8px; }
+    p { font-size: 13px; opacity: 0.8; margin-bottom: 12px; line-height: 1.4; }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover:not(:disabled) { background: #1976D2; transform: translateY(-1px); }
+    button:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
+    
+    .slider-group {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+    
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .slider-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .slider-controls button {
+      width: 40px;
+      padding: 8px;
+      margin: 0;
+    }
+    
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.2);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #2196F3;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #2196F3;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    
+    /* Overlay pixel */
+    #pixel-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 400;
+    }
+    
+    #pixel-image {
+      position: absolute;
+      cursor: move;
+      pointer-events: auto;
+    }
+    
+    #pixel-rect {
+      position: absolute;
+      border: 3px solid #f44336;
+      pointer-events: none;
+    }
+    
+    .corner-marker {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: #f44336;
+      color: white;
+      border: 3px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  
+  <div id="sidebar">
+    <h2>🗺️ Area Editor v2</h2>
+    <p style="font-size: 11px; opacity: 0.6;">Versione pixel-based</p>
+    
+    <!-- STEP 1: Blocca Mappa -->
+    <h3>1️⃣ Blocca Mappa</h3>
+    <p>Posiziona e zumma la mappa, poi bloccala.</p>
+    <button onclick="toggleMapLock()" id="btnLock">🔓 Blocca Mappa</button>
+    
+    <!-- STEP 2: Allinea Pianta -->
+    <h3>2️⃣ Allinea Pianta</h3>
+    <p>Mostra, trascina, ruota e scala la pianta.</p>
+    <button onclick="showOverlay()" id="btnShow" disabled>📍 Mostra Pianta</button>
+    
+    <div id="controls" style="display: none;">
+      <!-- Rotazione -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>🔄 Rotazione</span>
+          <span id="rotationValue">0°</span>
+        </div>
+        <div class="slider-controls">
+          <button onclick="adjustRotation(-5)">−</button>
+          <input type="range" id="rotationSlider" min="0" max="360" value="0" 
+                 oninput="updateRotation(this.value)">
+          <button onclick="adjustRotation(5)">+</button>
+        </div>
+      </div>
+      
+      <!-- Scala -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>📏 Scala</span>
+          <span id="scaleValue">1.0x</span>
+        </div>
+        <div class="slider-controls">
+          <button onclick="adjustScale(-0.1)">−</button>
+          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1.0" 
+                 oninput="updateScale(this.value)">
+          <button onclick="adjustScale(0.1)">+</button>
+        </div>
+      </div>
+      
+      <!-- Opacità -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>☀️ Opacità</span>
+          <span id="opacityValue">0.7</span>
+        </div>
+        <div class="slider-controls">
+          <button onclick="adjustOpacity(-0.1)">−</button>
+          <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="0.7" 
+                 oninput="updateOpacity(this.value)">
+          <button onclick="adjustOpacity(0.1)">+</button>
+        </div>
+      </div>
+      
+      <button onclick="resetTransform()">🔄 Reset Trasformazioni</button>
+    </div>
+    
+    <button onclick="fixOverlay()" id="btnFix" disabled>✅ Fissa Pianta</button>
+    
+    <div id="alignStatus" class="status">Carica PNG dal PNG Trasparente tool</div>
+    
+    <!-- STEP 3: Disegna Area -->
+    <h3>3️⃣ Disegna Area Mercato</h3>
+    <p>Usa i pulsanti sulla mappa per disegnare.</p>
+    
+    <!-- TODO: resto dell'UI per disegno area e salvataggio -->
+  </div>
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="../shared/dms-bus.js"></script>
+  
+  <script>
+    // Inizializza mappa
+    const map = L.map('map', {
+      center: [42.758, 11.114],
+      zoom: 16,
+      zoomControl: false
+    });
+    
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(map);
+    
+    // Stato
+    let mapLocked = false;
+    let pngBlob = null;
+    let pngMeta = null;
+    let imageUrl = null;
+    
+    let overlayDiv = null;
+    let imageElement = null;
+    let rectElement = null;
+    let cornerMarkers = [];
+    
+    let currentRotation = 0;
+    let currentScale = 1.0;
+    let currentOpacity = 0.7;
+    let currentX = 0;
+    let currentY = 0;
+    
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartImgX = 0;
+    let dragStartImgY = 0;
+    
+    // Carica PNG dal bus
+    async function loadPNGFromBus() {
+      try {
+        pngBlob = await DMSBUS.getBlob('png_transparent');
+        pngMeta = await DMSBUS.getJSON('png_meta');
+        
+        if (pngBlob && pngMeta) {
+          imageUrl = URL.createObjectURL(pngBlob);
+          document.getElementById('alignStatus').innerHTML = 
+            `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)<br>Blocca la mappa per iniziare`;
+        } else {
+          document.getElementById('alignStatus').textContent = 
+            '⚠️ Nessun PNG nel bus. Completa prima PNG Trasparente.';
+        }
+      } catch (err) {
+        console.error('Errore caricamento PNG:', err);
+      }
+    }
+    
+    // Blocca/sblocca mappa
+    function toggleMapLock() {
+      mapLocked = !mapLocked;
+      
+      if (mapLocked) {
+        map.dragging.disable();
+        map.touchZoom.disable();
+        map.doubleClickZoom.disable();
+        map.scrollWheelZoom.disable();
+        map.boxZoom.disable();
+        map.keyboard.disable();
+        if (map.tap) map.tap.disable();
+        
+        document.getElementById('btnLock').innerHTML = '🔒 Sblocca Mappa';
+        document.getElementById('btnLock').style.background = '#4CAF50';
+        document.getElementById('btnShow').disabled = false;
+        document.getElementById('alignStatus').innerHTML = 
+          '<strong style="color: #4CAF50">🔒 Mappa bloccata! Clicca "Mostra Pianta"</strong>';
+      } else {
+        map.dragging.enable();
+        map.touchZoom.enable();
+        map.doubleClickZoom.enable();
+        map.scrollWheelZoom.enable();
+        map.boxZoom.enable();
+        map.keyboard.enable();
+        if (map.tap) map.tap.enable();
+        
+        document.getElementById('btnLock').innerHTML = '🔓 Blocca Mappa';
+        document.getElementById('btnLock').style.background = '';
+        document.getElementById('btnShow').disabled = true;
+        document.getElementById('alignStatus').innerHTML = 
+          pngBlob ? `✅ PNG caricato (${pngMeta.w}x${pngMeta.h}px)<br>Blocca la mappa per iniziare` : 
+          'Carica PNG dal PNG Trasparente tool';
+      }
+    }
+    
+    // Mostra overlay in pixel
+    function showOverlay() {
+      if (!imageUrl || !mapLocked) {
+        alert('❌ Blocca prima la mappa!');
+        return;
+      }
+      
+      const mapContainer = map.getContainer();
+      const mapSize = map.getSize();
+      
+      // Crea container overlay
+      overlayDiv = document.createElement('div');
+      overlayDiv.id = 'pixel-overlay';
+      mapContainer.appendChild(overlayDiv);
+      
+      // Calcola dimensioni iniziali
+      const maxSize = Math.min(mapSize.x, mapSize.y) * 0.6;
+      const aspectRatio = pngMeta.w / pngMeta.h;
+      let imgWidth, imgHeight;
+      if (aspectRatio > 1) {
+        imgWidth = maxSize;
+        imgHeight = maxSize / aspectRatio;
+      } else {
+        imgHeight = maxSize;
+        imgWidth = maxSize * aspectRatio;
+      }
+      
+      // Posizione iniziale (centro)
+      currentX = mapSize.x / 2;
+      currentY = mapSize.y / 2;
+      
+      // Crea immagine
+      imageElement = document.createElement('img');
+      imageElement.id = 'pixel-image';
+      imageElement.src = imageUrl;
+      imageElement.style.width = imgWidth + 'px';
+      imageElement.style.height = imgHeight + 'px';
+      imageElement.style.opacity = currentOpacity;
+      overlayDiv.appendChild(imageElement);
+      
+      // Crea rettangolo
+      rectElement = document.createElement('div');
+      rectElement.id = 'pixel-rect';
+      overlayDiv.appendChild(rectElement);
+      
+      // Crea marker angoli
+      for (let i = 1; i <= 4; i++) {
+        const marker = document.createElement('div');
+        marker.className = 'corner-marker';
+        marker.textContent = i;
+        overlayDiv.appendChild(marker);
+        cornerMarkers.push(marker);
+      }
+      
+      // Eventi drag
+      imageElement.addEventListener('mousedown', startDrag);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', endDrag);
+      
+      // Touch events
+      imageElement.addEventListener('touchstart', startDrag);
+      document.addEventListener('touchmove', drag);
+      document.addEventListener('touchend', endDrag);
+      
+      // Applica trasformazione iniziale
+      applyTransform();
+      
+      // Abilita controlli
+      document.getElementById('controls').style.display = 'block';
+      document.getElementById('btnFix').disabled = false;
+      document.getElementById('alignStatus').innerHTML = 
+        '<strong style="color: #4CAF50">✅ Trascina, ruota e scala!</strong>';
+      
+      console.log('✅ Overlay pixel mostrato');
+    }
+    
+    // Drag handlers
+    function startDrag(e) {
+      isDragging = true;
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      dragStartX = clientX;
+      dragStartY = clientY;
+      dragStartImgX = currentX;
+      dragStartImgY = currentY;
+      e.preventDefault();
+    }
+    
+    function drag(e) {
+      if (!isDragging) return;
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      const dx = clientX - dragStartX;
+      const dy = clientY - dragStartY;
+      currentX = dragStartImgX + dx;
+      currentY = dragStartImgY + dy;
+      applyTransform();
+      e.preventDefault();
+    }
+    
+    function endDrag() {
+      isDragging = false;
+    }
+    
+    // Trasformazioni
+    function updateRotation(value) {
+      currentRotation = parseFloat(value);
+      document.getElementById('rotationValue').textContent = Math.round(currentRotation) + '°';
+      applyTransform();
+    }
+    
+    function adjustRotation(delta) {
+      const newValue = Math.max(0, Math.min(360, currentRotation + delta));
+      document.getElementById('rotationSlider').value = newValue;
+      updateRotation(newValue);
+    }
+    
+    function updateScale(value) {
+      currentScale = parseFloat(value);
+      document.getElementById('scaleValue').textContent = currentScale.toFixed(1) + 'x';
+      applyTransform();
+    }
+    
+    function adjustScale(delta) {
+      const newValue = Math.max(0.1, Math.min(3, currentScale + delta));
+      document.getElementById('scaleSlider').value = newValue;
+      updateScale(newValue);
+    }
+    
+    function updateOpacity(value) {
+      currentOpacity = parseFloat(value);
+      document.getElementById('opacityValue').textContent = currentOpacity.toFixed(2);
+      if (imageElement) {
+        imageElement.style.opacity = currentOpacity;
+      }
+    }
+    
+    function adjustOpacity(delta) {
+      const newValue = Math.max(0.1, Math.min(1, currentOpacity + delta));
+      document.getElementById('opacitySlider').value = newValue;
+      updateOpacity(newValue);
+    }
+    
+    function resetTransform() {
+      currentRotation = 0;
+      currentScale = 1.0;
+      currentOpacity = 0.7;
+      document.getElementById('rotationSlider').value = 0;
+      document.getElementById('scaleSlider').value = 1.0;
+      document.getElementById('opacitySlider').value = 0.7;
+      document.getElementById('rotationValue').textContent = '0°';
+      document.getElementById('scaleValue').textContent = '1.0x';
+      document.getElementById('opacityValue').textContent = '0.70';
+      applyTransform();
+    }
+    
+    // Applica trasformazione
+    function applyTransform() {
+      if (!imageElement || !rectElement) return;
+      
+      const imgWidth = parseFloat(imageElement.style.width);
+      const imgHeight = parseFloat(imageElement.style.height);
+      
+      const scaledWidth = imgWidth * currentScale;
+      const scaledHeight = imgHeight * currentScale;
+      
+      // Applica transform all'immagine
+      imageElement.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg) scale(${currentScale})`;
+      imageElement.style.left = currentX + 'px';
+      imageElement.style.top = currentY + 'px';
+      
+      // Applica transform al rettangolo
+      rectElement.style.width = scaledWidth + 'px';
+      rectElement.style.height = scaledHeight + 'px';
+      rectElement.style.left = (currentX - scaledWidth / 2) + 'px';
+      rectElement.style.top = (currentY - scaledHeight / 2) + 'px';
+      rectElement.style.transform = `rotate(${currentRotation}deg)`;
+      rectElement.style.transformOrigin = 'center';
+      
+      // Aggiorna marker angoli (ruotati)
+      const halfW = scaledWidth / 2;
+      const halfH = scaledHeight / 2;
+      const rad = (currentRotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      
+      const corners = [
+        { x: -halfW, y: -halfH }, // NW
+        { x: halfW, y: -halfH },  // NE
+        { x: halfW, y: halfH },   // SE
+        { x: -halfW, y: halfH }   // SW
+      ];
+      
+      corners.forEach((corner, i) => {
+        const rotX = corner.x * cos - corner.y * sin;
+        const rotY = corner.x * sin + corner.y * cos;
+        cornerMarkers[i].style.left = (currentX + rotX) + 'px';
+        cornerMarkers[i].style.top = (currentY + rotY) + 'px';
+      });
+    }
+    
+    // Fissa pianta (converti pixel → coordinate geografiche)
+    async function fixOverlay() {
+      if (!imageElement) return;
+      
+      const imgWidth = parseFloat(imageElement.style.width) * currentScale;
+      const imgHeight = parseFloat(imageElement.style.height) * currentScale;
+      const halfW = imgWidth / 2;
+      const halfH = imgHeight / 2;
+      const rad = (currentRotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      
+      // Calcola angoli in pixel
+      const corners = [
+        { x: -halfW, y: -halfH }, // NW
+        { x: halfW, y: -halfH },  // NE
+        { x: halfW, y: halfH },   // SE
+        { x: -halfW, y: halfH }   // SW
+      ];
+      
+      // Converti pixel → coordinate geografiche
+      const gcp = {
+        corners: {},
+        image: { width: pngMeta.w, height: pngMeta.h },
+        rotation: currentRotation,
+        scale: currentScale,
+        timestamp: new Date().toISOString()
+      };
+      
+      ['nw', 'ne', 'se', 'sw'].forEach((name, i) => {
+        const rotX = corners[i].x * cos - corners[i].y * sin;
+        const rotY = corners[i].x * sin + corners[i].y * cos;
+        const pixelX = currentX + rotX;
+        const pixelY = currentY + rotY;
+        const latlng = map.containerPointToLatLng([pixelX, pixelY]);
+        gcp.corners[name] = [latlng.lat, latlng.lng];
+      });
+      
+      // Salva nel bus
+      try {
+        await DMSBUS.putJSON('gcp', gcp);
+        
+        // Rimuovi overlay pixel
+        if (overlayDiv) {
+          overlayDiv.remove();
+          overlayDiv = null;
+          imageElement = null;
+          rectElement = null;
+          cornerMarkers = [];
+        }
+        
+        // Sblocca mappa
+        mapLocked = false;
+        toggleMapLock(); // Chiama per aggiornare UI
+        
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('btnFix').disabled = true;
+        document.getElementById('alignStatus').innerHTML = 
+          '<strong style="color: #4CAF50">✅ Pianta fissata! GCP salvati nel bus.</strong>';
+        
+        alert('✅ Pianta fissata! Ora puoi disegnare l\'area mercato.');
+        console.log('✅ GCP salvati:', gcp);
+      } catch (err) {
+        alert('❌ Errore salvataggio GCP: ' + err.message);
+      }
+    }
+    
+    // Carica PNG all'avvio
+    loadPNGFromBus();
+  </script>
+</body>
+</html>
+
