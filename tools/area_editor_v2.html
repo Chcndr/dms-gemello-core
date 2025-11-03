@@ -303,6 +303,11 @@
     
     <div id="saveStatus" class="status" style="display: none;">Pronto per salvare</div>
     
+    <!-- STEP 5: Pulisci -->
+    <h3>5️⃣ Pulisci</h3>
+    <p>Rimuovi pianta e svuota bus per ricominciare.</p>
+    <button onclick="cleanAll()" style="background: #f44336;">🧹 Pulisci Tutto</button>
+    
     </div><!-- fine sidebar-content -->
     
     <div id="sidebar-footer">
@@ -323,7 +328,9 @@
     const map = L.map('map', {
       center: [42.758, 11.114],
       zoom: 16,
-      zoomControl: false
+      zoomControl: false,
+      zoomDelta: 0.25,  // Step zoom ridotto (default 1)
+      zoomSnap: 0.25    // Snap zoom ridotto (default 1)
     });
     
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -901,6 +908,73 @@
     // Vai a Slot Editor
     function goToSlotEditor() {
       window.location.href = 'slot_editor.html';
+    }
+    
+    // Pulisci tutto
+    async function cleanAll() {
+      if (!confirm('⚠️ Vuoi davvero pulire tutto? Questo rimuoverà:\n\n- Pianta dalla mappa\n- Pianta dalla preview\n- GCP dal bus\n- Area dal bus\n\nQuesta azione non può essere annullata!')) {
+        return;
+      }
+      
+      try {
+        // Rimuovi overlay dalla mappa principale
+        map.eachLayer((layer) => {
+          if (layer instanceof L.ImageOverlay) {
+            map.removeLayer(layer);
+          }
+        });
+        
+        // Rimuovi overlay pixel se esiste
+        if (overlayDiv) {
+          overlayDiv.remove();
+          overlayDiv = null;
+          imageElement = null;
+          rectElement = null;
+          cornerMarkers = [];
+        }
+        
+        // Rimuovi area disegnata
+        if (drawnItems) {
+          drawnItems.clearLayers();
+        }
+        areaLayer = null;
+        areaGeoJSON = null;
+        
+        // Rimuovi preview
+        if (previewOverlay) {
+          previewMap.removeLayer(previewOverlay);
+          previewOverlay = null;
+        }
+        document.getElementById('preview-label').innerHTML = '⚠️ Nessuna pianta salvata';
+        
+        // Svuota bus
+        await DMSBUS.deleteKey('gcp');
+        await DMSBUS.deleteKey('area_geojson');
+        
+        // Reset UI
+        document.getElementById('btnShow').disabled = false;
+        document.getElementById('btnFix').disabled = true;
+        document.getElementById('btnDrawMercato').disabled = true;
+        document.getElementById('btnDrawHub').disabled = true;
+        document.getElementById('btnSave').disabled = true;
+        document.getElementById('btnNext').disabled = true;
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('alignStatus').innerHTML = 'Carica PNG dal PNG Trasparente tool';
+        document.getElementById('drawStatus').style.display = 'none';
+        document.getElementById('saveStatus').style.display = 'none';
+        
+        // Reset valori
+        currentRotation = 0;
+        currentScale = 1.0;
+        currentOpacity = 0.7;
+        currentX = 0;
+        currentY = 0;
+        
+        alert('✅ Tutto pulito! Puoi ricominciare da zero.');
+        console.log('🧹 Tutto pulito');
+      } catch (err) {
+        alert('❌ Errore pulizia: ' + err.message);
+      }
     }
     
     // Inizializza preview map
