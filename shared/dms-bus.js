@@ -33,7 +33,15 @@ window.DMSBUS = (function(){
   async function getBlob(key){ return get(key); }
   async function putJSON(key, obj){ return put(key, JSON.stringify(obj)); }
   async function getJSON(key){ const v=await get(key); return v?JSON.parse(v):null; }
+  async function deleteKey(key){
+    try{
+      const d=await openDB(); return new Promise((res,rej)=>{
+        const tx=d.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(key);
+        tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+      });
+    }catch{ localStorage.removeItem(key); }
+  }
   async function clear(){ try{const d=await openDB(); d.close(); indexedDB.deleteDatabase(DBNAME);}catch{} localStorage.clear(); }
-  return { putBlob,getBlob, putJSON,getJSON, clear, get };
+  return { putBlob,getBlob, putJSON,getJSON, deleteKey, clear, get };
 })();
 
