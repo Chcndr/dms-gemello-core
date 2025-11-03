@@ -465,6 +465,7 @@
     let overlayLayer = null;
     let areaLayer = null;
     let hubLayer = null;
+    let centerMarker = null;
 
     // Funzione per aggiornare lo stato del workflow
     async function updateWorkflowStatus() {
@@ -698,6 +699,10 @@
         previewMap.removeLayer(hubLayer);
         hubLayer = null;
       }
+      if (centerMarker) {
+        previewMap.removeLayer(centerMarker);
+        centerMarker = null;
+      }
 
       // Aggiungi overlay se presente
       if (gcp && gcp.corners) {
@@ -718,10 +723,23 @@
               console.log('🔄 Immagine ruotata per preview:', rotation + '°');
             }
             
-            // Calcola bounds geografici (NW e SE corner)
+            // Calcola bounds geografici usando min/max di TUTTI i 4 corner
+            const allLats = [
+              gcp.corners.nw[0],
+              gcp.corners.ne[0],
+              gcp.corners.se[0],
+              gcp.corners.sw[0]
+            ];
+            const allLngs = [
+              gcp.corners.nw[1],
+              gcp.corners.ne[1],
+              gcp.corners.se[1],
+              gcp.corners.sw[1]
+            ];
+            
             const bounds = [
-              [gcp.corners.nw[0], gcp.corners.nw[1]], // NW
-              [gcp.corners.se[0], gcp.corners.se[1]]  // SE
+              [Math.min(...allLats), Math.min(...allLngs)],
+              [Math.max(...allLats), Math.max(...allLngs)]
             ];
             
             // Crea overlay geografico
@@ -772,6 +790,23 @@
             fillOpacity: 0.3
           }
         }).addTo(previewMap);
+      }
+      
+      // Aggiungi marker centro (5° GCP)
+      const container = await DMSBUS.getJSON('container');
+      if (container && container.center) {
+        centerMarker = L.marker(container.center.ll, {
+          icon: L.divIcon({
+            className: 'center-marker',
+            html: '<div style="background: #FF5722; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">M</div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+          }),
+          zIndex: 1000
+        }).addTo(previewMap);
+        
+        centerMarker.bindPopup('<b>' + container.center.name + '</b><br>Centro mercato');
+        console.log('🎯 Marker centro aggiunto alla preview');
       }
     }
 

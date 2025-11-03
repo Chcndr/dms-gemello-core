@@ -761,6 +761,15 @@
         gcp.corners[name] = [latlng.lat, latlng.lng];
       });
       
+      // Calcola centro del mercato (5° punto di controllo)
+      const centerPixel = map.containerPointToLatLng([currentX, currentY]);
+      gcp.center = [centerPixel.lat, centerPixel.lng];
+      
+      console.log('✅ 5 GCP calcolati:', {
+        corners: gcp.corners,
+        center: gcp.center
+      });
+      
       // Crea container per Slot Editor
       const container = {
         id: 'mercato_' + Date.now(),
@@ -772,8 +781,14 @@
           { px: [0, 0], ll: gcp.corners.nw, note: 'NW' },
           { px: [gcp.image.width, 0], ll: gcp.corners.ne, note: 'NE' },
           { px: [gcp.image.width, gcp.image.height], ll: gcp.corners.se, note: 'SE' },
-          { px: [0, gcp.image.height], ll: gcp.corners.sw, note: 'SW' }
+          { px: [0, gcp.image.height], ll: gcp.corners.sw, note: 'SW' },
+          { px: [gcp.image.width / 2, gcp.image.height / 2], ll: gcp.center, note: 'CENTER' }
         ],
+        center: {
+          px: [gcp.image.width / 2, gcp.image.height / 2],
+          ll: gcp.center,
+          name: 'Mercato Esperanto'
+        },
         area_px: [[0, 0], [gcp.image.width, 0], [gcp.image.width, gcp.image.height], [0, gcp.image.height]],
         stalls_px: []
       };

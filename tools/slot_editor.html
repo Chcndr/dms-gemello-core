@@ -298,6 +298,27 @@
         
         if (container) {
           console.log('✅ Container caricato dal bus');
+          
+          // Verifica centro (5° GCP)
+          if (container.center) {
+            console.log('🎯 Centro mercato:', container.center.ll);
+            console.log('🏢 Nome:', container.center.name);
+            
+            // Aggiungi marker "M" al centro
+            const centerMarker = L.marker(container.center.ll, {
+              icon: L.divIcon({
+                className: 'center-marker',
+                html: '<div style="background: #FF5722; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">M</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+              }),
+              zIndex: 1000
+            }).addTo(map);
+            
+            centerMarker.bindPopup('<b>' + container.center.name + '</b><br>Centro mercato');
+          } else {
+            console.warn('⚠️ Centro non trovato nel container (vecchio formato)');
+          }
         }
         
         // Carica overlay
@@ -316,11 +337,26 @@
             console.log('🔄 Immagine ruotata per overlay:', -rotation + '°');
           }
           
-          // Calcola bounds geografici usando NW e SE corner (NON min/max!)
-          const bounds = [
-            [gcp.corners.nw[0], gcp.corners.nw[1]], // NW
-            [gcp.corners.se[0], gcp.corners.se[1]]  // SE
+          // Calcola bounds geografici usando min/max di TUTTI i 4 corner
+          const allLats = [
+            gcp.corners.nw[0],
+            gcp.corners.ne[0],
+            gcp.corners.se[0],
+            gcp.corners.sw[0]
           ];
+          const allLngs = [
+            gcp.corners.nw[1],
+            gcp.corners.ne[1],
+            gcp.corners.se[1],
+            gcp.corners.sw[1]
+          ];
+          
+          const bounds = [
+            [Math.min(...allLats), Math.min(...allLngs)], // Sud-Ovest (min lat, min lng)
+            [Math.max(...allLats), Math.max(...allLngs)]  // Nord-Est (max lat, max lng)
+          ];
+          
+          console.log('📍 Bounds calcolati da 4 corner:', bounds);
           
           // Rimuovi overlay precedente
           if (pdfOverlay) {
