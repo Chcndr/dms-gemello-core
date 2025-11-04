@@ -400,9 +400,98 @@
     let areaLayer = null;
     let areaGeoJSON = null;
     
+    // Carica pianta già georeferenziata dal bus
+    async function loadGeoreferencedPlant() {
+      try {
+        const gcp = await DMSBUS.getJSON('gcp');
+        const container = await DMSBUS.getJSON('container');
+        const pngBlob = await DMSBUS.getBlob('png_transparent');
+        const pngMeta = await DMSBUS.getJSON('png_meta');
+        
+        if (gcp && gcp.corners && pngBlob && pngMeta) {
+          DMSConsole.success('🔄 Pianta già georeferenziata trovata nel bus!');
+          
+          // Crea URL da Blob
+          let url = URL.createObjectURL(pngBlob);
+          
+          // Leggi rotazione
+          const rotation = pngMeta?.rotation || 0;
+          
+          // Se c'è rotazione, ruota l'immagine prima
+          if (rotation !== 0) {
+            url = await rotateImage(url, -rotation);
+            console.log('🔄 Immagine ruotata per overlay:', -rotation + '°');
+          }
+          
+          // Calcola bounds geografici usando min/max di TUTTI i 4 corner
+          const allLats = [
+            gcp.corners.nw[0],
+            gcp.corners.ne[0],
+            gcp.corners.se[0],
+            gcp.corners.sw[0]
+          ];
+          const allLngs = [
+            gcp.corners.nw[1],
+            gcp.corners.ne[1],
+            gcp.corners.se[1],
+            gcp.corners.sw[1]
+          ];
+          
+          const bounds = [
+            [Math.min(...allLats), Math.min(...allLngs)],
+            [Math.max(...allLats), Math.max(...allLngs)]
+          ];
+          
+          // Crea overlay geografico
+          const plantOverlay = L.imageOverlay(url, bounds, {
+            opacity: 0.6,
+            interactive: false,
+            zIndex: 400
+          }).addTo(map);
+          
+          // Centra mappa sulla pianta
+          map.fitBounds(bounds);
+          
+          // Aggiungi marker centro se presente
+          if (container && container.center) {
+            const centerMarker = L.marker(container.center.ll, {
+              icon: L.divIcon({
+                className: 'center-marker',
+                html: '<div style="background: #FF5722; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">M</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+              }),
+              zIndex: 1000
+            }).addTo(map);
+            
+            centerMarker.bindPopup('<b>' + container.center.name + '</b><br>Centro mercato');
+          }
+          
+          document.getElementById('alignStatus').innerHTML = 
+            `✅ Pianta già georeferenziata caricata!<br>Puoi modificare le aree disegnate`;
+          
+          DMSConsole.success('✅ Pianta georeferenziata ripristinata dalla memoria');
+          
+          return true; // Pianta caricata
+        }
+        
+        return false; // Nessuna pianta georeferenziata
+      } catch (err) {
+        console.error('Errore caricamento pianta georeferenziata:', err);
+        return false;
+      }
+    }
+    
     // Carica PNG dal bus
     async function loadPNGFromBus() {
       try {
+        // Prima prova a caricare pianta già georeferenziata
+        const loaded = await loadGeoreferencedPlant();
+        if (loaded) {
+          return; // Pianta già georeferenziata caricata, non serve fare altro
+        }
+        
+        // Altrimenti carica PNG per nuova georeferenziazione
         DMSConsole.log('Caricamento PNG dal bus...');
         pngBlob = await DMSBUS.getBlob('png_transparent');
         pngMeta = await DMSBUS.getJSON('png_meta');
