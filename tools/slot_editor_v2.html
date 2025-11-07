@@ -329,9 +329,34 @@
     DMSConsole.init();
     DMSConsole.log('🚀 Slot Editor v2 inizializzato');
     
+    // NOTA: Caricamento automatico dal BUS spostato dopo inizializzazione variabili (vedi sotto)
+    
+    // Inizializza mappa su Grosseto
+    const map = L.map('map').setView([42.7589, 11.1135], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 20
+    }).addTo(map);
+    
+    // Variabili globali
+    let pdfBlob = null;
+    let pdfBlobOriginal = null; // Blob originale non ruotato
+    let pdfOverlay = null;
+    let plantBounds = null;
+    let plantRotation = 0;
+    let plantScale = 1.0;
+    let slotRotation = 0;
+    let slots = [];
+    let addMode = false;
+    let slotCounter = 1;
+    let plantMarker = null; // Marker per trascinare pianta
+    let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
+    
     // Carica automaticamente PNG dal BUS
-    window.addEventListener('load', async () => {
+    (async () => {
       try {
+        DMSConsole.log('🔍 Cerco PNG nel BUS...');
+        
         // Carica PNG trasparente
         const blobTransparent = await DMSBUS.getBlob('png_transparent');
         if (blobTransparent) {
@@ -355,6 +380,8 @@
           updatePlantOverlay();
           document.getElementById('png-status').textContent = '✅ PNG trasparente caricato dal BUS';
           DMSConsole.log('✅ PNG trasparente caricato dal BUS');
+        } else {
+          DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
         }
         
         // Carica PNG originale
@@ -363,32 +390,13 @@
           const url = URL.createObjectURL(blobOriginal);
           document.getElementById('reference-image').src = url;
           DMSConsole.log('✅ PNG originale caricato dal BUS');
+        } else {
+          DMSConsole.log('⚠️ png_original non trovato nel BUS');
         }
       } catch (err) {
-        DMSConsole.log('⚠️ Nessun PNG nel BUS, carica manualmente');
+        DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
       }
-    });
-    
-    // Inizializza mappa su Grosseto
-    const map = L.map('map').setView([42.7589, 11.1135], 17);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 20
-    }).addTo(map);
-    
-    // Variabili globali
-    let pdfBlob = null;
-    let pdfBlobOriginal = null; // Blob originale non ruotato
-    let pdfOverlay = null;
-    let plantBounds = null;
-    let plantRotation = 0;
-    let plantScale = 1.0;
-    let slotRotation = 0;
-    let slots = [];
-    let addMode = false;
-    let slotCounter = 1;
-    let plantMarker = null; // Marker per trascinare pianta
-    let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
+    })();
     
     // Funzione per calcolare bounds ruotati e scalati
     function calculatePlantBounds(center, width, height, rotation, scale) {
