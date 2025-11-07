@@ -326,6 +326,7 @@
         const blobTransparent = await DMSBUS.getBlob('png_transparent');
         if (blobTransparent) {
           pdfBlob = blobTransparent;
+          pdfBlobOriginal = blobTransparent; // Salva originale per rotazioni
           const center = map.getCenter();
           plantBounds = L.latLngBounds([
             [center.lat + 0.002, center.lng - 0.002],
@@ -356,8 +357,9 @@
     }).addTo(map);
     
     // Variabili globali
-    let pdfOverlay = null;
     let pdfBlob = null;
+    let pdfBlobOriginal = null; // Blob originale non ruotato
+    let pdfOverlay = null;
     let plantBounds = null;
     let plantRotation = 0;
     let plantScale = 1.0;
@@ -407,7 +409,8 @@
       if (!pdfBlob || !plantBounds) return;
       
       const center = map.getCenter();
-      const corners = calculatePlantBounds(center, 500, 400, plantRotation, plantScale);
+      // NON ruotiamo le coordinate, solo scaliamo
+      const corners = calculatePlantBounds(center, 500, 400, 0, plantScale);
       const bounds = L.latLngBounds([corners[0], corners[2]]);
       
       if (pdfOverlay) {
@@ -499,6 +502,7 @@
       pdfBlob = file;
       const reader = new FileReader();
       reader.onload = (e) => {
+        pdfBlobOriginal = pdfBlob; // Salva originale per rotazioni
         const center = map.getCenter();
         plantBounds = L.latLngBounds([
           [center.lat + 0.002, center.lng - 0.002],
@@ -512,11 +516,43 @@
       reader.readAsDataURL(file);
     });
     
-    // Slider rotazione pianta
-    document.getElementById('plant-rotation').addEventListener('input', (e) => {
+    // Slider rotazione pianta - Ruota fisicamente l'immagine
+    document.getElementById('plant-rotation').addEventListener('input', async (e) => {
       plantRotation = parseInt(e.target.value);
       document.getElementById('plant-rotation-value').textContent = plantRotation + '°';
-      updatePlantOverlay();
+      
+      if (!pdfBlobOriginal) return;
+      
+      // Ruota fisicamente l'immagine con canvas
+      const img = new Image();
+      const url = URL.createObjectURL(pdfBlobOriginal);
+      img.src = url;
+      
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calcola dimensioni canvas ruotato
+        const rad = plantRotation * Math.PI / 180;
+        const cos = Math.abs(Math.cos(rad));
+        const sin = Math.abs(Math.sin(rad));
+        canvas.width = img.width * cos + img.height * sin;
+        canvas.height = img.width * sin + img.height * cos;
+        
+        // Ruota e disegna
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        
+        // Crea nuovo Blob
+        pdfBlob = await new Promise(resolve => {
+          canvas.toBlob(blob => resolve(blob), 'image/png');
+        });
+        
+        URL.revokeObjectURL(url);
+        updatePlantOverlay();
+        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation + '°');
+      };
     });
     
     // Slider scala pianta
