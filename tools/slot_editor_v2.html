@@ -108,7 +108,61 @@
       margin: 0;
     }
     
-    #map { flex: 1; }
+    #map { flex: 1; position: relative; }
+    
+    .reference-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border: 2px solid #4CAF50;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      max-width: 400px;
+      max-height: 500px;
+      display: none;
+    }
+    
+    .reference-panel.visible {
+      display: block;
+    }
+    
+    .reference-header {
+      background: #4CAF50;
+      color: white;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .reference-header button {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      margin: 0;
+    }
+    
+    .reference-content {
+      padding: 10px;
+      overflow: auto;
+      max-height: 450px;
+    }
+    
+    .reference-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
     
     .leaflet-overlay-pane img {
       opacity: 0.7;
@@ -149,6 +203,13 @@
       <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem;">
         Editor standalone con controlli completi per pianta e posteggi
       </p>
+      
+      <!-- 0. Riferimento -->  
+      <div class="section">
+        <h2>0️⃣ Immagine Riferimento</h2>
+        <button id="btn-toggle-reference" class="secondary">👁️ Mostra/Nascondi Originale</button>
+        <div class="info">Mostra l'immagine originale con i numeri dei posteggi</div>
+      </div>
       
       <!-- 1. Carica Pianta -->
       <div class="section">
@@ -235,7 +296,17 @@
       </div>
     </aside>
     
-    <div id="map"></div>
+    <div id="map">
+    <div id="reference-panel" class="reference-panel">
+      <div class="reference-header" id="reference-header">
+        <span>📷 Immagine Originale</span>
+        <button id="btn-close-reference">✕</button>
+      </div>
+      <div class="reference-content">
+        <img id="reference-image" src="" alt="Immagine originale" />
+      </div>
+    </div>
+  </div>
   </div>
   
   <div id="dms-console"></div>
@@ -247,6 +318,35 @@
     // Inizializza console
     DMSConsole.init();
     DMSConsole.log('🚀 Slot Editor v2 inizializzato');
+    
+    // Carica automaticamente PNG dal BUS
+    window.addEventListener('load', async () => {
+      try {
+        // Carica PNG trasparente
+        const blobTransparent = await DMSBUS.getBlob('png_transparent');
+        if (blobTransparent) {
+          pdfBlob = blobTransparent;
+          const center = map.getCenter();
+          plantBounds = L.latLngBounds([
+            [center.lat + 0.002, center.lng - 0.002],
+            [center.lat - 0.002, center.lng + 0.002]
+          ]);
+          updatePlantOverlay();
+          document.getElementById('png-status').textContent = '✅ PNG trasparente caricato dal BUS';
+          DMSConsole.log('✅ PNG trasparente caricato dal BUS');
+        }
+        
+        // Carica PNG originale
+        const blobOriginal = await DMSBUS.getBlob('png_original');
+        if (blobOriginal) {
+          const url = URL.createObjectURL(blobOriginal);
+          document.getElementById('reference-image').src = url;
+          DMSConsole.log('✅ PNG originale caricato dal BUS');
+        }
+      } catch (err) {
+        DMSConsole.log('⚠️ Nessun PNG nel BUS, carica manualmente');
+      }
+    });
     
     // Inizializza mappa su Grosseto
     const map = L.map('map').setView([42.7589, 11.1135], 17);
@@ -331,6 +431,61 @@
       
       plantBounds = bounds;
       DMSConsole.log('✅ Pianta aggiornata');
+    }
+    
+    // Toggle pannello riferimento
+    document.getElementById('btn-toggle-reference').addEventListener('click', () => {
+      const panel = document.getElementById('reference-panel');
+      panel.classList.toggle('visible');
+    });
+    
+    // Chiudi pannello riferimento
+    document.getElementById('btn-close-reference').addEventListener('click', () => {
+      document.getElementById('reference-panel').classList.remove('visible');
+    });
+    
+    // Rendi pannello riferimento draggable
+    const refPanel = document.getElementById('reference-panel');
+    const refHeader = document.getElementById('reference-header');
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    refHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    function dragStart(e) {
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
+      if (e.target === refHeader || refHeader.contains(e.target)) {
+        isDragging = true;
+      }
+    }
+    
+    function drag(e) {
+      if (isDragging) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        xOffset = currentX;
+        yOffset = currentY;
+        setTranslate(currentX, currentY, refPanel);
+      }
+    }
+    
+    function dragEnd(e) {
+      initialX = currentX;
+      initialY = currentY;
+      isDragging = false;
+    }
+    
+    function setTranslate(xPos, yPos, el) {
+      el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
     }
     
     // Carica PNG

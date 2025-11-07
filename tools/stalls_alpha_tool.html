@@ -84,6 +84,7 @@
   <button id="download" disabled>📥 Scarica PNG Trasparente</button>
   <button id="saveToBus" disabled style="background: #1f8f5f;">💾 Salva nel Bus</button>
   <button id="sendToBus" disabled style="background: #2a7a9f;">➡️ Invia ad Area Editor v2</button>
+  <button id="sendToSlotV2" disabled style="background: #ff5722;">🎯 Vai a Slot Editor v2</button>
   <a href="bus_hub.html" style="display: block; background: #1a9e9e; color: white; padding: 12px; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; margin-top: 16px;">🚌 Vai al BUS HUB</a>
   <p style="font-size: 11px; opacity: 0.6; margin-top: 8px;">Regola i parametri finché il risultato è soddisfacente, poi scarica o invia all'Area Editor</p>
 </div>
@@ -197,6 +198,32 @@ sendBtn.onclick=async()=>{
     DMSConsole.success('PNG salvato nel bus, apertura Area Editor v2');
     alert('✅ PNG salvato nel bus! Apro Area Editor...');
     window.open('area_editor_v2.html', '_blank');
+  }catch(err){
+    DMSConsole.error('Errore invio: '+err.message);
+    alert('❌ Errore: '+err.message);
+  }
+};
+
+const sendToSlotV2Btn=document.getElementById('sendToSlotV2');
+sendToSlotV2Btn.onclick=async()=>{
+  try{
+    DMSConsole.log('Invio a Slot Editor v2...');
+    // Salva PNG trasparente
+    const blobTransparent = await new Promise((resolve, reject) => {
+      dC.toBlob(b => b ? resolve(b) : reject(new Error('Blob creation failed')), 'image/png');
+    });
+    await DMSBUS.putBlob('png_transparent', blobTransparent);
+    
+    // Salva PNG originale (con numeri)
+    const blobOriginal = await new Promise((resolve, reject) => {
+      sC.toBlob(b => b ? resolve(b) : reject(new Error('Blob creation failed')), 'image/png');
+    });
+    await DMSBUS.putBlob('png_original', blobOriginal);
+    
+    await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
+    DMSConsole.success('PNG salvato nel bus (trasparente + originale), apertura Slot Editor v2');
+    alert('✅ PNG salvato nel bus! Apro Slot Editor v2...');
+    window.open('slot_editor_v2.html', '_blank');
   }catch(err){
     DMSConsole.error('Errore invio: '+err.message);
     alert('❌ Errore: '+err.message);
