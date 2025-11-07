@@ -20,12 +20,12 @@ const DMSConsole = {
     // Crea HTML console
     const consoleHTML = `
       <div id="dms-console" class="dms-console">
-        <div class="dms-console-header">
+        <div class="dms-console-header" onclick="DMSConsole.toggle()">
           <span class="dms-console-title">📋 Console Log</span>
           <div class="dms-console-actions">
-            <button class="dms-console-btn" onclick="DMSConsole.clear()">🗑️</button>
-            <button class="dms-console-btn" onclick="DMSConsole.copy()">📋</button>
-            <button class="dms-console-btn" onclick="DMSConsole.toggle()">▲</button>
+            <button class="dms-console-btn" onclick="event.stopPropagation(); DMSConsole.clear()">🗑️</button>
+            <button class="dms-console-btn" onclick="event.stopPropagation(); DMSConsole.copy()">📋</button>
+            <button class="dms-console-btn" id="dms-console-toggle-btn" onclick="event.stopPropagation(); DMSConsole.toggle()">▲</button>
           </div>
         </div>
         <div class="dms-console-body">
@@ -51,6 +51,8 @@ const DMSConsole = {
     
     const btn = this.container.querySelector('.dms-console-actions button:last-child');
     btn.textContent = this.isOpen ? '▲' : '▼';
+    
+    console.log(`Console ${this.isOpen ? 'aperta' : 'chiusa'}`);
   },
   
   log(message, type = 'info') {
