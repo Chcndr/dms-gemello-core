@@ -409,10 +409,30 @@
   <div id="dms-console"></div>
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-geometryutil@0.10.1/src/leaflet.geometryutil.js"></script>
   <script src="../shared/dms-bus.js"></script>
   <script src="../shared/dms-console.js"></script>
   <script>
+    // Funzione per calcolare area poligono (algoritmo Shoelace)
+    function calculatePolygonArea(coordinates) {
+      if (!coordinates || coordinates.length < 3) return 0;
+      
+      let area = 0;
+      for (let i = 0; i < coordinates.length; i++) {
+        const j = (i + 1) % coordinates.length;
+        area += coordinates[i][1] * coordinates[j][0];
+        area -= coordinates[i][0] * coordinates[j][1];
+      }
+      area = Math.abs(area / 2);
+      
+      // Converti da gradi quadrati a metri quadrati (approssimazione)
+      const lat = coordinates[0][0];
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = 111320 * Math.cos(lat * Math.PI / 180);
+      area = area * metersPerDegreeLat * metersPerDegreeLng;
+      
+      return area;
+    }
+    
     // Inizializza console
     DMSConsole.init();
     DMSConsole.log('🚀 Slot Editor v2 inizializzato');
@@ -1621,7 +1641,7 @@
           
           <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
             <strong>Vertici:</strong> ${area.coordinates.length}<br>
-            <strong>Area:</strong> ~${(L.GeometryUtil.geodesicArea(area.coordinates.map(c => L.latLng(c[0], c[1]))) || 0).toFixed(0)} m²
+            <strong>Area:</strong> ~${calculatePolygonArea(area.coordinates).toFixed(0)} m²
           </div>
         </div>
       `;
@@ -1657,7 +1677,7 @@
           <p><strong>Tipo:</strong> ${area.type}</p>
           <p>${area.description || ''}</p>
           <p><strong>Vertici:</strong> ${area.coordinates.length}</p>
-          <p><strong>Area:</strong> ~${(L.GeometryUtil.geodesicArea(area.coordinates.map(c => L.latLng(c[0], c[1]))) || 0).toFixed(0)} m²</p>
+          <p><strong>Area:</strong> ~${calculatePolygonArea(area.coordinates).toFixed(0)} m²</p>
         </div>
       `;
       area.polygon.bindPopup(finalPopup);
