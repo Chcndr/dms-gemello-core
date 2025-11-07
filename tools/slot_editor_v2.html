@@ -312,8 +312,25 @@
         <span>📷 Immagine Originale</span>
         <button id="btn-close-reference">✕</button>
       </div>
-      <div class="reference-content">
-        <img id="reference-image" src="" alt="Immagine originale" />
+      <div class="reference-content" id="reference-content">
+        <img id="reference-image" src="" alt="Immagine originale" style="transform-origin: center center; cursor: move;" />
+      </div>
+      <div class="reference-controls" style="padding: 8px; background: #f5f5f5; border-top: 1px solid #ddd;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 12px; min-width: 50px;">Zoom:</span>
+          <button id="btn-ref-zoom-out" style="padding: 4px 8px; font-size: 14px;">−</button>
+          <input type="range" id="ref-zoom" min="50" max="300" value="100" step="10" style="flex: 1;" />
+          <button id="btn-ref-zoom-in" style="padding: 4px 8px; font-size: 14px;">+</button>
+          <span id="ref-zoom-value" style="font-size: 12px; min-width: 45px;">100%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12px; min-width: 50px;">Ruota:</span>
+          <button id="btn-ref-rotate-left" style="padding: 4px 8px; font-size: 14px;">↶</button>
+          <input type="range" id="ref-rotation" min="0" max="360" value="0" step="1" style="flex: 1;" />
+          <button id="btn-ref-rotate-right" style="padding: 4px 8px; font-size: 14px;">↷</button>
+          <span id="ref-rotation-value" style="font-size: 12px; min-width: 35px;">0°</span>
+        </div>
+        <button id="btn-ref-reset" style="width: 100%; margin-top: 4px; padding: 4px; font-size: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Reset</button>
       </div>
     </div>
   </div>
@@ -549,6 +566,110 @@
     function setTranslate(xPos, yPos, el) {
       el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
     }
+    
+    // Controlli immagine riferimento
+    let refZoom = 100;
+    let refRotation = 0;
+    let refPanX = 0;
+    let refPanY = 0;
+    
+    function updateReferenceImage() {
+      const img = document.getElementById('reference-image');
+      img.style.transform = `scale(${refZoom / 100}) rotate(${refRotation}deg) translate(${refPanX}px, ${refPanY}px)`;
+    }
+    
+    // Zoom slider
+    document.getElementById('ref-zoom').addEventListener('input', (e) => {
+      refZoom = parseInt(e.target.value);
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+    
+    // Zoom pulsanti
+    document.getElementById('btn-ref-zoom-in').addEventListener('click', () => {
+      refZoom = Math.min(300, refZoom + 10);
+      document.getElementById('ref-zoom').value = refZoom;
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-zoom-out').addEventListener('click', () => {
+      refZoom = Math.max(50, refZoom - 10);
+      document.getElementById('ref-zoom').value = refZoom;
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+    
+    // Rotazione slider
+    document.getElementById('ref-rotation').addEventListener('input', (e) => {
+      refRotation = parseInt(e.target.value);
+      document.getElementById('ref-rotation-value').textContent = refRotation + '°';
+      updateReferenceImage();
+    });
+    
+    // Rotazione pulsanti
+    document.getElementById('btn-ref-rotate-left').addEventListener('click', () => {
+      refRotation = (refRotation - 15 + 360) % 360;
+      document.getElementById('ref-rotation').value = refRotation;
+      document.getElementById('ref-rotation-value').textContent = refRotation + '°';
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-rotate-right').addEventListener('click', () => {
+      refRotation = (refRotation + 15) % 360;
+      document.getElementById('ref-rotation').value = refRotation;
+      document.getElementById('ref-rotation-value').textContent = refRotation + '°';
+      updateReferenceImage();
+    });
+    
+    // Reset
+    document.getElementById('btn-ref-reset').addEventListener('click', () => {
+      refZoom = 100;
+      refRotation = 0;
+      refPanX = 0;
+      refPanY = 0;
+      document.getElementById('ref-zoom').value = 100;
+      document.getElementById('ref-zoom-value').textContent = '100%';
+      document.getElementById('ref-rotation').value = 0;
+      document.getElementById('ref-rotation-value').textContent = '0°';
+      updateReferenceImage();
+    });
+    
+    // Pan immagine con drag
+    const refContent = document.getElementById('reference-content');
+    const refImage = document.getElementById('reference-image');
+    let isImageDragging = false;
+    let imageStartX, imageStartY;
+    
+    refImage.addEventListener('mousedown', (e) => {
+      isImageDragging = true;
+      imageStartX = e.clientX - refPanX;
+      imageStartY = e.clientY - refPanY;
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (isImageDragging) {
+        refPanX = e.clientX - imageStartX;
+        refPanY = e.clientY - imageStartY;
+        updateReferenceImage();
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isImageDragging = false;
+    });
+    
+    // Zoom con rotella mouse
+    refContent.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -10 : 10;
+      refZoom = Math.max(50, Math.min(300, refZoom + delta));
+      document.getElementById('ref-zoom').value = refZoom;
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+
     
     // Carica PNG
     document.getElementById('btn-load-png').addEventListener('click', () => {
