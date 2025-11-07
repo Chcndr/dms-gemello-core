@@ -327,6 +327,16 @@
         if (blobTransparent) {
           pdfBlob = blobTransparent;
           pdfBlobOriginal = blobTransparent; // Salva originale per rotazioni
+          
+          // Carica immagine per ottenere dimensioni reali
+          const img = new Image();
+          img.src = URL.createObjectURL(blobTransparent);
+          img.onload = () => {
+            plantImageSize = { width: img.width, height: img.height };
+            DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+            URL.revokeObjectURL(img.src);
+          };
+          
           const center = map.getCenter();
           plantBounds = L.latLngBounds([
             [center.lat + 0.002, center.lng - 0.002],
@@ -367,6 +377,8 @@
     let slots = [];
     let addMode = false;
     let slotCounter = 1;
+    let plantMarker = null; // Marker per trascinare pianta
+    let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
     
     // Funzione per calcolare bounds ruotati e scalati
     function calculatePlantBounds(center, width, height, rotation, scale) {
@@ -408,9 +420,9 @@
     function updatePlantOverlay() {
       if (!pdfBlob || !plantBounds) return;
       
-      const center = map.getCenter();
-      // NON ruotiamo le coordinate, solo scaliamo
-      const corners = calculatePlantBounds(center, 500, 400, 0, plantScale);
+      const center = plantMarker ? plantMarker.getLatLng() : map.getCenter();
+      // NON ruotiamo le coordinate, solo scaliamo con dimensioni corrette
+      const corners = calculatePlantBounds(center, plantImageSize.width, plantImageSize.height, 0, plantScale);
       const bounds = L.latLngBounds([corners[0], corners[2]]);
       
       if (pdfOverlay) {
@@ -420,17 +432,33 @@
       const url = URL.createObjectURL(pdfBlob);
       pdfOverlay = L.imageOverlay(url, bounds, {
         opacity: parseFloat(document.getElementById('plant-opacity').value) / 100,
-        interactive: true,
+        interactive: false,
         zIndex: 400
       }).addTo(map);
       
-      // Rendi draggable
-      pdfOverlay.on('click', function() {
-        if (!pdfOverlay.dragging) {
-          pdfOverlay.dragging = new L.Draggable(pdfOverlay.getElement());
-          pdfOverlay.dragging.enable();
-        }
-      });
+      // Aggiungi/aggiorna marker trascinabile
+      if (!plantMarker) {
+        const redIcon = L.divIcon({
+          className: 'plant-marker',
+          html: '<div style="background: red; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: move;">M</div>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        plantMarker = L.marker(center, { 
+          icon: redIcon,
+          draggable: true,
+          zIndexOffset: 1000
+        }).addTo(map);
+        
+        plantMarker.on('drag', () => {
+          updatePlantOverlay();
+        });
+        
+        DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
+      } else {
+        plantMarker.setLatLng(center);
+      }
       
       plantBounds = bounds;
       DMSConsole.log('✅ Pianta aggiornata');
@@ -500,9 +528,16 @@
       }
       
       pdfBlob = file;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        pdfBlobOriginal = pdfBlob; // Salva originale per rotazioni
+      pdfBlobOriginal = file; // Salva originale per rotazioni
+      
+      // Carica immagine per ottenere dimensioni reali
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        plantImageSize = { width: img.width, height: img.height };
+        DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+        URL.revokeObjectURL(img.src);
+        
         const center = map.getCenter();
         plantBounds = L.latLngBounds([
           [center.lat + 0.002, center.lng - 0.002],
@@ -513,7 +548,6 @@
         document.getElementById('png-status').textContent = `✅ ${file.name} caricato`;
         DMSConsole.log(`✅ PNG caricato: ${file.name}`);
       };
-      reader.readAsDataURL(file);
     });
     
     // Slider rotazione pianta - Ruota fisicamente l'immagine
@@ -549,9 +583,12 @@
           canvas.toBlob(blob => resolve(blob), 'image/png');
         });
         
+        // Aggiorna dimensioni immagine
+        plantImageSize = { width: canvas.width, height: canvas.height };
+        
         URL.revokeObjectURL(url);
         updatePlantOverlay();
-        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation + '°');
+        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
       };
     });
     
