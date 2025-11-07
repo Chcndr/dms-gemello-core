@@ -189,17 +189,33 @@ const sendToSlotV2Btn=document.getElementById('sendToSlotV2');
 sendToSlotV2Btn.onclick=async()=>{
   try{
     DMSConsole.log('Invio a Slot Editor v2...');
+    
+    // Verifica che i canvas siano pronti
+    if (!dC || dC.width === 0 || dC.height === 0) {
+      throw new Error('Canvas trasparente non pronto! Carica prima un\'immagine.');
+    }
+    if (!sC || sC.width === 0 || sC.height === 0) {
+      throw new Error('Canvas originale non pronto! Carica prima un\'immagine.');
+    }
+    
+    DMSConsole.log('Canvas trasparente: ' + dC.width + 'x' + dC.height);
+    DMSConsole.log('Canvas originale: ' + sC.width + 'x' + sC.height);
+    
     // Salva PNG trasparente
     const blobTransparent = await new Promise((resolve, reject) => {
       dC.toBlob(b => b ? resolve(b) : reject(new Error('Blob creation failed')), 'image/png');
     });
+    DMSConsole.log('Blob trasparente creato: ' + (blobTransparent.size / 1024).toFixed(2) + ' KB');
     await DMSBUS.putBlob('png_transparent', blobTransparent);
+    DMSConsole.log('✅ png_transparent salvato nel BUS');
     
     // Salva PNG originale (con numeri)
     const blobOriginal = await new Promise((resolve, reject) => {
       sC.toBlob(b => b ? resolve(b) : reject(new Error('Blob creation failed')), 'image/png');
     });
+    DMSConsole.log('Blob originale creato: ' + (blobOriginal.size / 1024).toFixed(2) + ' KB');
     await DMSBUS.putBlob('png_original', blobOriginal);
+    DMSConsole.log('✅ png_original salvato nel BUS');
     
     await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
     DMSConsole.success('PNG salvato nel bus (trasparente + originale), apertura Slot Editor v2');
