@@ -852,7 +852,8 @@
       ['nw', 'ne', 'se', 'sw'].forEach((name, i) => {
         // Usa corner ruotati per coordinate geografiche
         const pixelX = currentX + rotatedCorners[i].x;
-        const pixelY = currentY + rotatedCorners[i].y;
+        // INVERTI Y: Leaflet usa Y crescente verso il BASSO, noi usiamo Y crescente verso l'ALTO
+        const pixelY = currentY - rotatedCorners[i].y; // ← SOTTRAI invece di sommare!
         const latlng = map.containerPointToLatLng([pixelX, pixelY]);
         gcp.corners[name] = [latlng.lat, latlng.lng];
       });
