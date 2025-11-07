@@ -408,6 +408,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../shared/dms-bus.js"></script>
   <script src="../shared/dms-console.js"></script>
+  <script src="./slot_editor_v2_shops_services.js"></script>
   <script>
     // Inizializza console
     DMSConsole.init();
@@ -1127,6 +1128,299 @@
       DMSConsole.log('🗑️ Tutti i posteggi cancellati');
     });
     
+    // ===== NEGOZI =====
+    
+    // Modalità aggiungi negozio
+    document.getElementById('btn-add-shop').addEventListener('click', function() {
+      // Disattiva altre modalità
+      if (tempShop) {
+        tempShop.marker.remove();
+        tempShop = null;
+        document.getElementById('btn-confirm-shop').style.display = 'none';
+      }
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (serviceMode) {
+        serviceMode = false;
+        document.getElementById('btn-add-service').textContent = '🚻 Modalità Aggiungi Servizio';
+        document.getElementById('btn-add-service').className = 'active';
+      }
+      
+      shopMode = !shopMode;
+      this.textContent = shopMode ? '🛑 Disattiva Modalità' : '🏪 Modalità Aggiungi Negozio';
+      this.className = shopMode ? 'danger' : 'active';
+      map.getContainer().style.cursor = shopMode ? 'crosshair' : '';
+    });
+    
+    // Click mappa per aggiungere negozio
+    map.on('click', (e) => {
+      if (!shopMode || tempShop) return;
+      
+      const marker = createShopMarker(e.latlng, shopCounter, 'open');
+      marker.addTo(map);
+      
+      tempShop = {
+        number: shopCounter,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        name: '',
+        description: '',
+        hours: '',
+        phone: '',
+        status: 'open',
+        marker: marker
+      };
+      
+      // Aggiorna posizione quando trascinato
+      marker.on('dragend', function() {
+        const pos = marker.getLatLng();
+        tempShop.lat = pos.lat;
+        tempShop.lng = pos.lng;
+      });
+      
+      // Apri popup con form
+      const popupContent = createShopPopupForm(tempShop);
+      marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
+      
+      // Mostra pulsante Fissa
+      document.getElementById('btn-confirm-shop').style.display = 'block';
+      
+      DMSConsole.log(`🟡 Negozio temporaneo ${shopCounter} - compila form e click Fissa`);
+    });
+    
+    // Pulsante Fissa Negozio
+    document.getElementById('btn-confirm-shop').addEventListener('click', () => {
+      if (!tempShop) return;
+      
+      // Leggi dati dal form
+      tempShop.name = document.getElementById(`shop-name-${tempShop.number}`).value;
+      tempShop.description = document.getElementById(`shop-desc-${tempShop.number}`).value;
+      tempShop.hours = document.getElementById(`shop-hours-${tempShop.number}`).value;
+      tempShop.phone = document.getElementById(`shop-phone-${tempShop.number}`).value;
+      tempShop.status = document.getElementById(`shop-status-${tempShop.number}`).value;
+      
+      // Aggiorna posizione finale
+      const pos = tempShop.marker.getLatLng();
+      tempShop.lat = pos.lat;
+      tempShop.lng = pos.lng;
+      
+      // Cambia colore marker in base allo status
+      tempShop.marker.remove();
+      tempShop.marker = createShopMarker([tempShop.lat, tempShop.lng], tempShop.number, tempShop.status);
+      tempShop.marker.addTo(map);
+      tempShop.marker.dragging.disable();
+      
+      // Aggiungi popup con dati finali
+      const finalPopup = `
+        <div style="min-width: 200px;">
+          <h3>🏪 ${tempShop.name || 'Negozio #' + tempShop.number}</h3>
+          <p>${tempShop.description || ''}</p>
+          ${tempShop.hours ? `<p><strong>Orari:</strong> ${tempShop.hours}</p>` : ''}
+          ${tempShop.phone ? `<p><strong>Tel:</strong> ${tempShop.phone}</p>` : ''}
+          <p><strong>Status:</strong> ${tempShop.status === 'open' ? '🟢 Aperto' : tempShop.status === 'closed' ? '🔴 Chiuso' : '🟡 Ferie'}</p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            Lat: ${tempShop.lat.toFixed(8)}<br>
+            Lng: ${tempShop.lng.toFixed(8)}
+          </p>
+        </div>
+      `;
+      tempShop.marker.bindPopup(finalPopup);
+      
+      // Aggiungi a lista
+      shops.push(tempShop);
+      shopCounter++;
+      
+      DMSConsole.log(`✅ Negozio "${tempShop.name}" fissato`);
+      
+      // Reset
+      tempShop = null;
+      document.getElementById('btn-confirm-shop').style.display = 'none';
+      
+      updateShopList();
+    });
+    
+    // Aggiorna lista negozi
+    function updateShopList() {
+      const list = document.getElementById('shop-list');
+      const count = document.getElementById('shop-count');
+      
+      if (shops.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun negozio</div>';
+      } else {
+        list.innerHTML = shops.map(shop => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
+            <span>🏪 ${shop.name || 'Negozio #' + shop.number} (${shop.status === 'open' ? '🟢' : shop.status === 'closed' ? '🔴' : '🟡'})</span>
+            <button onclick="removeShop(${shop.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+          </div>
+        `).join('');
+      }
+      
+      count.textContent = `${shops.length} negozi aggiunti`;
+    }
+    
+    // Rimuovi negozio
+    window.removeShop = function(number) {
+      const shop = shops.find(s => s.number === number);
+      if (shop) {
+        map.removeLayer(shop.marker);
+        shops = shops.filter(s => s.number !== number);
+        updateShopList();
+        DMSConsole.log(`🗑️ Negozio ${number} rimosso`);
+      }
+    };
+    
+    // ===== SERVIZI =====
+    
+    // Modalità aggiungi servizio
+    document.getElementById('btn-add-service').addEventListener('click', function() {
+      // Disattiva altre modalità
+      if (tempService) {
+        tempService.marker.remove();
+        tempService = null;
+        document.getElementById('btn-confirm-service').style.display = 'none';
+      }
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (shopMode) {
+        shopMode = false;
+        document.getElementById('btn-add-shop').textContent = '🏪 Modalità Aggiungi Negozio';
+        document.getElementById('btn-add-shop').className = 'active';
+      }
+      
+      serviceMode = !serviceMode;
+      this.textContent = serviceMode ? '🛑 Disattiva Modalità' : '🚻 Modalità Aggiungi Servizio';
+      this.className = serviceMode ? 'danger' : 'active';
+      map.getContainer().style.cursor = serviceMode ? 'crosshair' : '';
+    });
+    
+    // Click mappa per aggiungere servizio
+    map.on('click', (e) => {
+      if (!serviceMode || tempService) return;
+      
+      const marker = createServiceMarker(e.latlng, serviceCounter, 'available');
+      marker.addTo(map);
+      
+      tempService = {
+        number: serviceCounter,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        name: '',
+        type: 'wc',
+        description: '',
+        status: 'available',
+        marker: marker
+      };
+      
+      // Aggiorna posizione quando trascinato
+      marker.on('dragend', function() {
+        const pos = marker.getLatLng();
+        tempService.lat = pos.lat;
+        tempService.lng = pos.lng;
+      });
+      
+      // Apri popup con form
+      const popupContent = createServicePopupForm(tempService);
+      marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
+      
+      // Mostra pulsante Fissa
+      document.getElementById('btn-confirm-service').style.display = 'block';
+      
+      DMSConsole.log(`🟡 Servizio temporaneo ${serviceCounter} - compila form e click Fissa`);
+    });
+    
+    // Pulsante Fissa Servizio
+    document.getElementById('btn-confirm-service').addEventListener('click', () => {
+      if (!tempService) return;
+      
+      // Leggi dati dal form
+      tempService.name = document.getElementById(`service-name-${tempService.number}`).value;
+      tempService.type = document.getElementById(`service-type-${tempService.number}`).value;
+      tempService.description = document.getElementById(`service-desc-${tempService.number}`).value;
+      tempService.status = document.getElementById(`service-status-${tempService.number}`).value;
+      
+      // Aggiorna posizione finale
+      const pos = tempService.marker.getLatLng();
+      tempService.lat = pos.lat;
+      tempService.lng = pos.lng;
+      
+      // Cambia colore marker in base allo status
+      tempService.marker.remove();
+      tempService.marker = createServiceMarker([tempService.lat, tempService.lng], tempService.number, tempService.status);
+      tempService.marker.addTo(map);
+      tempService.marker.dragging.disable();
+      
+      // Aggiungi popup con dati finali
+      const typeEmoji = {
+        wc: '🚻',
+        parking: '🅿️',
+        info: 'ℹ️',
+        medical: '🏥',
+        atm: '🏧',
+        other: '📍'
+      };
+      const finalPopup = `
+        <div style="min-width: 200px;">
+          <h3>${typeEmoji[tempService.type] || '📍'} ${tempService.name || 'Servizio #' + tempService.number}</h3>
+          <p><strong>Tipo:</strong> ${tempService.type}</p>
+          <p>${tempService.description || ''}</p>
+          <p><strong>Status:</strong> ${tempService.status === 'available' ? '🟢 Disponibile' : tempService.status === 'unavailable' ? '🔴 Non disponibile' : '🟡 Manutenzione'}</p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            Lat: ${tempService.lat.toFixed(8)}<br>
+            Lng: ${tempService.lng.toFixed(8)}
+          </p>
+        </div>
+      `;
+      tempService.marker.bindPopup(finalPopup);
+      
+      // Aggiungi a lista
+      services.push(tempService);
+      serviceCounter++;
+      
+      DMSConsole.log(`✅ Servizio "${tempService.name}" fissato`);
+      
+      // Reset
+      tempService = null;
+      document.getElementById('btn-confirm-service').style.display = 'none';
+      
+      updateServiceList();
+    });
+    
+    // Aggiorna lista servizi
+    function updateServiceList() {
+      const list = document.getElementById('service-list');
+      const count = document.getElementById('service-count');
+      
+      if (services.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun servizio</div>';
+      } else {
+        list.innerHTML = services.map(service => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
+            <span>🚻 ${service.name || 'Servizio #' + service.number} (${service.status === 'available' ? '🟢' : service.status === 'unavailable' ? '🔴' : '🟡'})</span>
+            <button onclick="removeService(${service.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+          </div>
+        `).join('');
+      }
+      
+      count.textContent = `${services.length} servizi aggiunti`;
+    }
+    
+    // Rimuovi servizio
+    window.removeService = function(number) {
+      const service = services.find(s => s.number === number);
+      if (service) {
+        map.removeLayer(service.marker);
+        services = services.filter(s => s.number !== number);
+        updateServiceList();
+        DMSConsole.log(`🗑️ Servizio ${number} rimosso`);
+      }
+    };
+    
     // Esporta GeoJSON
     document.getElementById('btn-export-json').addEventListener('click', () => {
       if (slots.length === 0) {
@@ -1166,10 +1460,53 @@
         }))
       };
       
+      // Crea GeoJSON negozi
+      const shopsGeoJSON = {
+        type: 'FeatureCollection',
+        features: shops.map(shop => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [shop.lng, shop.lat]
+          },
+          properties: {
+            number: shop.number,
+            name: shop.name,
+            description: shop.description,
+            hours: shop.hours,
+            phone: shop.phone,
+            status: shop.status,
+            kind: 'shop'
+          }
+        }))
+      };
+      
+      // Crea GeoJSON servizi
+      const servicesGeoJSON = {
+        type: 'FeatureCollection',
+        features: services.map(service => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [service.lng, service.lat]
+          },
+          properties: {
+            number: service.number,
+            name: service.name,
+            type: service.type,
+            description: service.description,
+            status: service.status,
+            kind: 'service'
+          }
+        }))
+      };
+      
       // Crea JSON completo
       const exportData = {
         container: corners,
         stalls_geojson: stallsGeoJSON,
+        shops_geojson: shopsGeoJSON,
+        services_geojson: servicesGeoJSON,
         plant_rotation: plantRotation,
         plant_scale: plantScale,
         timestamp: new Date().toISOString()
@@ -1180,7 +1517,8 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `mercato-esperanto-${slots.length}-posteggi-${new Date().toISOString().split('T')[0]}.json`;
+      const totalItems = slots.length + shops.length + services.length;
+      a.download = `mercato-esperanto-${totalItems}-items-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       
