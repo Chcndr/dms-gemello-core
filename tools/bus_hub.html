@@ -353,6 +353,7 @@
         <h2>🔧 Gestione Bus</h2>
         <button id="btn-refresh" class="secondary">🔄 Aggiorna Stato</button>
         <button id="btn-export" class="secondary">💾 Esporta Progetto</button>
+        <button id="btn-export-stalls" class="success">📍 Esporta Solo Posteggi</button>
         <button id="btn-import" class="secondary">📂 Importa Progetto</button>
         <button id="btn-clear-all" class="danger">🗑️ Pulisci Tutto</button>
       </div>
@@ -825,6 +826,29 @@
         } catch (err) {
           alert('❌ Errore durante la pulizia del bus: ' + err.message);
         }
+      }
+    });
+
+    document.getElementById('btn-export-stalls').addEventListener('click', async () => {
+      try {
+        const stalls = await DMSBUS.getJSON('stalls_geojson');
+        if (!stalls) {
+          alert('❌ Nessun posteggio trovato nel BUS!\n\nCompleta prima lo Slot Editor.');
+          return;
+        }
+        
+        const blob = new Blob([JSON.stringify(stalls, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mercato-esperanto-posteggi-' + new Date().toISOString().split('T')[0] + '.geojson';
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        const count = stalls.features ? stalls.features.length : 0;
+        alert('✅ ' + count + ' posteggi esportati con successo!');
+      } catch (err) {
+        alert('❌ Errore durante l\'esportazione posteggi: ' + err.message);
       }
     });
 
