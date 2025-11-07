@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Console</title>
+  <link rel="stylesheet" href="../shared/dms-console.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #1a1a1a;
+      color: white;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Console Log</h1>
+  <p>Clicca i pulsanti per testare la console:</p>
+  
+  <button onclick="DMSConsole.log('Messaggio info')">📝 Log Info</button>
+  <button onclick="DMSConsole.success('Operazione riuscita!')">✅ Success</button>
+  <button onclick="DMSConsole.warn('Attenzione!')">⚠️ Warning</button>
+  <button onclick="DMSConsole.error('Errore!')">❌ Error</button>
+  
+  <script src="../shared/dms-console.js"></script>
+  <script>
+    // Test aggiuntivi
+    setTimeout(() => {
+      DMSConsole.log('Console caricata dopo 1 secondo');
+    }, 1000);
+  </script>
+</body>
+</html>
