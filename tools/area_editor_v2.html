@@ -861,7 +861,7 @@
       const centerPixel = map.containerPointToLatLng([currentX, currentY]);
       gcp.center = [centerPixel.lat, centerPixel.lng];
       
-      console.log('✅ 5 GCP calcolati:', {
+      console.log('✅ 4 GCP corner calcolati (centro solo come metadata):', {
         corners: gcp.corners,
         center: gcp.center
       });
@@ -877,8 +877,8 @@
           { px: [0, 0], ll: gcp.corners.nw, note: 'NW' },
           { px: [gcp.image.width, 0], ll: gcp.corners.ne, note: 'NE' },
           { px: [gcp.image.width, gcp.image.height], ll: gcp.corners.se, note: 'SE' },
-          { px: [0, gcp.image.height], ll: gcp.corners.sw, note: 'SW' },
-          { px: [gcp.image.width / 2, gcp.image.height / 2], ll: gcp.center, note: 'CENTER' }
+          { px: [0, gcp.image.height], ll: gcp.corners.sw, note: 'SW' }
+          // CENTER rimosso - solo 4 corner per evitare deformazione!
         ],
         center: {
           px: [gcp.image.width / 2, gcp.image.height / 2],
