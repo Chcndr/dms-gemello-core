@@ -226,17 +226,27 @@
         <div class="slider-container">
           <div class="slider-label">
             <span>Rotazione pianta:</span>
-            <span id="plant-rotation-value">0°</span>
+            <span id="plant-rotation-value">0.0°</span>
           </div>
-          <input type="range" id="plant-rotation" min="0" max="360" value="0" step="1" />
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-rotation-minus" class="secondary" style="width: 40px; padding: 8px;">−</button>
+            <input type="range" id="plant-rotation" min="0" max="360" value="0" step="0.1" style="flex: 1;" />
+            <button id="btn-rotation-plus" class="secondary" style="width: 40px; padding: 8px;">+</button>
+            <input type="number" id="plant-rotation-input" min="0" max="360" value="0" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
+          </div>
         </div>
         
         <div class="slider-container">
           <div class="slider-label">
             <span>Scala pianta:</span>
-            <span id="plant-scale-value">100%</span>
+            <span id="plant-scale-value">100.0%</span>
           </div>
-          <input type="range" id="plant-scale" min="50" max="200" value="100" step="1" />
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-scale-minus" class="secondary" style="width: 40px; padding: 8px;">−</button>
+            <input type="range" id="plant-scale" min="1" max="500" value="100" step="0.1" style="flex: 1;" />
+            <button id="btn-scale-plus" class="secondary" style="width: 40px; padding: 8px;">+</button>
+            <input type="number" id="plant-scale-input" min="1" max="500" value="100" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
+          </div>
         </div>
         
         <div class="slider-container">
@@ -550,10 +560,12 @@
       };
     });
     
-    // Slider rotazione pianta - Ruota fisicamente l'immagine
-    document.getElementById('plant-rotation').addEventListener('input', async (e) => {
-      plantRotation = parseInt(e.target.value);
-      document.getElementById('plant-rotation-value').textContent = plantRotation + '°';
+    // Funzione per aggiornare rotazione
+    async function updateRotation(value) {
+      plantRotation = parseFloat(value);
+      document.getElementById('plant-rotation-value').textContent = plantRotation.toFixed(1) + '°';
+      document.getElementById('plant-rotation').value = plantRotation;
+      document.getElementById('plant-rotation-input').value = plantRotation;
       
       if (!pdfBlobOriginal) return;
       
@@ -588,15 +600,58 @@
         
         URL.revokeObjectURL(url);
         updatePlantOverlay();
-        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
+        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation.toFixed(1) + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
       };
+    }
+    
+    // Slider rotazione pianta
+    document.getElementById('plant-rotation').addEventListener('input', (e) => {
+      updateRotation(e.target.value);
     });
+    
+    // Input numerico rotazione
+    document.getElementById('plant-rotation-input').addEventListener('input', (e) => {
+      updateRotation(e.target.value);
+    });
+    
+    // Pulsanti +/- rotazione
+    document.getElementById('btn-rotation-minus').addEventListener('click', () => {
+      updateRotation(Math.max(0, plantRotation - 1));
+    });
+    
+    document.getElementById('btn-rotation-plus').addEventListener('click', () => {
+      updateRotation(Math.min(360, plantRotation + 1));
+    });
+    
+    // Funzione per aggiornare scala
+    function updateScale(value) {
+      plantScale = parseFloat(value) / 100;
+      const displayValue = parseFloat(value).toFixed(1);
+      document.getElementById('plant-scale-value').textContent = displayValue + '%';
+      document.getElementById('plant-scale').value = value;
+      document.getElementById('plant-scale-input').value = value;
+      updatePlantOverlay();
+    }
     
     // Slider scala pianta
     document.getElementById('plant-scale').addEventListener('input', (e) => {
-      plantScale = parseInt(e.target.value) / 100;
-      document.getElementById('plant-scale-value').textContent = e.target.value + '%';
-      updatePlantOverlay();
+      updateScale(e.target.value);
+    });
+    
+    // Input numerico scala
+    document.getElementById('plant-scale-input').addEventListener('input', (e) => {
+      updateScale(e.target.value);
+    });
+    
+    // Pulsanti +/- scala
+    document.getElementById('btn-scale-minus').addEventListener('click', () => {
+      const newValue = Math.max(1, parseFloat(document.getElementById('plant-scale').value) - 1);
+      updateScale(newValue);
+    });
+    
+    document.getElementById('btn-scale-plus').addEventListener('click', () => {
+      const newValue = Math.min(500, parseFloat(document.getElementById('plant-scale').value) + 1);
+      updateScale(newValue);
     });
     
     // Slider opacità pianta
