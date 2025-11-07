@@ -319,25 +319,28 @@
         <div class="info" id="slot-count">0 posteggi aggiunti</div>
       </div>
       
-      <!-- 4. Negozi -->
+      <!-- 4. Marker Personalizzabili -->
       <div class="section">
-        <h2>🏪 Negozi</h2>
-        <button id="btn-add-shop" class="active">🏪 Modalità Aggiungi Negozio</button>
-        <button id="btn-confirm-shop" class="success" style="display: none;">✅ Fissa Negozio</button>
-        <div class="info" id="shop-count">0 negozi aggiunti</div>
-        <div class="slot-list" id="shop-list" style="max-height: 150px; overflow-y: auto;">
-          <div style="opacity: 0.6;">Nessun negozio</div>
+        <h2>📍 Marker Personalizzabili</h2>
+        <button id="btn-add-marker" class="active">📍 Aggiungi Marker</button>
+        <div class="info" id="marker-count">0 marker aggiunti</div>
+        <div class="slot-list" id="marker-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessun marker</div>
         </div>
       </div>
       
-      <!-- 5. Servizi -->
+      <!-- 5. Aree Personalizzabili -->
       <div class="section">
-        <h2>🚻 Servizi</h2>
-        <button id="btn-add-service" class="active">🚻 Modalità Aggiungi Servizio</button>
-        <button id="btn-confirm-service" class="success" style="display: none;">✅ Fissa Servizio</button>
-        <div class="info" id="service-count">0 servizi aggiunti</div>
-        <div class="slot-list" id="service-list" style="max-height: 150px; overflow-y: auto;">
-          <div style="opacity: 0.6;">Nessun servizio</div>
+        <h2>📐 Aree Personalizzabili</h2>
+        <button id="btn-draw-area" class="active">📐 Disegna Area</button>
+        <button id="btn-finish-area" class="success" style="display: none;">✅ Completa Area</button>
+        <button id="btn-cancel-area" class="danger" style="display: none;">❌ Annulla Area</button>
+        <div class="info" id="area-count">0 aree aggiunte</div>
+        <div class="info" id="area-drawing-info" style="display: none; background: #FF9800; color: white;">
+          Click sulla mappa per aggiungere vertici. Doppio-click per chiudere l'area.
+        </div>
+        <div class="slot-list" id="area-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessuna area</div>
         </div>
       </div>
       
@@ -406,9 +409,9 @@
   <div id="dms-console"></div>
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geometryutil@0.10.1/src/leaflet.geometryutil.js"></script>
   <script src="../shared/dms-bus.js"></script>
   <script src="../shared/dms-console.js"></script>
-  <script src="./slot_editor_v2_shops_services.js"></script>
   <script>
     // Inizializza console
     DMSConsole.init();
@@ -432,18 +435,19 @@
     let plantScale = 1.0;
     let slotRotation = 0;
     let slots = [];
-    let shops = [];
-    let services = [];
+    let markers = [];
+    let areas = [];
     let addMode = false;
-    let shopMode = false;
-    let serviceMode = false;
+    let markerMode = false;
+    let areaDrawingMode = false;
     let slotCounter = 1;
-    let shopCounter = 1;
-    let serviceCounter = 1;
+    let markerCounter = 1;
+    let areaCounter = 1;
     let plantMarker = null; // Marker per trascinare pianta
     let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
-    let tempShop = null;
-    let tempService = null;
+    let currentAreaVertices = []; // Vertici area in costruzione
+    let currentAreaPolyline = null; // Polyline temporanea durante disegno
+    let currentAreaMarkers = []; // Marker vertici temporanei
     
     // Carica automaticamente PNG dal BUS
     (async () => {
@@ -1128,296 +1132,567 @@
       DMSConsole.log('🗑️ Tutti i posteggi cancellati');
     });
     
-    // ===== NEGOZI =====
+    // ===== MARKER PERSONALIZZABILI =====
     
-    // Modalità aggiungi negozio
-    document.getElementById('btn-add-shop').addEventListener('click', function() {
+    // Pulsante Aggiungi Marker
+    document.getElementById('btn-add-marker').addEventListener('click', function() {
       // Disattiva altre modalità
-      if (tempShop) {
-        tempShop.marker.remove();
-        tempShop = null;
-        document.getElementById('btn-confirm-shop').style.display = 'none';
-      }
       if (addMode) {
         addMode = false;
         document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
         document.getElementById('btn-add-mode').className = 'active';
       }
-      if (serviceMode) {
-        serviceMode = false;
-        document.getElementById('btn-add-service').textContent = '🚻 Modalità Aggiungi Servizio';
-        document.getElementById('btn-add-service').className = 'active';
+      if (areaDrawingMode) {
+        cancelAreaDrawing();
       }
       
-      shopMode = !shopMode;
-      this.textContent = shopMode ? '🛑 Disattiva Modalità' : '🏪 Modalità Aggiungi Negozio';
-      this.className = shopMode ? 'danger' : 'active';
-      map.getContainer().style.cursor = shopMode ? 'crosshair' : '';
+      markerMode = !markerMode;
+      this.textContent = markerMode ? '🛑 Disattiva Modalità' : '📍 Aggiungi Marker';
+      this.className = markerMode ? 'danger' : 'active';
+      map.getContainer().style.cursor = markerMode ? 'crosshair' : '';
+      
+      if (!markerMode) {
+        DMSConsole.log('❌ Modalità marker disattivata');
+      } else {
+        DMSConsole.log('✅ Modalità marker attiva - click sulla mappa');
+      }
     });
     
-    // Click mappa per aggiungere negozio
+    // Click mappa per aggiungere marker
     map.on('click', (e) => {
-      if (!shopMode || tempShop) return;
+      // Gestione marker
+      if (markerMode) {
+        addCustomMarker(e.latlng);
+        return;
+      }
       
-      const marker = createShopMarker(e.latlng, shopCounter, 'open');
-      marker.addTo(map);
-      
-      tempShop = {
-        number: shopCounter,
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
+      // Gestione aree
+      if (areaDrawingMode) {
+        addAreaVertex(e.latlng);
+        return;
+      }
+    });
+    
+    // Funzione per aggiungere marker personalizzabile
+    function addCustomMarker(latlng) {
+      const markerData = {
+        number: markerCounter,
+        lat: latlng.lat,
+        lng: latlng.lng,
+        letter: 'M',
+        size: 30,
+        bgColor: '#4CAF50',
+        textColor: '#FFFFFF',
+        borderColor: '#2E7D32',
+        borderWidth: 3,
         name: '',
+        type: 'shop',
         description: '',
-        hours: '',
-        phone: '',
-        status: 'open',
-        marker: marker
+        extra: {},
+        status: 'active'
       };
       
-      // Aggiorna posizione quando trascinato
-      marker.on('dragend', function() {
-        const pos = marker.getLatLng();
-        tempShop.lat = pos.lat;
-        tempShop.lng = pos.lng;
-      });
+      // Crea marker Leaflet
+      const marker = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="
+            width: ${markerData.size}px; 
+            height: ${markerData.size}px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: ${markerData.bgColor}; 
+            border: ${markerData.borderWidth}px solid ${markerData.borderColor}; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: ${markerData.size * 0.5}px; 
+            color: ${markerData.textColor};
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">${markerData.letter}</div>`,
+          iconSize: [markerData.size, markerData.size],
+          iconAnchor: [markerData.size / 2, markerData.size / 2]
+        }),
+        draggable: true
+      }).addTo(map);
       
-      // Apri popup con form
-      const popupContent = createShopPopupForm(tempShop);
-      marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
+      markerData.marker = marker;
       
-      // Mostra pulsante Fissa
-      document.getElementById('btn-confirm-shop').style.display = 'block';
+      // Popup configurazione
+      const popupContent = createMarkerConfigForm(markerData);
+      marker.bindPopup(popupContent, { maxWidth: 400, minWidth: 300 }).openPopup();
       
-      DMSConsole.log(`🟡 Negozio temporaneo ${shopCounter} - compila form e click Fissa`);
-    });
+      // Salva marker
+      markers.push(markerData);
+      markerCounter++;
+      
+      updateMarkerList();
+      DMSConsole.log(`✅ Marker #${markerData.number} aggiunto`);
+    }
     
-    // Pulsante Fissa Negozio
-    document.getElementById('btn-confirm-shop').addEventListener('click', () => {
-      if (!tempShop) return;
+    // Form configurazione marker
+    function createMarkerConfigForm(marker) {
+      return `
+        <div style="min-width: 300px;">
+          <h3 style="margin: 0 0 12px 0;">📍 Marker #${marker.number}</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Lettera/Simbolo:</label>
+              <input type="text" id="marker-letter-${marker.number}" value="${marker.letter}" maxlength="2" style="width: 100%; padding: 6px; font-size: 14px; text-align: center;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Dimensione (px):</label>
+              <input type="number" id="marker-size-${marker.number}" value="${marker.size}" min="20" max="60" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Sfondo:</label>
+              <input type="color" id="marker-bgcolor-${marker.number}" value="${marker.bgColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Testo:</label>
+              <input type="color" id="marker-textcolor-${marker.number}" value="${marker.textColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Bordo:</label>
+              <input type="color" id="marker-bordercolor-${marker.number}" value="${marker.borderColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Spessore Bordo:</label>
+              <input type="number" id="marker-borderwidth-${marker.number}" value="${marker.borderWidth}" min="1" max="10" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Nome:</label>
+            <input type="text" id="marker-name-${marker.number}" value="${marker.name}" style="width: 100%; padding: 6px;" placeholder="Es: Pizzeria Da Mario" />
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Tipo:</label>
+            <select id="marker-type-${marker.number}" style="width: 100%; padding: 6px;">
+              <option value="shop" ${marker.type === 'shop' ? 'selected' : ''}>🏪 Negozio</option>
+              <option value="service" ${marker.type === 'service' ? 'selected' : ''}>🚻 Servizio</option>
+              <option value="poi" ${marker.type === 'poi' ? 'selected' : ''}>📍 Punto di Interesse</option>
+              <option value="parking" ${marker.type === 'parking' ? 'selected' : ''}>🅿️ Parcheggio</option>
+              <option value="info" ${marker.type === 'info' ? 'selected' : ''}>ℹ️ Info Point</option>
+              <option value="other" ${marker.type === 'other' ? 'selected' : ''}>📌 Altro</option>
+            </select>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Descrizione:</label>
+            <textarea id="marker-desc-${marker.number}" style="width: 100%; padding: 6px; min-height: 60px; resize: vertical;" placeholder="Descrizione...">${marker.description}</textarea>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Status:</label>
+            <select id="marker-status-${marker.number}" style="width: 100%; padding: 6px;">
+              <option value="active" ${marker.status === 'active' ? 'selected' : ''}>🟢 Attivo</option>
+              <option value="inactive" ${marker.status === 'inactive' ? 'selected' : ''}>🔴 Inattivo</option>
+              <option value="maintenance" ${marker.status === 'maintenance' ? 'selected' : ''}>🟡 Manutenzione</option>
+            </select>
+          </div>
+          
+          <button onclick="updateMarkerFromForm(${marker.number})" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✅ Salva Modifiche</button>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+            <strong>Coordinate:</strong><br>
+            Lat: ${marker.lat.toFixed(8)}<br>
+            Lng: ${marker.lng.toFixed(8)}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Aggiorna marker da form
+    window.updateMarkerFromForm = function(number) {
+      const marker = markers.find(m => m.number === number);
+      if (!marker) return;
       
-      // Leggi dati dal form
-      tempShop.name = document.getElementById(`shop-name-${tempShop.number}`).value;
-      tempShop.description = document.getElementById(`shop-desc-${tempShop.number}`).value;
-      tempShop.hours = document.getElementById(`shop-hours-${tempShop.number}`).value;
-      tempShop.phone = document.getElementById(`shop-phone-${tempShop.number}`).value;
-      tempShop.status = document.getElementById(`shop-status-${tempShop.number}`).value;
+      // Leggi valori dal form
+      marker.letter = document.getElementById(`marker-letter-${number}`).value || 'M';
+      marker.size = parseInt(document.getElementById(`marker-size-${number}`).value) || 30;
+      marker.bgColor = document.getElementById(`marker-bgcolor-${number}`).value;
+      marker.textColor = document.getElementById(`marker-textcolor-${number}`).value;
+      marker.borderColor = document.getElementById(`marker-bordercolor-${number}`).value;
+      marker.borderWidth = parseInt(document.getElementById(`marker-borderwidth-${number}`).value) || 3;
+      marker.name = document.getElementById(`marker-name-${number}`).value;
+      marker.type = document.getElementById(`marker-type-${number}`).value;
+      marker.description = document.getElementById(`marker-desc-${number}`).value;
+      marker.status = document.getElementById(`marker-status-${number}`).value;
       
-      // Aggiorna posizione finale
-      const pos = tempShop.marker.getLatLng();
-      tempShop.lat = pos.lat;
-      tempShop.lng = pos.lng;
+      // Aggiorna posizione
+      const pos = marker.marker.getLatLng();
+      marker.lat = pos.lat;
+      marker.lng = pos.lng;
       
-      // Cambia colore marker in base allo status
-      tempShop.marker.remove();
-      tempShop.marker = createShopMarker([tempShop.lat, tempShop.lng], tempShop.number, tempShop.status);
-      tempShop.marker.addTo(map);
-      tempShop.marker.dragging.disable();
+      // Ricrea marker con nuove proprietà
+      map.removeLayer(marker.marker);
+      marker.marker = L.marker([marker.lat, marker.lng], {
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="
+            width: ${marker.size}px; 
+            height: ${marker.size}px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: ${marker.bgColor}; 
+            border: ${marker.borderWidth}px solid ${marker.borderColor}; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: ${marker.size * 0.5}px; 
+            color: ${marker.textColor};
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">${marker.letter}</div>`,
+          iconSize: [marker.size, marker.size],
+          iconAnchor: [marker.size / 2, marker.size / 2]
+        }),
+        draggable: false
+      }).addTo(map);
       
-      // Aggiungi popup con dati finali
+      // Popup finale
+      const statusEmoji = {
+        active: '🟢',
+        inactive: '🔴',
+        maintenance: '🟡'
+      };
       const finalPopup = `
         <div style="min-width: 200px;">
-          <h3>🏪 ${tempShop.name || 'Negozio #' + tempShop.number}</h3>
-          <p>${tempShop.description || ''}</p>
-          ${tempShop.hours ? `<p><strong>Orari:</strong> ${tempShop.hours}</p>` : ''}
-          ${tempShop.phone ? `<p><strong>Tel:</strong> ${tempShop.phone}</p>` : ''}
-          <p><strong>Status:</strong> ${tempShop.status === 'open' ? '🟢 Aperto' : tempShop.status === 'closed' ? '🔴 Chiuso' : '🟡 Ferie'}</p>
+          <h3>${marker.letter} ${marker.name || 'Marker #' + marker.number}</h3>
+          <p><strong>Tipo:</strong> ${marker.type}</p>
+          <p>${marker.description || ''}</p>
+          <p><strong>Status:</strong> ${statusEmoji[marker.status]} ${marker.status}</p>
           <p style="font-size: 11px; color: #666; margin-top: 8px;">
-            Lat: ${tempShop.lat.toFixed(8)}<br>
-            Lng: ${tempShop.lng.toFixed(8)}
+            Lat: ${marker.lat.toFixed(8)}<br>
+            Lng: ${marker.lng.toFixed(8)}
           </p>
         </div>
       `;
-      tempShop.marker.bindPopup(finalPopup);
+      marker.marker.bindPopup(finalPopup);
       
-      // Aggiungi a lista
-      shops.push(tempShop);
-      shopCounter++;
-      
-      DMSConsole.log(`✅ Negozio "${tempShop.name}" fissato`);
-      
-      // Reset
-      tempShop = null;
-      document.getElementById('btn-confirm-shop').style.display = 'none';
-      
-      updateShopList();
-    });
+      updateMarkerList();
+      DMSConsole.log(`✅ Marker #${number} aggiornato`);
+    };
     
-    // Aggiorna lista negozi
-    function updateShopList() {
-      const list = document.getElementById('shop-list');
-      const count = document.getElementById('shop-count');
+    // Aggiorna lista marker
+    function updateMarkerList() {
+      const list = document.getElementById('marker-list');
+      const count = document.getElementById('marker-count');
       
-      if (shops.length === 0) {
-        list.innerHTML = '<div style="opacity: 0.6;">Nessun negozio</div>';
+      if (markers.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun marker</div>';
       } else {
-        list.innerHTML = shops.map(shop => `
+        list.innerHTML = markers.map(m => `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
-            <span>🏪 ${shop.name || 'Negozio #' + shop.number} (${shop.status === 'open' ? '🟢' : shop.status === 'closed' ? '🔴' : '🟡'})</span>
-            <button onclick="removeShop(${shop.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+            <span>${m.letter} ${m.name || 'Marker #' + m.number}</span>
+            <button onclick="removeMarker(${m.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
           </div>
         `).join('');
       }
       
-      count.textContent = `${shops.length} negozi aggiunti`;
+      count.textContent = `${markers.length} marker aggiunti`;
     }
     
-    // Rimuovi negozio
-    window.removeShop = function(number) {
-      const shop = shops.find(s => s.number === number);
-      if (shop) {
-        map.removeLayer(shop.marker);
-        shops = shops.filter(s => s.number !== number);
-        updateShopList();
-        DMSConsole.log(`🗑️ Negozio ${number} rimosso`);
+    // Rimuovi marker
+    window.removeMarker = function(number) {
+      const marker = markers.find(m => m.number === number);
+      if (marker) {
+        map.removeLayer(marker.marker);
+        markers = markers.filter(m => m.number !== number);
+        updateMarkerList();
+        DMSConsole.log(`🗑️ Marker ${number} rimosso`);
       }
     };
     
-    // ===== SERVIZI =====
+    // ===== AREE PERSONALIZZABILI =====
     
-    // Modalità aggiungi servizio
-    document.getElementById('btn-add-service').addEventListener('click', function() {
+    // Pulsante Disegna Area
+    document.getElementById('btn-draw-area').addEventListener('click', function() {
+      if (areaDrawingMode) return;
+      
       // Disattiva altre modalità
-      if (tempService) {
-        tempService.marker.remove();
-        tempService = null;
-        document.getElementById('btn-confirm-service').style.display = 'none';
-      }
       if (addMode) {
         addMode = false;
         document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
         document.getElementById('btn-add-mode').className = 'active';
       }
-      if (shopMode) {
-        shopMode = false;
-        document.getElementById('btn-add-shop').textContent = '🏪 Modalità Aggiungi Negozio';
-        document.getElementById('btn-add-shop').className = 'active';
+      if (markerMode) {
+        markerMode = false;
+        document.getElementById('btn-add-marker').textContent = '📍 Aggiungi Marker';
+        document.getElementById('btn-add-marker').className = 'active';
       }
       
-      serviceMode = !serviceMode;
-      this.textContent = serviceMode ? '🛑 Disattiva Modalità' : '🚻 Modalità Aggiungi Servizio';
-      this.className = serviceMode ? 'danger' : 'active';
-      map.getContainer().style.cursor = serviceMode ? 'crosshair' : '';
+      startAreaDrawing();
     });
     
-    // Click mappa per aggiungere servizio
-    map.on('click', (e) => {
-      if (!serviceMode || tempService) return;
+    // Inizia disegno area
+    function startAreaDrawing() {
+      areaDrawingMode = true;
+      currentAreaVertices = [];
+      currentAreaMarkers = [];
       
-      const marker = createServiceMarker(e.latlng, serviceCounter, 'available');
-      marker.addTo(map);
+      document.getElementById('btn-draw-area').style.display = 'none';
+      document.getElementById('btn-finish-area').style.display = 'block';
+      document.getElementById('btn-cancel-area').style.display = 'block';
+      document.getElementById('area-drawing-info').style.display = 'block';
       
-      tempService = {
-        number: serviceCounter,
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
+      map.getContainer().style.cursor = 'crosshair';
+      DMSConsole.log('✅ Modalità disegno area attiva - click per aggiungere vertici, doppio-click per chiudere');
+    }
+    
+    // Aggiungi vertice area
+    function addAreaVertex(latlng) {
+      currentAreaVertices.push(latlng);
+      
+      // Marker vertice temporaneo
+      const vertexMarker = L.circleMarker(latlng, {
+        radius: 5,
+        color: '#2196F3',
+        fillColor: '#2196F3',
+        fillOpacity: 0.8
+      }).addTo(map);
+      currentAreaMarkers.push(vertexMarker);
+      
+      // Aggiorna polyline
+      if (currentAreaPolyline) {
+        map.removeLayer(currentAreaPolyline);
+      }
+      
+      if (currentAreaVertices.length > 1) {
+        currentAreaPolyline = L.polyline(currentAreaVertices, {
+          color: '#2196F3',
+          weight: 2,
+          dashArray: '5, 5'
+        }).addTo(map);
+      }
+      
+      DMSConsole.log(`🔵 Vertice ${currentAreaVertices.length} aggiunto`);
+    }
+    
+    // Doppio click per completare area
+    map.on('dblclick', (e) => {
+      if (!areaDrawingMode || currentAreaVertices.length < 3) return;
+      
+      L.DomEvent.stopPropagation(e);
+      finishAreaDrawing();
+    });
+    
+    // Pulsante Completa Area
+    document.getElementById('btn-finish-area').addEventListener('click', finishAreaDrawing);
+    
+    // Completa disegno area
+    function finishAreaDrawing() {
+      if (currentAreaVertices.length < 3) {
+        alert('⚠️ Servono almeno 3 vertici per creare un'area!');
+        return;
+      }
+      
+      // Rimuovi marker temporanei
+      currentAreaMarkers.forEach(m => map.removeLayer(m));
+      if (currentAreaPolyline) map.removeLayer(currentAreaPolyline);
+      
+      // Crea area
+      const areaData = {
+        number: areaCounter,
+        coordinates: currentAreaVertices.map(v => [v.lat, v.lng]),
         name: '',
-        type: 'wc',
-        description: '',
-        status: 'available',
-        marker: marker
+        type: 'market',
+        fillColor: '#4CAF50',
+        fillOpacity: 0.3,
+        borderColor: '#2E7D32',
+        borderWidth: 3,
+        description: ''
       };
       
-      // Aggiorna posizione quando trascinato
-      marker.on('dragend', function() {
-        const pos = marker.getLatLng();
-        tempService.lat = pos.lat;
-        tempService.lng = pos.lng;
-      });
+      const polygon = L.polygon(currentAreaVertices, {
+        color: areaData.borderColor,
+        weight: areaData.borderWidth,
+        fillColor: areaData.fillColor,
+        fillOpacity: areaData.fillOpacity
+      }).addTo(map);
       
-      // Apri popup con form
-      const popupContent = createServicePopupForm(tempService);
-      marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
+      areaData.polygon = polygon;
       
-      // Mostra pulsante Fissa
-      document.getElementById('btn-confirm-service').style.display = 'block';
+      // Popup configurazione
+      const popupContent = createAreaConfigForm(areaData);
+      polygon.bindPopup(popupContent, { maxWidth: 400, minWidth: 300 }).openPopup();
       
-      DMSConsole.log(`🟡 Servizio temporaneo ${serviceCounter} - compila form e click Fissa`);
-    });
+      // Salva area
+      areas.push(areaData);
+      areaCounter++;
+      
+      // Reset modalità
+      areaDrawingMode = false;
+      currentAreaVertices = [];
+      currentAreaMarkers = [];
+      currentAreaPolyline = null;
+      
+      document.getElementById('btn-draw-area').style.display = 'block';
+      document.getElementById('btn-finish-area').style.display = 'none';
+      document.getElementById('btn-cancel-area').style.display = 'none';
+      document.getElementById('area-drawing-info').style.display = 'none';
+      map.getContainer().style.cursor = '';
+      
+      updateAreaList();
+      DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
+    }
     
-    // Pulsante Fissa Servizio
-    document.getElementById('btn-confirm-service').addEventListener('click', () => {
-      if (!tempService) return;
+    // Pulsante Annulla Area
+    document.getElementById('btn-cancel-area').addEventListener('click', cancelAreaDrawing);
+    
+    // Annulla disegno area
+    function cancelAreaDrawing() {
+      currentAreaMarkers.forEach(m => map.removeLayer(m));
+      if (currentAreaPolyline) map.removeLayer(currentAreaPolyline);
       
-      // Leggi dati dal form
-      tempService.name = document.getElementById(`service-name-${tempService.number}`).value;
-      tempService.type = document.getElementById(`service-type-${tempService.number}`).value;
-      tempService.description = document.getElementById(`service-desc-${tempService.number}`).value;
-      tempService.status = document.getElementById(`service-status-${tempService.number}`).value;
+      areaDrawingMode = false;
+      currentAreaVertices = [];
+      currentAreaMarkers = [];
+      currentAreaPolyline = null;
       
-      // Aggiorna posizione finale
-      const pos = tempService.marker.getLatLng();
-      tempService.lat = pos.lat;
-      tempService.lng = pos.lng;
+      document.getElementById('btn-draw-area').style.display = 'block';
+      document.getElementById('btn-finish-area').style.display = 'none';
+      document.getElementById('btn-cancel-area').style.display = 'none';
+      document.getElementById('area-drawing-info').style.display = 'none';
+      map.getContainer().style.cursor = '';
       
-      // Cambia colore marker in base allo status
-      tempService.marker.remove();
-      tempService.marker = createServiceMarker([tempService.lat, tempService.lng], tempService.number, tempService.status);
-      tempService.marker.addTo(map);
-      tempService.marker.dragging.disable();
-      
-      // Aggiungi popup con dati finali
-      const typeEmoji = {
-        wc: '🚻',
-        parking: '🅿️',
-        info: 'ℹ️',
-        medical: '🏥',
-        atm: '🏧',
-        other: '📍'
-      };
-      const finalPopup = `
-        <div style="min-width: 200px;">
-          <h3>${typeEmoji[tempService.type] || '📍'} ${tempService.name || 'Servizio #' + tempService.number}</h3>
-          <p><strong>Tipo:</strong> ${tempService.type}</p>
-          <p>${tempService.description || ''}</p>
-          <p><strong>Status:</strong> ${tempService.status === 'available' ? '🟢 Disponibile' : tempService.status === 'unavailable' ? '🔴 Non disponibile' : '🟡 Manutenzione'}</p>
-          <p style="font-size: 11px; color: #666; margin-top: 8px;">
-            Lat: ${tempService.lat.toFixed(8)}<br>
-            Lng: ${tempService.lng.toFixed(8)}
-          </p>
+      DMSConsole.log('❌ Disegno area annullato');
+    }
+    
+    // Form configurazione area
+    function createAreaConfigForm(area) {
+      return `
+        <div style="min-width: 300px;">
+          <h3 style="margin: 0 0 12px 0;">📐 Area #${area.number}</h3>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Nome:</label>
+            <input type="text" id="area-name-${area.number}" value="${area.name}" style="width: 100%; padding: 6px;" placeholder="Es: Area Mercato" />
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Tipo:</label>
+            <select id="area-type-${area.number}" style="width: 100%; padding: 6px;">
+              <option value="market" ${area.type === 'market' ? 'selected' : ''}>🏪 Mercato</option>
+              <option value="hub" ${area.type === 'hub' ? 'selected' : ''}>🚌 Hub</option>
+              <option value="parking" ${area.type === 'parking' ? 'selected' : ''}>🅿️ Parcheggio</option>
+              <option value="green" ${area.type === 'green' ? 'selected' : ''}>🌳 Area Verde</option>
+              <option value="restricted" ${area.type === 'restricted' ? 'selected' : ''}>🚫 Zona Riservata</option>
+              <option value="other" ${area.type === 'other' ? 'selected' : ''}>📍 Altro</option>
+            </select>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Riempimento:</label>
+              <input type="color" id="area-fillcolor-${area.number}" value="${area.fillColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Opacità (%):</label>
+              <input type="number" id="area-opacity-${area.number}" value="${area.fillOpacity * 100}" min="0" max="100" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Bordo:</label>
+              <input type="color" id="area-bordercolor-${area.number}" value="${area.borderColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Spessore Bordo:</label>
+              <input type="number" id="area-borderwidth-${area.number}" value="${area.borderWidth}" min="1" max="10" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Descrizione:</label>
+            <textarea id="area-desc-${area.number}" style="width: 100%; padding: 6px; min-height: 60px; resize: vertical;" placeholder="Descrizione area...">${area.description}</textarea>
+          </div>
+          
+          <button onclick="updateAreaFromForm(${area.number})" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✅ Salva Modifiche</button>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+            <strong>Vertici:</strong> ${area.coordinates.length}<br>
+            <strong>Area:</strong> ~${(L.GeometryUtil.geodesicArea(area.coordinates.map(c => L.latLng(c[0], c[1]))) || 0).toFixed(0)} m²
+          </div>
         </div>
       `;
-      tempService.marker.bindPopup(finalPopup);
-      
-      // Aggiungi a lista
-      services.push(tempService);
-      serviceCounter++;
-      
-      DMSConsole.log(`✅ Servizio "${tempService.name}" fissato`);
-      
-      // Reset
-      tempService = null;
-      document.getElementById('btn-confirm-service').style.display = 'none';
-      
-      updateServiceList();
-    });
+    }
     
-    // Aggiorna lista servizi
-    function updateServiceList() {
-      const list = document.getElementById('service-list');
-      const count = document.getElementById('service-count');
+    // Aggiorna area da form
+    window.updateAreaFromForm = function(number) {
+      const area = areas.find(a => a.number === number);
+      if (!area) return;
       
-      if (services.length === 0) {
-        list.innerHTML = '<div style="opacity: 0.6;">Nessun servizio</div>';
+      // Leggi valori dal form
+      area.name = document.getElementById(`area-name-${number}`).value;
+      area.type = document.getElementById(`area-type-${number}`).value;
+      area.fillColor = document.getElementById(`area-fillcolor-${number}`).value;
+      area.fillOpacity = parseInt(document.getElementById(`area-opacity-${number}`).value) / 100;
+      area.borderColor = document.getElementById(`area-bordercolor-${number}`).value;
+      area.borderWidth = parseInt(document.getElementById(`area-borderwidth-${number}`).value) || 3;
+      area.description = document.getElementById(`area-desc-${number}`).value;
+      
+      // Ricrea poligono con nuove proprietà
+      map.removeLayer(area.polygon);
+      area.polygon = L.polygon(area.coordinates.map(c => L.latLng(c[0], c[1])), {
+        color: area.borderColor,
+        weight: area.borderWidth,
+        fillColor: area.fillColor,
+        fillOpacity: area.fillOpacity
+      }).addTo(map);
+      
+      // Popup finale
+      const finalPopup = `
+        <div style="min-width: 200px;">
+          <h3>📐 ${area.name || 'Area #' + area.number}</h3>
+          <p><strong>Tipo:</strong> ${area.type}</p>
+          <p>${area.description || ''}</p>
+          <p><strong>Vertici:</strong> ${area.coordinates.length}</p>
+          <p><strong>Area:</strong> ~${(L.GeometryUtil.geodesicArea(area.coordinates.map(c => L.latLng(c[0], c[1]))) || 0).toFixed(0)} m²</p>
+        </div>
+      `;
+      area.polygon.bindPopup(finalPopup);
+      
+      updateAreaList();
+      DMSConsole.log(`✅ Area #${number} aggiornata`);
+    };
+    
+    // Aggiorna lista aree
+    function updateAreaList() {
+      const list = document.getElementById('area-list');
+      const count = document.getElementById('area-count');
+      
+      if (areas.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessuna area</div>';
       } else {
-        list.innerHTML = services.map(service => `
+        list.innerHTML = areas.map(a => `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
-            <span>🚻 ${service.name || 'Servizio #' + service.number} (${service.status === 'available' ? '🟢' : service.status === 'unavailable' ? '🔴' : '🟡'})</span>
-            <button onclick="removeService(${service.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+            <span>📐 ${a.name || 'Area #' + a.number} (${a.coordinates.length} vertici)</span>
+            <button onclick="removeArea(${a.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
           </div>
         `).join('');
       }
       
-      count.textContent = `${services.length} servizi aggiunti`;
+      count.textContent = `${areas.length} aree aggiunte`;
     }
     
-    // Rimuovi servizio
-    window.removeService = function(number) {
-      const service = services.find(s => s.number === number);
-      if (service) {
-        map.removeLayer(service.marker);
-        services = services.filter(s => s.number !== number);
-        updateServiceList();
-        DMSConsole.log(`🗑️ Servizio ${number} rimosso`);
+    // Rimuovi area
+    window.removeArea = function(number) {
+      const area = areas.find(a => a.number === number);
+      if (area) {
+        map.removeLayer(area.polygon);
+        areas = areas.filter(a => a.number !== number);
+        updateAreaList();
+        DMSConsole.log(`🗑️ Area ${number} rimossa`);
       }
     };
     
@@ -1460,43 +1735,52 @@
         }))
       };
       
-      // Crea GeoJSON negozi
-      const shopsGeoJSON = {
+      // Crea GeoJSON marker personalizzabili
+      const markersGeoJSON = {
         type: 'FeatureCollection',
-        features: shops.map(shop => ({
+        features: markers.map(m => ({
           type: 'Feature',
           geometry: {
             type: 'Point',
-            coordinates: [shop.lng, shop.lat]
+            coordinates: [m.lng, m.lat]
           },
           properties: {
-            number: shop.number,
-            name: shop.name,
-            description: shop.description,
-            hours: shop.hours,
-            phone: shop.phone,
-            status: shop.status,
-            kind: 'shop'
+            number: m.number,
+            letter: m.letter,
+            size: m.size,
+            bgColor: m.bgColor,
+            textColor: m.textColor,
+            borderColor: m.borderColor,
+            borderWidth: m.borderWidth,
+            name: m.name,
+            type: m.type,
+            description: m.description,
+            extra: m.extra,
+            status: m.status,
+            kind: 'marker'
           }
         }))
       };
       
-      // Crea GeoJSON servizi
-      const servicesGeoJSON = {
+      // Crea GeoJSON aree personalizzabili
+      const areasGeoJSON = {
         type: 'FeatureCollection',
-        features: services.map(service => ({
+        features: areas.map(a => ({
           type: 'Feature',
           geometry: {
-            type: 'Point',
-            coordinates: [service.lng, service.lat]
+            type: 'Polygon',
+            coordinates: [a.coordinates.map(c => [c[1], c[0]])]
           },
           properties: {
-            number: service.number,
-            name: service.name,
-            type: service.type,
-            description: service.description,
-            status: service.status,
-            kind: 'service'
+            number: a.number,
+            name: a.name,
+            type: a.type,
+            fillColor: a.fillColor,
+            fillOpacity: a.fillOpacity,
+            borderColor: a.borderColor,
+            borderWidth: a.borderWidth,
+            description: a.description,
+            kind: 'area'
           }
         }))
       };
@@ -1505,8 +1789,8 @@
       const exportData = {
         container: corners,
         stalls_geojson: stallsGeoJSON,
-        shops_geojson: shopsGeoJSON,
-        services_geojson: servicesGeoJSON,
+        markers_geojson: markersGeoJSON,
+        areas_geojson: areasGeoJSON,
         plant_rotation: plantRotation,
         plant_scale: plantScale,
         timestamp: new Date().toISOString()
@@ -1517,12 +1801,12 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const totalItems = slots.length + shops.length + services.length;
+      const totalItems = slots.length + markers.length + areas.length;
       a.download = `mercato-esperanto-${totalItems}-items-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       
-      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi esportati!`;
+      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree esportati!`;
       DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
     });
     
