@@ -25,7 +25,7 @@ const DMSConsole = {
           <div class="dms-console-actions">
             <button class="dms-console-btn" onclick="DMSConsole.clear()">🗑️</button>
             <button class="dms-console-btn" onclick="DMSConsole.copy()">📋</button>
-            <button class="dms-console-btn" onclick="DMSConsole.toggle()">▼</button>
+            <button class="dms-console-btn" onclick="DMSConsole.toggle()">▲</button>
           </div>
         </div>
         <div class="dms-console-body">
