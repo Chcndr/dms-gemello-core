@@ -940,16 +940,28 @@
         
         // Ripristina dati nel bus (usando DMSBUS)
         for (const [key, value] of Object.entries(checkpoint.data)) {
-          if (key === 'png_transparent') {
-            await DMSBUS.put(key, value);
-          } else {
-            await DMSBUS.putJSON(key, value);
+          try {
+            if (key === 'png_transparent') {
+              // Se è una stringa base64, convertila in Blob
+              if (typeof value === 'string' && value.startsWith('data:image')) {
+                const response = await fetch(value);
+                const blob = await response.blob();
+                await DMSBUS.putBlob(key, blob);
+              } else {
+                await DMSBUS.put(key, value);
+              }
+            } else {
+              await DMSBUS.putJSON(key, value);
+            }
+          } catch (keyErr) {
+            console.error(`Errore ripristino chiave ${key}:`, keyErr);
           }
         }
         
         alert('✅ Checkpoint ripristinato: ' + checkpoint.name);
         updateWorkflowStatus();
       } catch (err) {
+        console.error('Errore ripristino checkpoint:', err);
         alert('❌ Errore ripristino checkpoint: ' + err.message);
       }
     }
