@@ -427,8 +427,10 @@
     }
     
     // Funzione per aggiornare overlay pianta
+    let isUpdatingPlant = false; // Flag per evitare loop
     function updatePlantOverlay() {
-      if (!pdfBlob || !plantBounds) return;
+      if (!pdfBlob || !plantBounds || isUpdatingPlant) return;
+      isUpdatingPlant = true;
       
       const center = plantMarker ? plantMarker.getLatLng() : map.getCenter();
       // NON ruotiamo le coordinate, solo scaliamo con dimensioni corrette
@@ -461,8 +463,18 @@
           zIndexOffset: 1000
         }).addTo(map);
         
+        // Usa dragend invece di drag per evitare troppi aggiornamenti
         plantMarker.on('drag', () => {
-          updatePlantOverlay();
+          if (pdfOverlay && !isUpdatingPlant) {
+            const newCenter = plantMarker.getLatLng();
+            const corners = calculatePlantBounds(newCenter, plantImageSize.width, plantImageSize.height, 0, plantScale);
+            const newBounds = L.latLngBounds([corners[0], corners[2]]);
+            pdfOverlay.setBounds(newBounds);
+          }
+        });
+        
+        plantMarker.on('dragend', () => {
+          DMSConsole.log('✅ Pianta riposizionata');
         });
         
         DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
@@ -471,6 +483,7 @@
       }
       
       plantBounds = bounds;
+      isUpdatingPlant = false;
       DMSConsole.log('✅ Pianta aggiornata');
     }
     
@@ -614,13 +627,13 @@
       updateRotation(e.target.value);
     });
     
-    // Pulsanti +/- rotazione
+    // Pulsanti +/- rotazione (0.1° alla volta)
     document.getElementById('btn-rotation-minus').addEventListener('click', () => {
-      updateRotation(Math.max(0, plantRotation - 1));
+      updateRotation(Math.max(0, plantRotation - 0.1));
     });
     
     document.getElementById('btn-rotation-plus').addEventListener('click', () => {
-      updateRotation(Math.min(360, plantRotation + 1));
+      updateRotation(Math.min(360, plantRotation + 0.1));
     });
     
     // Funzione per aggiornare scala
@@ -643,14 +656,14 @@
       updateScale(e.target.value);
     });
     
-    // Pulsanti +/- scala
+    // Pulsanti +/- scala (0.1% alla volta)
     document.getElementById('btn-scale-minus').addEventListener('click', () => {
-      const newValue = Math.max(1, parseFloat(document.getElementById('plant-scale').value) - 1);
+      const newValue = Math.max(1, parseFloat(document.getElementById('plant-scale').value) - 0.1);
       updateScale(newValue);
     });
     
     document.getElementById('btn-scale-plus').addEventListener('click', () => {
-      const newValue = Math.min(500, parseFloat(document.getElementById('plant-scale').value) + 1);
+      const newValue = Math.min(500, parseFloat(document.getElementById('plant-scale').value) + 0.1);
       updateScale(newValue);
     });
     
