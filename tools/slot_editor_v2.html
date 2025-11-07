@@ -319,7 +319,29 @@
         <div class="info" id="slot-count">0 posteggi aggiunti</div>
       </div>
       
-      <!-- 4. Lista Posteggi -->
+      <!-- 4. Negozi -->
+      <div class="section">
+        <h2>🏪 Negozi</h2>
+        <button id="btn-add-shop" class="active">🏪 Modalità Aggiungi Negozio</button>
+        <button id="btn-confirm-shop" class="success" style="display: none;">✅ Fissa Negozio</button>
+        <div class="info" id="shop-count">0 negozi aggiunti</div>
+        <div class="slot-list" id="shop-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessun negozio</div>
+        </div>
+      </div>
+      
+      <!-- 5. Servizi -->
+      <div class="section">
+        <h2>🚻 Servizi</h2>
+        <button id="btn-add-service" class="active">🚻 Modalità Aggiungi Servizio</button>
+        <button id="btn-confirm-service" class="success" style="display: none;">✅ Fissa Servizio</button>
+        <div class="info" id="service-count">0 servizi aggiunti</div>
+        <div class="slot-list" id="service-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessun servizio</div>
+        </div>
+      </div>
+      
+      <!-- 6. Lista Posteggi -->
       <div class="section">
         <h2>4️⃣ Posteggi Aggiunti (<span id="total-slots">0</span>)</h2>
         <div class="slot-list" id="slot-list">
@@ -409,10 +431,18 @@
     let plantScale = 1.0;
     let slotRotation = 0;
     let slots = [];
+    let shops = [];
+    let services = [];
     let addMode = false;
+    let shopMode = false;
+    let serviceMode = false;
     let slotCounter = 1;
+    let shopCounter = 1;
+    let serviceCounter = 1;
     let plantMarker = null; // Marker per trascinare pianta
     let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
+    let tempShop = null;
+    let tempService = null;
     
     // Carica automaticamente PNG dal BUS
     (async () => {
