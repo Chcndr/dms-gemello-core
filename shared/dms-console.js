@@ -50,7 +50,7 @@ const DMSConsole = {
     this.container.classList.toggle('collapsed');
     
     const btn = this.container.querySelector('.dms-console-actions button:last-child');
-    btn.textContent = this.isOpen ? '▼' : '▲';
+    btn.textContent = this.isOpen ? '▲' : '▼';
   },
   
   log(message, type = 'info') {
