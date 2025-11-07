@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DMS • Slot Editor v3 - Sistema Unificato</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="../shared/dms-console.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    .container { display: flex; height: calc(100vh - 48px); }
+    
+    .sidebar {
+      width: 380px;
+      background: #0f2830;
+      color: #d5f0e6;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    
+    .sidebar h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #4CAF50; }
+    .sidebar h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem; color: #81C784; }
+    
+    .section { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #1a4a5a; }
+    
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.25rem 0;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    button:hover { background: #45a049; }
+    button:disabled { background: #666; cursor: not-allowed; }
+    button.secondary { background: #2196F3; }
+    button.danger { background: #F44336; }
+    button.active { background: #FF9800; }
+    
+    input[type="text"], input[type="number"], input[type="file"], input[type="range"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: #1a4a5a;
+      color: #d5f0e6;
+      border: 1px solid #2a5a6a;
+      border-radius: 4px;
+    }
+    
+    input[type="range"] {
+      padding: 0;
+      height: 30px;
+    }
+    
+    label { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
+    
+    .slider-container {
+      background: #1a4a5a;
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+    }
+    
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .info { 
+      background: #1a4a5a; 
+      padding: 0.75rem; 
+      border-radius: 4px; 
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+    }
+    
+    .slot-list {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #1a4a5a;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    
+    .slot-item {
+      padding: 0.25rem;
+      margin: 0.25rem 0;
+      background: #0f2830;
+      border-radius: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .slot-item button {
+      width: auto;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      margin: 0;
+    }
+    
+    #map { flex: 1; position: relative; }
+    
+    .reference-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border: 2px solid #4CAF50;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      max-width: 400px;
+      max-height: 500px;
+      display: none;
+    }
+    
+    .reference-panel.visible {
+      display: block;
+    }
+    
+    .reference-header {
+      background: #4CAF50;
+      color: white;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .reference-header button {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      margin: 0;
+    }
+    
+    .reference-content {
+      padding: 10px;
+      overflow: auto;
+      max-height: 450px;
+    }
+    
+    .reference-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    .leaflet-overlay-pane img {
+      opacity: 0.7;
+    }
+    
+    .slot-marker {
+      background: rgba(76, 175, 80, 0.8);
+      color: white;
+      border: 2px solid #4CAF50;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 11px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <h1>🎯 Slot Editor v3</h1>
+      <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem;">
+        Sistema Unificato: Marker e Aree Personalizzabili
+      </p>
+      
+      <!-- 0. Riferimento -->  
+      <div class="section">
+        <h2>0️⃣ Immagine Riferimento</h2>
+        <button id="btn-toggle-reference" class="secondary">👁️ Mostra/Nascondi Originale</button>
+        <div class="info">Mostra l'immagine originale con i numeri dei posteggi</div>
+      </div>
+      
+      <!-- 1. Carica Pianta -->
+      <div class="section">
+        <h2>1️⃣ Carica Pianta</h2>
+        <input type="file" id="png-file" accept="image/png" />
+        <button id="btn-load-png" class="secondary">📂 Carica PNG Trasparente</button>
+        <div class="info" id="png-status">Nessuna pianta caricata</div>
+      </div>
+      
+      <!-- 2. Posiziona Pianta -->
+      <div class="section">
+        <h2>2️⃣ Posiziona Pianta</h2>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Rotazione pianta:</span>
+            <span id="plant-rotation-value">0.0°</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-rotation-minus" class="secondary" style="width: 40px; padding: 8px;">−</button>
+            <input type="range" id="plant-rotation" min="0" max="360" value="0" step="0.1" style="flex: 1;" />
+            <button id="btn-rotation-plus" class="secondary" style="width: 40px; padding: 8px;">+</button>
+            <input type="number" id="plant-rotation-input" min="0" max="360" value="0" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Scala pianta:</span>
+            <span id="plant-scale-value">100.0%</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-scale-minus" class="secondary" style="width: 40px; padding: 8px;">−</button>
+            <input type="range" id="plant-scale" min="1" max="500" value="100" step="0.1" style="flex: 1;" />
+            <button id="btn-scale-plus" class="secondary" style="width: 40px; padding: 8px;">+</button>
+            <input type="number" id="plant-scale-input" min="1" max="500" value="100" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Opacità pianta:</span>
+            <span id="plant-opacity-value">70%</span>
+          </div>
+          <input type="range" id="plant-opacity" min="0" max="100" value="70" step="5" />
+        </div>
+        
+        <button id="btn-center-plant" class="secondary">🎯 Centra Pianta sulla Mappa</button>
+        <div class="info">Trascina la pianta per posizionarla</div>
+      </div>
+      
+      <!-- 3. Configura Posteggi -->
+      <div class="section">
+        <h2>3️⃣ Configura Posteggi</h2>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Larghezza (m):</span>
+            <span id="slot-width-value">3.0m</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-width-minus" class="secondary" style="padding: 4px 12px;">−</button>
+            <input type="range" id="slot-width" min="1" max="10" value="3" step="0.1" style="flex: 1;" />
+            <button id="btn-width-plus" class="secondary" style="padding: 4px 12px;">+</button>
+            <input type="number" id="slot-width-input" value="3.0" min="1" max="10" step="0.1" style="width: 60px;" />
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Altezza (m):</span>
+            <span id="slot-height-value">6.0m</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-height-minus" class="secondary" style="padding: 4px 12px;">−</button>
+            <input type="range" id="slot-height" min="1" max="20" value="6" step="0.1" style="flex: 1;" />
+            <button id="btn-height-plus" class="secondary" style="padding: 4px 12px;">+</button>
+            <input type="number" id="slot-height-input" value="6.0" min="1" max="20" step="0.1" style="width: 60px;" />
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Rotazione:</span>
+            <span id="slot-rotation-value">0.0°</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-rotation-minus" class="secondary" style="padding: 4px 12px;">−</button>
+            <input type="range" id="slot-rotation" min="0" max="360" value="0" step="0.1" style="flex: 1;" />
+            <button id="btn-rotation-plus" class="secondary" style="padding: 4px 12px;">+</button>
+            <input type="number" id="slot-rotation-input" value="0.0" min="0" max="360" step="0.1" style="width: 60px;" />
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+          <label style="margin: 0;">Numero:</label>
+          <input type="number" id="slot-number" value="1" min="1" step="1" style="width: 80px;" />
+        </div>
+        
+        <div class="checkbox-container">
+          <input type="checkbox" id="keep-dimensions" checked />
+          <label for="keep-dimensions" style="margin: 0;">Mantieni dimensioni fisse</label>
+        </div>
+        
+        <button id="btn-add-mode" class="active">📍 Modalità Aggiungi Posteggio</button>
+        <button id="btn-confirm-slot" class="success" style="display: none;">✅ Fissa Posteggio</button>
+        <div class="info" id="slot-count">0 posteggi aggiunti</div>
+      </div>
+      
+      <!-- 4. Marker Personalizzabili -->
+      <div class="section">
+        <h2>📍 Marker Personalizzabili</h2>
+        <button id="btn-add-marker" class="active">📍 Aggiungi Marker</button>
+        <div class="info" id="marker-count">0 marker aggiunti</div>
+        <div class="slot-list" id="marker-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessun marker</div>
+        </div>
+      </div>
+      
+      <!-- 5. Aree Personalizzabili -->
+      <div class="section">
+        <h2>📐 Aree Personalizzabili</h2>
+        <button id="btn-draw-area" class="active">📐 Disegna Area</button>
+        <button id="btn-finish-area" class="success" style="display: none;">✅ Completa Area</button>
+        <button id="btn-cancel-area" class="danger" style="display: none;">❌ Annulla</button>
+        <div class="info" id="area-drawing-info" style="display: none; background: #FF9800; color: white;">Click per aggiungere vertici, doppio-click per chiudere</div>
+        <div class="info" id="area-count">0 aree aggiunte</div>
+        <div class="slot-list" id="area-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessuna area</div>
+        </div>
+      </div>
+      
+      <!-- 6. Lista Posteggi -->
+      <div class="section">
+        <h2>4️⃣ Posteggi Aggiunti (<span id="total-slots">0</span>)</h2>
+        <div class="slot-list" id="slot-list">
+          <div style="opacity: 0.6;">Nessun posteggio</div>
+        </div>
+        <button id="btn-clear-all" class="danger">🗑️ Cancella Tutti</button>
+      </div>
+      
+      <!-- 5. Esporta -->
+      <div class="section">
+        <h2>5️⃣ Esporta</h2>
+        <button id="btn-export-json" class="secondary">💾 Esporta GeoJSON</button>
+        <button id="btn-save-bus">🚌 Salva nel Bus</button>
+        <div class="info" id="export-status">Pronto per esportare</div>
+      </div>
+    </aside>
+    
+    <div id="map">
+    <div id="reference-panel" class="reference-panel">
+      <div class="reference-header" id="reference-header">
+        <span>📷 Immagine Originale</span>
+        <button id="btn-close-reference">✕</button>
+      </div>
+      <div class="reference-content" id="reference-content">
+        <img id="reference-image" src="" alt="Immagine originale" style="transform-origin: center center; cursor: move;" />
+      </div>
+      <div class="reference-controls" style="padding: 8px; background: #f5f5f5; border-top: 1px solid #ddd;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 12px; min-width: 50px;">Zoom:</span>
+          <button id="btn-ref-zoom-out" style="padding: 4px 8px; font-size: 14px;">−</button>
+          <input type="range" id="ref-zoom" min="50" max="300" value="100" step="10" style="flex: 1;" />
+          <button id="btn-ref-zoom-in" style="padding: 4px 8px; font-size: 14px;">+</button>
+          <span id="ref-zoom-value" style="font-size: 12px; min-width: 45px;">100%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 12px; min-width: 50px;">Ruota:</span>
+          <button id="btn-ref-rotate-left" style="padding: 4px 8px; font-size: 14px;">↶</button>
+          <input type="range" id="ref-rotation" min="0" max="360" value="0" step="1" style="flex: 1;" />
+          <button id="btn-ref-rotate-right" style="padding: 4px 8px; font-size: 14px;">↷</button>
+          <span id="ref-rotation-value" style="font-size: 12px; min-width: 35px;">0°</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 12px; min-width: 50px;">Sposta:</span>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; flex: 1;">
+            <div></div>
+            <button id="btn-ref-up" style="padding: 4px; font-size: 14px;">⬆️</button>
+            <div></div>
+            <button id="btn-ref-left" style="padding: 4px; font-size: 14px;">⬅️</button>
+            <button id="btn-ref-center" style="padding: 4px; font-size: 10px;">🎯</button>
+            <button id="btn-ref-right" style="padding: 4px; font-size: 14px;">➡️</button>
+            <div></div>
+            <button id="btn-ref-down" style="padding: 4px; font-size: 14px;">⬇️</button>
+            <div></div>
+          </div>
+        </div>
+        <button id="btn-ref-reset" style="width: 100%; margin-top: 4px; padding: 4px; font-size: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Reset</button>
+      </div>
+    </div>
+  </div>
+  </div>
+  
+  <div id="dms-console"></div>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../shared/dms-bus.js"></script>
+  <script src="../shared/dms-console.js"></script>
+  <script>
+    // Funzione per calcolare area poligono (algoritmo Shoelace)
+    function calculatePolygonArea(coordinates) {
+      if (!coordinates || coordinates.length < 3) return 0;
+      
+      let area = 0;
+      for (let i = 0; i < coordinates.length; i++) {
+        const j = (i + 1) % coordinates.length;
+        area += coordinates[i][1] * coordinates[j][0];
+        area -= coordinates[i][0] * coordinates[j][1];
+      }
+      area = Math.abs(area / 2);
+      
+      // Converti da gradi quadrati a metri quadrati (approssimazione)
+      const lat = coordinates[0][0];
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = 111320 * Math.cos(lat * Math.PI / 180);
+      area = area * metersPerDegreeLat * metersPerDegreeLng;
+      
+      return area;
+    }
+    
+    // Inizializza console
+    DMSConsole.init();
+    DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
+    
+    // NOTA: Caricamento automatico dal BUS spostato dopo inizializzazione variabili (vedi sotto)
+    
+    // Inizializza mappa su Grosseto
+    const map = L.map('map').setView([42.7589, 11.1135], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 20
+    }).addTo(map);
+    
+    // Variabili globali
+    let pdfBlob = null;
+    let pdfBlobOriginal = null; // Blob originale non ruotato
+    let pdfOverlay = null;
+    let plantBounds = null;
+    let plantRotation = 0;
+    let plantScale = 1.0;
+    let slotRotation = 0;
+    let slots = [];
+    let markers = [];
+    let areas = [];
+    let addMode = false;
+    let markerMode = false;
+    let areaDrawingMode = false;
+    let currentAreaVertices = [];
+    let currentAreaMarkers = [];
+    let currentAreaPolyline = null;
+    let slotCounter = 1;
+    let markerCounter = 1;
+    let areaCounter = 1;
+    let plantMarker = null; // Marker per trascinare pianta
+    let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
+    
+    // Carica automaticamente PNG dal BUS
+    (async () => {
+      try {
+        DMSConsole.log('🔍 Cerco PNG nel BUS...');
+        
+        // Carica PNG trasparente
+        const blobTransparent = await DMSBUS.getBlob('png_transparent');
+        if (blobTransparent) {
+          pdfBlob = blobTransparent;
+          pdfBlobOriginal = blobTransparent; // Salva originale per rotazioni
+          
+          // Carica immagine per ottenere dimensioni reali
+          const img = new Image();
+          img.src = URL.createObjectURL(blobTransparent);
+          img.onload = () => {
+            plantImageSize = { width: img.width, height: img.height };
+            DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+            URL.revokeObjectURL(img.src);
+          };
+          
+          const center = map.getCenter();
+          plantBounds = L.latLngBounds([
+            [center.lat + 0.002, center.lng - 0.002],
+            [center.lat - 0.002, center.lng + 0.002]
+          ]);
+          updatePlantOverlay();
+          document.getElementById('png-status').textContent = '✅ PNG trasparente caricato dal BUS';
+          DMSConsole.log('✅ PNG trasparente caricato dal BUS');
+        } else {
+          DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
+        }
+        
+        // Carica PNG originale
+        const blobOriginal = await DMSBUS.getBlob('png_original');
+        if (blobOriginal) {
+          const url = URL.createObjectURL(blobOriginal);
+          document.getElementById('reference-image').src = url;
+          DMSConsole.log('✅ PNG originale caricato dal BUS');
+        } else {
+          DMSConsole.log('⚠️ png_original non trovato nel BUS');
+        }
+      } catch (err) {
+        DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
+      }
+    })();
+    
+    // Funzione per calcolare bounds ruotati e scalati
+    function calculatePlantBounds(center, width, height, rotation, scale) {
+      const scaledWidth = width * scale;
+      const scaledHeight = height * scale;
+      
+      // Calcola offset in metri
+      const latOffset = (scaledHeight / 2) / 111320; // 1 grado lat ≈ 111.32 km
+      const lngOffset = (scaledWidth / 2) / (111320 * Math.cos(center.lat * Math.PI / 180));
+      
+      // Corner base (senza rotazione)
+      const corners = [
+        [center.lat + latOffset, center.lng - lngOffset], // top-left
+        [center.lat + latOffset, center.lng + lngOffset], // top-right
+        [center.lat - latOffset, center.lng + lngOffset], // bottom-right
+        [center.lat - latOffset, center.lng - lngOffset]  // bottom-left
+      ];
+      
+      // Applica rotazione
+      if (rotation !== 0) {
+        const rad = rotation * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        return corners.map(([lat, lng]) => {
+          const dLat = lat - center.lat;
+          const dLng = lng - center.lng;
+          return [
+            center.lat + (dLat * cos - dLng * sin),
+            center.lng + (dLat * sin + dLng * cos)
+          ];
+        });
+      }
+      
+      return corners;
+    }
+    
+    // Funzione per aggiornare overlay pianta
+    let isUpdatingPlant = false; // Flag per evitare loop
+    function updatePlantOverlay() {
+      if (!pdfBlob || !plantBounds || isUpdatingPlant) return;
+      isUpdatingPlant = true;
+      
+      const center = plantMarker ? plantMarker.getLatLng() : map.getCenter();
+      // NON ruotiamo le coordinate, solo scaliamo con dimensioni corrette
+      const corners = calculatePlantBounds(center, plantImageSize.width, plantImageSize.height, 0, plantScale);
+      const bounds = L.latLngBounds([corners[0], corners[2]]);
+      
+      if (pdfOverlay) {
+        map.removeLayer(pdfOverlay);
+      }
+      
+      const url = URL.createObjectURL(pdfBlob);
+      pdfOverlay = L.imageOverlay(url, bounds, {
+        opacity: parseFloat(document.getElementById('plant-opacity').value) / 100,
+        interactive: false,
+        zIndex: 400
+      }).addTo(map);
+      
+      // Aggiungi/aggiorna marker trascinabile
+      if (!plantMarker) {
+        const redIcon = L.divIcon({
+          className: 'plant-marker',
+          html: '<div style="background: red; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: move;">M</div>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        plantMarker = L.marker(center, { 
+          icon: redIcon,
+          draggable: true,
+          zIndexOffset: 1000
+        }).addTo(map);
+        
+        // Usa dragend invece di drag per evitare troppi aggiornamenti
+        plantMarker.on('drag', () => {
+          if (pdfOverlay && !isUpdatingPlant) {
+            const newCenter = plantMarker.getLatLng();
+            const corners = calculatePlantBounds(newCenter, plantImageSize.width, plantImageSize.height, 0, plantScale);
+            const newBounds = L.latLngBounds([corners[0], corners[2]]);
+            pdfOverlay.setBounds(newBounds);
+          }
+        });
+        
+        plantMarker.on('dragend', () => {
+          DMSConsole.log('✅ Pianta riposizionata');
+        });
+        
+        DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
+      } else {
+        plantMarker.setLatLng(center);
+      }
+      
+      plantBounds = bounds;
+      isUpdatingPlant = false;
+      DMSConsole.log('✅ Pianta aggiornata');
+    }
+    
+    // Toggle pannello riferimento
+    document.getElementById('btn-toggle-reference').addEventListener('click', () => {
+      const panel = document.getElementById('reference-panel');
+      panel.classList.toggle('visible');
+    });
+    
+    // Chiudi pannello riferimento
+    document.getElementById('btn-close-reference').addEventListener('click', () => {
+      document.getElementById('reference-panel').classList.remove('visible');
+    });
+    
+    // Rendi pannello riferimento draggable
+    const refPanel = document.getElementById('reference-panel');
+    const refHeader = document.getElementById('reference-header');
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    refHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    function dragStart(e) {
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
+      if (e.target === refHeader || refHeader.contains(e.target)) {
+        isDragging = true;
+      }
+    }
+    
+    function drag(e) {
+      if (isDragging) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        xOffset = currentX;
+        yOffset = currentY;
+        setTranslate(currentX, currentY, refPanel);
+      }
+    }
+    
+    function dragEnd(e) {
+      initialX = currentX;
+      initialY = currentY;
+      isDragging = false;
+    }
+    
+    function setTranslate(xPos, yPos, el) {
+      el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+    }
+    
+    // Controlli immagine riferimento
+    let refZoom = 100;
+    let refRotation = 0;
+    let refPanX = 0;
+    let refPanY = 0;
+    
+    function updateReferenceImage() {
+      const img = document.getElementById('reference-image');
+      img.style.transform = `scale(${refZoom / 100}) rotate(${refRotation}deg) translate(${refPanX}px, ${refPanY}px)`;
+    }
+    
+    // Zoom slider
+    document.getElementById('ref-zoom').addEventListener('input', (e) => {
+      refZoom = parseInt(e.target.value);
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+    
+    // Zoom pulsanti
+    document.getElementById('btn-ref-zoom-in').addEventListener('click', () => {
+      refZoom = Math.min(300, refZoom + 10);
+      document.getElementById('ref-zoom').value = refZoom;
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-zoom-out').addEventListener('click', () => {
+      refZoom = Math.max(50, refZoom - 10);
+      document.getElementById('ref-zoom').value = refZoom;
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+    
+    // Rotazione slider
+    document.getElementById('ref-rotation').addEventListener('input', (e) => {
+      refRotation = parseInt(e.target.value);
+      document.getElementById('ref-rotation-value').textContent = refRotation + '°';
+      updateReferenceImage();
+    });
+    
+    // Rotazione pulsanti
+    document.getElementById('btn-ref-rotate-left').addEventListener('click', () => {
+      refRotation = (refRotation - 15 + 360) % 360;
+      document.getElementById('ref-rotation').value = refRotation;
+      document.getElementById('ref-rotation-value').textContent = refRotation + '°';
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-rotate-right').addEventListener('click', () => {
+      refRotation = (refRotation + 15) % 360;
+      document.getElementById('ref-rotation').value = refRotation;
+      document.getElementById('ref-rotation-value').textContent = refRotation + '°';
+      updateReferenceImage();
+    });
+    
+    // Reset
+    document.getElementById('btn-ref-reset').addEventListener('click', () => {
+      refZoom = 100;
+      refRotation = 0;
+      refPanX = 0;
+      refPanY = 0;
+      document.getElementById('ref-zoom').value = 100;
+      document.getElementById('ref-zoom-value').textContent = '100%';
+      document.getElementById('ref-rotation').value = 0;
+      document.getElementById('ref-rotation-value').textContent = '0°';
+      updateReferenceImage();
+    });
+    
+    // Pulsanti freccia per spostare immagine
+    const panStep = 20; // pixel per click
+    
+    document.getElementById('btn-ref-up').addEventListener('click', () => {
+      refPanY += panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-down').addEventListener('click', () => {
+      refPanY -= panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-left').addEventListener('click', () => {
+      refPanX += panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-right').addEventListener('click', () => {
+      refPanX -= panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-center').addEventListener('click', () => {
+      refPanX = 0;
+      refPanY = 0;
+      updateReferenceImage();
+    });
+    
+    // Pan immagine con drag (FIXATO: direzione corretta)
+    const refContent = document.getElementById('reference-content');
+    const refImage = document.getElementById('reference-image');
+    let isImageDragging = false;
+    let imageStartX, imageStartY, imagePanStartX, imagePanStartY;
+    
+    refImage.addEventListener('mousedown', (e) => {
+      isImageDragging = true;
+      imageStartX = e.clientX;
+      imageStartY = e.clientY;
+      imagePanStartX = refPanX;
+      imagePanStartY = refPanY;
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (isImageDragging) {
+        const deltaX = e.clientX - imageStartX;
+        const deltaY = e.clientY - imageStartY;
+        refPanX = imagePanStartX + deltaX;
+        refPanY = imagePanStartY + deltaY;
+        updateReferenceImage();
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isImageDragging = false;
+    });
+    
+    // Zoom con rotella mouse
+    refContent.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -10 : 10;
+      refZoom = Math.max(50, Math.min(300, refZoom + delta));
+      document.getElementById('ref-zoom').value = refZoom;
+      document.getElementById('ref-zoom-value').textContent = refZoom + '%';
+      updateReferenceImage();
+    });
+
+    
+    // Carica PNG
+    document.getElementById('btn-load-png').addEventListener('click', () => {
+      const file = document.getElementById('png-file').files[0];
+      if (!file) {
+        alert('⚠️ Seleziona un file PNG prima!');
+        return;
+      }
+      
+      pdfBlob = file;
+      pdfBlobOriginal = file; // Salva originale per rotazioni
+      
+      // Carica immagine per ottenere dimensioni reali
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        plantImageSize = { width: img.width, height: img.height };
+        DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+        URL.revokeObjectURL(img.src);
+        
+        const center = map.getCenter();
+        plantBounds = L.latLngBounds([
+          [center.lat + 0.002, center.lng - 0.002],
+          [center.lat - 0.002, center.lng + 0.002]
+        ]);
+        
+        updatePlantOverlay();
+        document.getElementById('png-status').textContent = `✅ ${file.name} caricato`;
+        DMSConsole.log(`✅ PNG caricato: ${file.name}`);
+      };
+    });
+    
+    // Funzione per aggiornare rotazione
+    async function updateRotation(value) {
+      plantRotation = parseFloat(value);
+      document.getElementById('plant-rotation-value').textContent = plantRotation.toFixed(1) + '°';
+      document.getElementById('plant-rotation').value = plantRotation;
+      document.getElementById('plant-rotation-input').value = plantRotation;
+      
+      if (!pdfBlobOriginal) return;
+      
+      // Ruota fisicamente l'immagine con canvas
+      const img = new Image();
+      const url = URL.createObjectURL(pdfBlobOriginal);
+      img.src = url;
+      
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calcola dimensioni canvas ruotato
+        const rad = plantRotation * Math.PI / 180;
+        const cos = Math.abs(Math.cos(rad));
+        const sin = Math.abs(Math.sin(rad));
+        canvas.width = img.width * cos + img.height * sin;
+        canvas.height = img.width * sin + img.height * cos;
+        
+        // Ruota e disegna
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        
+        // Crea nuovo Blob
+        pdfBlob = await new Promise(resolve => {
+          canvas.toBlob(blob => resolve(blob), 'image/png');
+        });
+        
+        // Aggiorna dimensioni immagine
+        plantImageSize = { width: canvas.width, height: canvas.height };
+        
+        URL.revokeObjectURL(url);
+        updatePlantOverlay();
+        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation.toFixed(1) + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
+      };
+    }
+    
+    // Slider rotazione pianta
+    document.getElementById('plant-rotation').addEventListener('input', (e) => {
+      updateRotation(e.target.value);
+    });
+    
+    // Input numerico rotazione
+    document.getElementById('plant-rotation-input').addEventListener('input', (e) => {
+      updateRotation(e.target.value);
+    });
+    
+    // Pulsanti +/- rotazione (0.1° alla volta)
+    document.getElementById('btn-rotation-minus').addEventListener('click', () => {
+      updateRotation(Math.max(0, plantRotation - 0.1));
+    });
+    
+    document.getElementById('btn-rotation-plus').addEventListener('click', () => {
+      updateRotation(Math.min(360, plantRotation + 0.1));
+    });
+    
+    // Funzione per aggiornare scala
+    function updateScale(value) {
+      plantScale = parseFloat(value) / 100;
+      const displayValue = parseFloat(value).toFixed(1);
+      document.getElementById('plant-scale-value').textContent = displayValue + '%';
+      document.getElementById('plant-scale').value = value;
+      document.getElementById('plant-scale-input').value = value;
+      updatePlantOverlay();
+    }
+    
+    // Slider scala pianta
+    document.getElementById('plant-scale').addEventListener('input', (e) => {
+      updateScale(e.target.value);
+    });
+    
+    // Input numerico scala
+    document.getElementById('plant-scale-input').addEventListener('input', (e) => {
+      updateScale(e.target.value);
+    });
+    
+    // Pulsanti +/- scala (0.1% alla volta)
+    document.getElementById('btn-scale-minus').addEventListener('click', () => {
+      const newValue = Math.max(1, parseFloat(document.getElementById('plant-scale').value) - 0.1);
+      updateScale(newValue);
+    });
+    
+    document.getElementById('btn-scale-plus').addEventListener('click', () => {
+      const newValue = Math.min(500, parseFloat(document.getElementById('plant-scale').value) + 0.1);
+      updateScale(newValue);
+    });
+    
+    // Slider opacità pianta
+    document.getElementById('plant-opacity').addEventListener('input', (e) => {
+      document.getElementById('plant-opacity-value').textContent = e.target.value + '%';
+      if (pdfOverlay) {
+        pdfOverlay.setOpacity(parseInt(e.target.value) / 100);
+      }
+    });
+    
+    // Centra pianta
+    document.getElementById('btn-center-plant').addEventListener('click', () => {
+      if (!pdfBlob) {
+        alert('⚠️ Carica prima una pianta!');
+        return;
+      }
+      map.setView([42.7589, 11.1135], 17);
+      updatePlantOverlay();
+    });
+    
+    // Variabili per posteggio temporaneo
+    let tempSlot = null;
+    let slotWidth = 3.0;
+    let slotHeight = 6.0;
+    
+    // Sincronizzazione controlli larghezza
+    function updateWidthControls(value) {
+      slotWidth = parseFloat(value);
+      document.getElementById('slot-width').value = slotWidth;
+      document.getElementById('slot-width-input').value = slotWidth.toFixed(1);
+      document.getElementById('slot-width-value').textContent = slotWidth.toFixed(1) + 'm';
+      if (tempSlot) updateTempSlot();
+    }
+    
+    document.getElementById('slot-width').addEventListener('input', (e) => updateWidthControls(e.target.value));
+    document.getElementById('slot-width-input').addEventListener('input', (e) => updateWidthControls(e.target.value));
+    document.getElementById('btn-width-plus').addEventListener('click', () => updateWidthControls(Math.min(10, slotWidth + 0.1)));
+    document.getElementById('btn-width-minus').addEventListener('click', () => updateWidthControls(Math.max(1, slotWidth - 0.1)));
+    
+    // Sincronizzazione controlli altezza
+    function updateHeightControls(value) {
+      slotHeight = parseFloat(value);
+      document.getElementById('slot-height').value = slotHeight;
+      document.getElementById('slot-height-input').value = slotHeight.toFixed(1);
+      document.getElementById('slot-height-value').textContent = slotHeight.toFixed(1) + 'm';
+      if (tempSlot) updateTempSlot();
+    }
+    
+    document.getElementById('slot-height').addEventListener('input', (e) => updateHeightControls(e.target.value));
+    document.getElementById('slot-height-input').addEventListener('input', (e) => updateHeightControls(e.target.value));
+    document.getElementById('btn-height-plus').addEventListener('click', () => updateHeightControls(Math.min(20, slotHeight + 0.1)));
+    document.getElementById('btn-height-minus').addEventListener('click', () => updateHeightControls(Math.max(1, slotHeight - 0.1)));
+    
+    // Sincronizzazione controlli rotazione
+    function updateRotationControls(value) {
+      slotRotation = parseFloat(value) % 360;
+      document.getElementById('slot-rotation').value = slotRotation;
+      document.getElementById('slot-rotation-input').value = slotRotation.toFixed(1);
+      document.getElementById('slot-rotation-value').textContent = slotRotation.toFixed(1) + '°';
+      if (tempSlot) updateTempSlot();
+    }
+    
+    document.getElementById('slot-rotation').addEventListener('input', (e) => updateRotationControls(e.target.value));
+    document.getElementById('slot-rotation-input').addEventListener('input', (e) => updateRotationControls(e.target.value));
+    document.getElementById('btn-rotation-plus').addEventListener('click', () => updateRotationControls(slotRotation + 0.1));
+    document.getElementById('btn-rotation-minus').addEventListener('click', () => updateRotationControls(slotRotation - 0.1));
+    
+    // Funzione per aggiornare posteggio temporaneo
+    function updateTempSlot() {
+      if (!tempSlot) return;
+      
+      const keepDim = document.getElementById('keep-dimensions').checked;
+      const number = document.getElementById('slot-number').value;
+      
+      // Aggiorna icona con rotazione dal centro
+      tempSlot.marker.setIcon(L.divIcon({
+        className: 'slot-marker temp-slot',
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 0, 0.7); border: 2px solid #ff0; border-radius: 4px; transform: rotate(${slotRotation}deg);">${number}</div>`,
+        iconSize: [keepDim ? 30 : slotWidth * 5, keepDim ? 50 : slotHeight * 5],
+        iconAnchor: [keepDim ? 15 : slotWidth * 2.5, keepDim ? 25 : slotHeight * 2.5]
+      }));
+      
+      tempSlot.width = slotWidth;
+      tempSlot.height = slotHeight;
+      tempSlot.rotation = slotRotation;
+      tempSlot.number = parseInt(number);
+    }
+    
+    // Modalità aggiungi posteggio
+    document.getElementById('btn-add-mode').addEventListener('click', function() {
+      // Se c'è un posteggio temporaneo, rimuovilo
+      if (tempSlot) {
+        tempSlot.marker.remove();
+        tempSlot = null;
+        document.getElementById('btn-confirm-slot').style.display = 'none';
+      }
+      
+      addMode = !addMode;
+      this.textContent = addMode ? '🛑 Disattiva Modalità' : '📍 Modalità Aggiungi Posteggio';
+      this.className = addMode ? 'danger' : 'active';
+      map.getContainer().style.cursor = addMode ? 'crosshair' : '';
+    });
+    
+    // Click sulla mappa per aggiungere posteggio
+    map.on('click', (e) => {
+      if (!addMode || tempSlot) return; // Ignora se c'è già un posteggio temporaneo
+      
+      const keepDim = document.getElementById('keep-dimensions').checked;
+      const number = document.getElementById('slot-number').value;
+      
+      // Crea marker posteggio TEMPORANEO (giallo)
+      const marker = L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: 'slot-marker temp-slot',
+          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 0, 0.7); border: 2px solid #ff0; border-radius: 4px; transform: rotate(${slotRotation}deg);">${number}</div>`,
+          iconSize: [keepDim ? 30 : slotWidth * 5, keepDim ? 50 : slotHeight * 5],
+          iconAnchor: [keepDim ? 15 : slotWidth * 2.5, keepDim ? 25 : slotHeight * 2.5]
+        }),
+        draggable: true
+      }).addTo(map);
+      
+      // Aggiorna posizione quando viene trascinato
+      marker.on('dragend', function() {
+        const pos = marker.getLatLng();
+        tempSlot.lat = pos.lat;
+        tempSlot.lng = pos.lng;
+      });
+      
+      tempSlot = {
+        number: parseInt(number),
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        width: slotWidth,
+        height: slotHeight,
+        rotation: slotRotation,
+        marker: marker
+      };
+      
+      // Mostra pulsante Fissa
+      document.getElementById('btn-confirm-slot').style.display = 'block';
+      
+      DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
+    });
+    
+    // Pulsante Fissa Posteggio
+    document.getElementById('btn-confirm-slot').addEventListener('click', () => {
+      if (!tempSlot) return;
+      
+      // Cambia colore marker da giallo a verde
+      const keepDim = document.getElementById('keep-dimensions').checked;
+      tempSlot.marker.setIcon(L.divIcon({
+        className: 'slot-marker',
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg);">${tempSlot.number}</div>`,
+        iconSize: [keepDim ? 30 : tempSlot.width * 5, keepDim ? 50 : tempSlot.height * 5],
+        iconAnchor: [keepDim ? 15 : tempSlot.width * 2.5, keepDim ? 25 : tempSlot.height * 2.5]
+      }));
+      
+      // Disabilita drag
+      tempSlot.marker.dragging.disable();
+      
+      // Aggiorna posizione finale
+      const pos = tempSlot.marker.getLatLng();
+      tempSlot.lat = pos.lat;
+      tempSlot.lng = pos.lng;
+      
+      // Aggiungi a lista
+      slots.push(tempSlot);
+      
+      // Incrementa numero per prossimo posteggio
+      const nextNumber = tempSlot.number + 1;
+      document.getElementById('slot-number').value = nextNumber;
+      
+      DMSConsole.log(`✅ Posteggio ${tempSlot.number} fissato`);
+      
+      // Reset
+      tempSlot = null;
+      document.getElementById('btn-confirm-slot').style.display = 'none';
+      
+      updateSlotList();
+    });
+    
+    // Aggiorna lista posteggi
+    function updateSlotList() {
+      const list = document.getElementById('slot-list');
+      const count = document.getElementById('slot-count');
+      const total = document.getElementById('total-slots');
+      
+      count.textContent = `${slots.length} posteggi aggiunti`;
+      total.textContent = slots.length;
+      
+      if (slots.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun posteggio</div>';
+        return;
+      }
+      
+      list.innerHTML = slots.map(slot => `
+        <div class="slot-item">
+          <span>Posteggio ${slot.number} (${slot.width}m × ${slot.height}m)</span>
+          <button onclick="removeSlot(${slot.number})">❌</button>
+        </div>
+      `).join('');
+    }
+    
+    // Rimuovi posteggio
+    window.removeSlot = function(number) {
+      const index = slots.findIndex(s => s.number === number);
+      if (index !== -1) {
+        map.removeLayer(slots[index].marker);
+        slots.splice(index, 1);
+        updateSlotList();
+        DMSConsole.log(`🗑️ Posteggio ${number} rimosso`);
+      }
+    };
+    
+    // Cancella tutti
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      if (!confirm('⚠️ Cancellare tutti i posteggi?')) return;
+      
+      slots.forEach(slot => map.removeLayer(slot.marker));
+      slots = [];
+      slotCounter = 1;
+      updateSlotList();
+      DMSConsole.log('🗑️ Tutti i posteggi cancellati');
+    });
+    
+    // ===== MARKER PERSONALIZZABILI =====
+    
+    // Pulsante Aggiungi Marker
+    document.getElementById('btn-add-marker').addEventListener('click', function() {
+      // Disattiva altre modalità
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (areaDrawingMode) {
+        cancelAreaDrawing();
+      }
+      
+      markerMode = !markerMode;
+      this.textContent = markerMode ? '🛑 Disattiva Modalità' : '📍 Aggiungi Marker';
+      this.className = markerMode ? 'danger' : 'active';
+      map.getContainer().style.cursor = markerMode ? 'crosshair' : '';
+      
+      if (markerMode) {
+        DMSConsole.log('✅ Modalità marker attiva - click sulla mappa');
+      } else {
+        DMSConsole.log('❌ Modalità marker disattivata');
+      }
+    });
+    
+    // Click mappa per aggiungere marker
+    map.on('click', (e) => {
+      // Gestione marker
+      if (markerMode) {
+        addCustomMarker(e.latlng);
+        return;
+      }
+      
+      // Gestione aree
+      if (areaDrawingMode) {
+        addAreaVertex(e.latlng);
+        return;
+      }
+    });
+    
+    // Funzione per aggiungere marker personalizzabile
+    function addCustomMarker(latlng) {
+      const markerData = {
+        number: markerCounter,
+        lat: latlng.lat,
+        lng: latlng.lng,
+        letter: 'M',
+        size: 30,
+        bgColor: '#4CAF50',
+        textColor: '#FFFFFF',
+        borderColor: '#2E7D32',
+        borderWidth: 3,
+        name: '',
+        type: 'shop',
+        description: '',
+        extra: {},
+        status: 'active'
+      };
+      
+      // Crea marker Leaflet
+      const marker = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="
+            width: ${markerData.size}px; 
+            height: ${markerData.size}px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: ${markerData.bgColor}; 
+            border: ${markerData.borderWidth}px solid ${markerData.borderColor}; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: ${markerData.size * 0.5}px; 
+            color: ${markerData.textColor};
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">${markerData.letter}</div>`,
+          iconSize: [markerData.size, markerData.size],
+          iconAnchor: [markerData.size / 2, markerData.size / 2]
+        }),
+        draggable: true
+      }).addTo(map);
+      
+      markerData.marker = marker;
+      
+      // Popup configurazione
+      const popupContent = createMarkerConfigForm(markerData);
+      marker.bindPopup(popupContent, { maxWidth: 400, minWidth: 300 }).openPopup();
+      
+      // Salva marker
+      markers.push(markerData);
+      markerCounter++;
+      
+      updateMarkerList();
+      DMSConsole.log(`✅ Marker #${markerData.number} aggiunto`);
+    }
+    
+    // Form configurazione marker
+    function createMarkerConfigForm(marker) {
+      return `
+        <div style="min-width: 300px;">
+          <h3 style="margin: 0 0 12px 0;">📍 Marker #${marker.number}</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Lettera/Simbolo:</label>
+              <input type="text" id="marker-letter-${marker.number}" value="${marker.letter}" maxlength="2" style="width: 100%; padding: 6px; font-size: 14px; text-align: center;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Dimensione (px):</label>
+              <input type="number" id="marker-size-${marker.number}" value="${marker.size}" min="20" max="60" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Sfondo:</label>
+              <input type="color" id="marker-bgcolor-${marker.number}" value="${marker.bgColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Testo:</label>
+              <input type="color" id="marker-textcolor-${marker.number}" value="${marker.textColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Bordo:</label>
+              <input type="color" id="marker-bordercolor-${marker.number}" value="${marker.borderColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Spessore Bordo:</label>
+              <input type="number" id="marker-borderwidth-${marker.number}" value="${marker.borderWidth}" min="1" max="10" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Nome:</label>
+            <input type="text" id="marker-name-${marker.number}" value="${marker.name}" style="width: 100%; padding: 6px;" placeholder="Es: Pizzeria Da Mario" />
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Tipo:</label>
+            <select id="marker-type-${marker.number}" style="width: 100%; padding: 6px;">
+              <option value="shop" ${marker.type === 'shop' ? 'selected' : ''}>🏪 Negozio</option>
+              <option value="service" ${marker.type === 'service' ? 'selected' : ''}>🚻 Servizio</option>
+              <option value="poi" ${marker.type === 'poi' ? 'selected' : ''}>📍 Punto di Interesse</option>
+              <option value="parking" ${marker.type === 'parking' ? 'selected' : ''}>🅿️ Parcheggio</option>
+              <option value="info" ${marker.type === 'info' ? 'selected' : ''}>ℹ️ Info Point</option>
+              <option value="other" ${marker.type === 'other' ? 'selected' : ''}>📌 Altro</option>
+            </select>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Descrizione:</label>
+            <textarea id="marker-desc-${marker.number}" style="width: 100%; padding: 6px; min-height: 60px; resize: vertical;" placeholder="Descrizione...">${marker.description}</textarea>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Status:</label>
+            <select id="marker-status-${marker.number}" style="width: 100%; padding: 6px;">
+              <option value="active" ${marker.status === 'active' ? 'selected' : ''}>🟢 Attivo</option>
+              <option value="inactive" ${marker.status === 'inactive' ? 'selected' : ''}>🔴 Inattivo</option>
+              <option value="maintenance" ${marker.status === 'maintenance' ? 'selected' : ''}>🟡 Manutenzione</option>
+            </select>
+          </div>
+          
+          <button onclick="updateMarkerFromForm(${marker.number})" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✅ Salva Modifiche</button>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+            <strong>Coordinate:</strong><br>
+            Lat: ${marker.lat.toFixed(8)}<br>
+            Lng: ${marker.lng.toFixed(8)}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Aggiorna marker da form
+    window.updateMarkerFromForm = function(number) {
+      const marker = markers.find(m => m.number === number);
+      if (!marker) return;
+      
+      // Leggi valori dal form
+      marker.letter = document.getElementById(`marker-letter-${number}`).value || 'M';
+      marker.size = parseInt(document.getElementById(`marker-size-${number}`).value) || 30;
+      marker.bgColor = document.getElementById(`marker-bgcolor-${number}`).value;
+      marker.textColor = document.getElementById(`marker-textcolor-${number}`).value;
+      marker.borderColor = document.getElementById(`marker-bordercolor-${number}`).value;
+      marker.borderWidth = parseInt(document.getElementById(`marker-borderwidth-${number}`).value) || 3;
+      marker.name = document.getElementById(`marker-name-${number}`).value;
+      marker.type = document.getElementById(`marker-type-${number}`).value;
+      marker.description = document.getElementById(`marker-desc-${number}`).value;
+      marker.status = document.getElementById(`marker-status-${number}`).value;
+      
+      // Aggiorna posizione
+      const pos = marker.marker.getLatLng();
+      marker.lat = pos.lat;
+      marker.lng = pos.lng;
+      
+      // Ricrea marker con nuove proprietà
+      map.removeLayer(marker.marker);
+      marker.marker = L.marker([marker.lat, marker.lng], {
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="
+            width: ${marker.size}px; 
+            height: ${marker.size}px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: ${marker.bgColor}; 
+            border: ${marker.borderWidth}px solid ${marker.borderColor}; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: ${marker.size * 0.5}px; 
+            color: ${marker.textColor};
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">${marker.letter}</div>`,
+          iconSize: [marker.size, marker.size],
+          iconAnchor: [marker.size / 2, marker.size / 2]
+        }),
+        draggable: false
+      }).addTo(map);
+      
+      // Popup finale
+      const statusEmoji = {
+        active: '🟢',
+        inactive: '🔴',
+        maintenance: '🟡'
+      };
+      const finalPopup = `
+        <div style="min-width: 200px;">
+          <h3>${marker.letter} ${marker.name || 'Marker #' + marker.number}</h3>
+          <p><strong>Tipo:</strong> ${marker.type}</p>
+          <p>${marker.description || ''}</p>
+          <p><strong>Status:</strong> ${statusEmoji[marker.status]} ${marker.status}</p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            Lat: ${marker.lat.toFixed(8)}<br>
+            Lng: ${marker.lng.toFixed(8)}
+          </p>
+        </div>
+      `;
+      marker.marker.bindPopup(finalPopup);
+      
+      updateMarkerList();
+      DMSConsole.log(`✅ Marker #${number} aggiornato`);
+    };
+    
+    // Aggiorna lista marker
+    function updateMarkerList() {
+      const list = document.getElementById('marker-list');
+      const count = document.getElementById('marker-count');
+      
+      if (markers.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun marker</div>';
+      } else {
+        list.innerHTML = markers.map(m => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
+            <span>${m.letter} ${m.name || 'Marker #' + m.number}</span>
+            <button onclick="removeMarker(${m.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+          </div>
+        `).join('');
+      }
+      
+      count.textContent = `${markers.length} marker aggiunti`;
+    }
+    
+    // Rimuovi marker
+    window.removeMarker = function(number) {
+      const marker = markers.find(m => m.number === number);
+      if (marker) {
+        map.removeLayer(marker.marker);
+        markers = markers.filter(m => m.number !== number);
+        updateMarkerList();
+        DMSConsole.log(`🗑️ Marker ${number} rimosso`);
+      }
+    };
+    
+    // ===== AREE PERSONALIZZABILI =====
+    
+    // Pulsante Disegna Area
+    document.getElementById('btn-draw-area').addEventListener('click', function() {
+      if (areaDrawingMode) return;
+      
+      // Disattiva altre modalità
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (markerMode) {
+        markerMode = false;
+        document.getElementById('btn-add-marker').textContent = '📍 Aggiungi Marker';
+        document.getElementById('btn-add-marker').className = 'active';
+      }
+      
+      startAreaDrawing();
+    });
+    
+    // Inizia disegno area
+    function startAreaDrawing() {
+      areaDrawingMode = true;
+      currentAreaVertices = [];
+      currentAreaMarkers = [];
+      
+      document.getElementById('btn-draw-area').style.display = 'none';
+      document.getElementById('btn-finish-area').style.display = 'block';
+      document.getElementById('btn-cancel-area').style.display = 'block';
+      document.getElementById('area-drawing-info').style.display = 'block';
+      
+      map.getContainer().style.cursor = 'crosshair';
+      DMSConsole.log('✅ Modalità disegno area attiva - click per aggiungere vertici, doppio-click per chiudere');
+    }
+    
+    // Aggiungi vertice area
+    function addAreaVertex(latlng) {
+      currentAreaVertices.push(latlng);
+      
+      // Marker vertice temporaneo
+      const vertexMarker = L.circleMarker(latlng, {
+        radius: 5,
+        color: '#2196F3',
+        fillColor: '#2196F3',
+        fillOpacity: 0.8
+      }).addTo(map);
+      currentAreaMarkers.push(vertexMarker);
+      
+      // Aggiorna polyline
+      if (currentAreaPolyline) {
+        map.removeLayer(currentAreaPolyline);
+      }
+      
+      if (currentAreaVertices.length > 1) {
+        currentAreaPolyline = L.polyline(currentAreaVertices, {
+          color: '#2196F3',
+          weight: 2,
+          dashArray: '5, 5'
+        }).addTo(map);
+      }
+      
+      DMSConsole.log(`🔵 Vertice ${currentAreaVertices.length} aggiunto`);
+    }
+    
+    // Doppio click per completare area
+    map.on('dblclick', (e) => {
+      if (!areaDrawingMode || currentAreaVertices.length < 3) return;
+      
+      L.DomEvent.stopPropagation(e);
+      finishAreaDrawing();
+    });
+    
+    // Pulsante Completa Area
+    document.getElementById('btn-finish-area').addEventListener('click', finishAreaDrawing);
+    
+    // Completa disegno area
+    function finishAreaDrawing() {
+      if (currentAreaVertices.length < 3) {
+        alert('⚠️ Servono almeno 3 vertici per creare un\'area!');
+        return;
+      }
+      
+      // Rimuovi marker temporanei
+      currentAreaMarkers.forEach(m => map.removeLayer(m));
+      if (currentAreaPolyline) map.removeLayer(currentAreaPolyline);
+      
+      // Crea area
+      const areaData = {
+        number: areaCounter,
+        coordinates: currentAreaVertices.map(v => [v.lat, v.lng]),
+        name: '',
+        type: 'market',
+        fillColor: '#4CAF50',
+        fillOpacity: 0.3,
+        borderColor: '#2E7D32',
+        borderWidth: 3,
+        description: ''
+      };
+      
+      const polygon = L.polygon(currentAreaVertices, {
+        color: areaData.borderColor,
+        weight: areaData.borderWidth,
+        fillColor: areaData.fillColor,
+        fillOpacity: areaData.fillOpacity
+      }).addTo(map);
+      
+      areaData.polygon = polygon;
+      
+      // Popup configurazione
+      const popupContent = createAreaConfigForm(areaData);
+      polygon.bindPopup(popupContent, { maxWidth: 400, minWidth: 300 }).openPopup();
+      
+      // Salva area
+      areas.push(areaData);
+      areaCounter++;
+      
+      // Reset modalità
+      areaDrawingMode = false;
+      currentAreaVertices = [];
+      currentAreaMarkers = [];
+      currentAreaPolyline = null;
+      
+      document.getElementById('btn-draw-area').style.display = 'block';
+      document.getElementById('btn-finish-area').style.display = 'none';
+      document.getElementById('btn-cancel-area').style.display = 'none';
+      document.getElementById('area-drawing-info').style.display = 'none';
+      map.getContainer().style.cursor = '';
+      
+      updateAreaList();
+      DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
+    }
+    
+    // Pulsante Annulla Area
+    document.getElementById('btn-cancel-area').addEventListener('click', cancelAreaDrawing);
+    
+    // Annulla disegno area
+    function cancelAreaDrawing() {
+      currentAreaMarkers.forEach(m => map.removeLayer(m));
+      if (currentAreaPolyline) map.removeLayer(currentAreaPolyline);
+      
+      areaDrawingMode = false;
+      currentAreaVertices = [];
+      currentAreaMarkers = [];
+      currentAreaPolyline = null;
+      
+      document.getElementById('btn-draw-area').style.display = 'block';
+      document.getElementById('btn-finish-area').style.display = 'none';
+      document.getElementById('btn-cancel-area').style.display = 'none';
+      document.getElementById('area-drawing-info').style.display = 'none';
+      map.getContainer().style.cursor = '';
+      
+      DMSConsole.log('❌ Disegno area annullato');
+    }
+    
+    // Form configurazione area
+    function createAreaConfigForm(area) {
+      return `
+        <div style="min-width: 300px;">
+          <h3 style="margin: 0 0 12px 0;">📐 Area #${area.number}</h3>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Nome:</label>
+            <input type="text" id="area-name-${area.number}" value="${area.name}" style="width: 100%; padding: 6px;" placeholder="Es: Area Mercato" />
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Tipo:</label>
+            <select id="area-type-${area.number}" style="width: 100%; padding: 6px;">
+              <option value="market" ${area.type === 'market' ? 'selected' : ''}>🏪 Mercato</option>
+              <option value="hub" ${area.type === 'hub' ? 'selected' : ''}>🚌 Hub</option>
+              <option value="parking" ${area.type === 'parking' ? 'selected' : ''}>🅿️ Parcheggio</option>
+              <option value="green" ${area.type === 'green' ? 'selected' : ''}>🌳 Area Verde</option>
+              <option value="restricted" ${area.type === 'restricted' ? 'selected' : ''}>🚫 Zona Riservata</option>
+              <option value="other" ${area.type === 'other' ? 'selected' : ''}>📍 Altro</option>
+            </select>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Riempimento:</label>
+              <input type="color" id="area-fillcolor-${area.number}" value="${area.fillColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Opacità (%):</label>
+              <input type="number" id="area-opacity-${area.number}" value="${area.fillOpacity * 100}" min="0" max="100" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Colore Bordo:</label>
+              <input type="color" id="area-bordercolor-${area.number}" value="${area.borderColor}" style="width: 100%; height: 36px; cursor: pointer;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Spessore Bordo:</label>
+              <input type="number" id="area-borderwidth-${area.number}" value="${area.borderWidth}" min="1" max="10" style="width: 100%; padding: 6px;" />
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Descrizione:</label>
+            <textarea id="area-desc-${area.number}" style="width: 100%; padding: 6px; min-height: 60px; resize: vertical;" placeholder="Descrizione area...">${area.description}</textarea>
+          </div>
+          
+          <button onclick="updateAreaFromForm(${area.number})" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✅ Salva Modifiche</button>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+            <strong>Vertici:</strong> ${area.coordinates.length}<br>
+            <strong>Area:</strong> ~${calculatePolygonArea(area.coordinates).toFixed(0)} m²
+          </div>
+        </div>
+      `;
+    }
+    
+    // Aggiorna area da form
+    window.updateAreaFromForm = function(number) {
+      const area = areas.find(a => a.number === number);
+      if (!area) return;
+      
+      // Leggi valori dal form
+      area.name = document.getElementById(`area-name-${number}`).value;
+      area.type = document.getElementById(`area-type-${number}`).value;
+      area.fillColor = document.getElementById(`area-fillcolor-${number}`).value;
+      area.fillOpacity = parseInt(document.getElementById(`area-opacity-${number}`).value) / 100;
+      area.borderColor = document.getElementById(`area-bordercolor-${number}`).value;
+      area.borderWidth = parseInt(document.getElementById(`area-borderwidth-${number}`).value) || 3;
+      area.description = document.getElementById(`area-desc-${number}`).value;
+      
+      // Ricrea poligono con nuove proprietà
+      map.removeLayer(area.polygon);
+      area.polygon = L.polygon(area.coordinates.map(c => L.latLng(c[0], c[1])), {
+        color: area.borderColor,
+        weight: area.borderWidth,
+        fillColor: area.fillColor,
+        fillOpacity: area.fillOpacity
+      }).addTo(map);
+      
+      // Popup finale
+      const finalPopup = `
+        <div style="min-width: 200px;">
+          <h3>📐 ${area.name || 'Area #' + area.number}</h3>
+          <p><strong>Tipo:</strong> ${area.type}</p>
+          <p>${area.description || ''}</p>
+          <p><strong>Vertici:</strong> ${area.coordinates.length}</p>
+          <p><strong>Area:</strong> ~${calculatePolygonArea(area.coordinates).toFixed(0)} m²</p>
+        </div>
+      `;
+      area.polygon.bindPopup(finalPopup);
+      
+      updateAreaList();
+      DMSConsole.log(`✅ Area #${number} aggiornata`);
+    };
+    
+    // Aggiorna lista aree
+    function updateAreaList() {
+      const list = document.getElementById('area-list');
+      const count = document.getElementById('area-count');
+      
+      if (areas.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessuna area</div>';
+      } else {
+        list.innerHTML = areas.map(a => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
+            <span>📐 ${a.name || 'Area #' + a.number} (${a.coordinates.length} vertici)</span>
+            <button onclick="removeArea(${a.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+          </div>
+        `).join('');
+      }
+      
+      count.textContent = `${areas.length} aree aggiunte`;
+    }
+    
+    // Rimuovi area
+    window.removeArea = function(number) {
+      const area = areas.find(a => a.number === number);
+      if (area) {
+        map.removeLayer(area.polygon);
+        areas = areas.filter(a => a.number !== number);
+        updateAreaList();
+        DMSConsole.log(`🗑️ Area ${number} rimossa`);
+      }
+    };
+    
+    
+    // Esporta GeoJSON
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+      if (slots.length === 0) {
+        alert('⚠️ Aggiungi almeno un posteggio prima di esportare!');
+        return;
+      }
+      
+      if (!plantBounds) {
+        alert('⚠️ Carica e posiziona la pianta prima di esportare!');
+        return;
+      }
+      
+      // Cattura 4 corner della pianta
+      const corners = [
+        [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
+        [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
+        [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
+        [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
+      ];
+      
+      // Crea GeoJSON posteggi
+      const stallsGeoJSON = {
+        type: 'FeatureCollection',
+        features: slots.map(slot => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [slot.lng, slot.lat]
+          },
+          properties: {
+            number: slot.number,
+            orientation: slot.rotation,
+            kind: 'slot',
+            status: 'free',
+            dimensions: `${slot.width}m × ${slot.height}m`
+          }
+        }))
+      };
+      
+      // Crea GeoJSON marker personalizzabili
+      const markersGeoJSON = {
+        type: 'FeatureCollection',
+        features: markers.map(m => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [m.lng, m.lat]
+          },
+          properties: {
+            number: m.number,
+            letter: m.letter,
+            size: m.size,
+            bgColor: m.bgColor,
+            textColor: m.textColor,
+            borderColor: m.borderColor,
+            borderWidth: m.borderWidth,
+            name: m.name,
+            type: m.type,
+            description: m.description,
+            extra: m.extra,
+            status: m.status,
+            kind: 'marker'
+          }
+        }))
+      };
+      
+      // Crea GeoJSON aree personalizzabili
+      const areasGeoJSON = {
+        type: 'FeatureCollection',
+        features: areas.map(a => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [a.coordinates.map(c => [c[1], c[0]])]
+          },
+          properties: {
+            number: a.number,
+            name: a.name,
+            type: a.type,
+            fillColor: a.fillColor,
+            fillOpacity: a.fillOpacity,
+            borderColor: a.borderColor,
+            borderWidth: a.borderWidth,
+            description: a.description,
+            kind: 'area'
+          }
+        }))
+      };
+      
+      // Crea JSON completo
+      const exportData = {
+        container: corners,
+        stalls_geojson: stallsGeoJSON,
+        markers_geojson: markersGeoJSON,
+        areas_geojson: areasGeoJSON,
+        plant_rotation: plantRotation,
+        plant_scale: plantScale,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const totalItems = slots.length + markers.length + areas.length;
+      a.download = `mercato-esperanto-${totalItems}-items-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree esportati!`;
+      DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
+    });
+    
+    // Salva nel Bus
+    document.getElementById('btn-save-bus').addEventListener('click', async () => {
+      if (slots.length === 0) {
+        alert('⚠️ Aggiungi almeno un posteggio prima di salvare!');
+        return;
+      }
+      
+      try {
+        // Salva posteggi
+        const stallsGeoJSON = {
+          type: 'FeatureCollection',
+          features: slots.map(slot => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [slot.lng, slot.lat]
+            },
+            properties: {
+              number: slot.number,
+              orientation: slot.rotation,
+              kind: 'slot',
+              status: 'free',
+              dimensions: `${slot.width}m × ${slot.height}m`
+            }
+          }))
+        };
+        
+        await DMSBUS.setJSON('stalls_geojson', stallsGeoJSON);
+        
+        // Salva container se disponibile
+        if (plantBounds) {
+          const corners = [
+            [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
+            [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
+            [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
+            [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
+          ];
+          await DMSBUS.setJSON('container', corners);
+        }
+        
+        // Salva PNG se disponibile
+        if (pdfBlob) {
+          await DMSBUS.setBlob('png_transparent', pdfBlob);
+        }
+        
+        document.getElementById('export-status').textContent = `✅ Salvato nel Bus!`;
+        DMSConsole.log(`✅ ${slots.length} posteggi salvati nel BUS`);
+        alert(`✅ ${slots.length} posteggi salvati nel BUS!`);
+      } catch (err) {
+        alert('❌ Errore salvataggio: ' + err.message);
+        DMSConsole.log('❌ Errore: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
