@@ -315,6 +315,7 @@
         </div>
         
         <button id="btn-add-mode" class="active">📍 Modalità Aggiungi Posteggio</button>
+        <button id="btn-confirm-slot" class="success" style="display: none;">✅ Fissa Posteggio</button>
         <div class="info" id="slot-count">0 posteggi aggiunti</div>
       </div>
       
@@ -891,23 +892,83 @@
       updatePlantOverlay();
     });
     
-    // Slider rotazione posteggi
-    document.getElementById('slot-rotation').addEventListener('input', (e) => {
-      slotRotation = parseInt(e.target.value);
-      document.getElementById('slot-rotation-value').textContent = slotRotation + '°';
-      // Aggiorna tutti i posteggi esistenti
-      slots.forEach(slot => {
-        if (slot.marker) {
-          const elem = slot.marker.getElement();
-          if (elem) {
-            elem.style.transform = `rotate(${slotRotation}deg)`;
-          }
-        }
-      });
-    });
+    // Variabili per posteggio temporaneo
+    let tempSlot = null;
+    let slotWidth = 3.0;
+    let slotHeight = 6.0;
+    
+    // Sincronizzazione controlli larghezza
+    function updateWidthControls(value) {
+      slotWidth = parseFloat(value);
+      document.getElementById('slot-width').value = slotWidth;
+      document.getElementById('slot-width-input').value = slotWidth.toFixed(1);
+      document.getElementById('slot-width-value').textContent = slotWidth.toFixed(1) + 'm';
+      if (tempSlot) updateTempSlot();
+    }
+    
+    document.getElementById('slot-width').addEventListener('input', (e) => updateWidthControls(e.target.value));
+    document.getElementById('slot-width-input').addEventListener('input', (e) => updateWidthControls(e.target.value));
+    document.getElementById('btn-width-plus').addEventListener('click', () => updateWidthControls(Math.min(10, slotWidth + 0.1)));
+    document.getElementById('btn-width-minus').addEventListener('click', () => updateWidthControls(Math.max(1, slotWidth - 0.1)));
+    
+    // Sincronizzazione controlli altezza
+    function updateHeightControls(value) {
+      slotHeight = parseFloat(value);
+      document.getElementById('slot-height').value = slotHeight;
+      document.getElementById('slot-height-input').value = slotHeight.toFixed(1);
+      document.getElementById('slot-height-value').textContent = slotHeight.toFixed(1) + 'm';
+      if (tempSlot) updateTempSlot();
+    }
+    
+    document.getElementById('slot-height').addEventListener('input', (e) => updateHeightControls(e.target.value));
+    document.getElementById('slot-height-input').addEventListener('input', (e) => updateHeightControls(e.target.value));
+    document.getElementById('btn-height-plus').addEventListener('click', () => updateHeightControls(Math.min(20, slotHeight + 0.1)));
+    document.getElementById('btn-height-minus').addEventListener('click', () => updateHeightControls(Math.max(1, slotHeight - 0.1)));
+    
+    // Sincronizzazione controlli rotazione
+    function updateRotationControls(value) {
+      slotRotation = parseFloat(value) % 360;
+      document.getElementById('slot-rotation').value = slotRotation;
+      document.getElementById('slot-rotation-input').value = slotRotation.toFixed(1);
+      document.getElementById('slot-rotation-value').textContent = slotRotation.toFixed(1) + '°';
+      if (tempSlot) updateTempSlot();
+    }
+    
+    document.getElementById('slot-rotation').addEventListener('input', (e) => updateRotationControls(e.target.value));
+    document.getElementById('slot-rotation-input').addEventListener('input', (e) => updateRotationControls(e.target.value));
+    document.getElementById('btn-rotation-plus').addEventListener('click', () => updateRotationControls(slotRotation + 0.1));
+    document.getElementById('btn-rotation-minus').addEventListener('click', () => updateRotationControls(slotRotation - 0.1));
+    
+    // Funzione per aggiornare posteggio temporaneo
+    function updateTempSlot() {
+      if (!tempSlot) return;
+      
+      const keepDim = document.getElementById('keep-dimensions').checked;
+      const number = document.getElementById('slot-number').value;
+      
+      // Aggiorna icona con rotazione dal centro
+      tempSlot.marker.setIcon(L.divIcon({
+        className: 'slot-marker temp-slot',
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 0, 0.7); border: 2px solid #ff0; border-radius: 4px; transform: rotate(${slotRotation}deg);">${number}</div>`,
+        iconSize: [keepDim ? 30 : slotWidth * 5, keepDim ? 50 : slotHeight * 5],
+        iconAnchor: [keepDim ? 15 : slotWidth * 2.5, keepDim ? 25 : slotHeight * 2.5]
+      }));
+      
+      tempSlot.width = slotWidth;
+      tempSlot.height = slotHeight;
+      tempSlot.rotation = slotRotation;
+      tempSlot.number = parseInt(number);
+    }
     
     // Modalità aggiungi posteggio
     document.getElementById('btn-add-mode').addEventListener('click', function() {
+      // Se c'è un posteggio temporaneo, rimuovilo
+      if (tempSlot) {
+        tempSlot.marker.remove();
+        tempSlot = null;
+        document.getElementById('btn-confirm-slot').style.display = 'none';
+      }
+      
       addMode = !addMode;
       this.textContent = addMode ? '🛑 Disattiva Modalità' : '📍 Modalità Aggiungi Posteggio';
       this.className = addMode ? 'danger' : 'active';
@@ -916,38 +977,80 @@
     
     // Click sulla mappa per aggiungere posteggio
     map.on('click', (e) => {
-      if (!addMode) return;
+      if (!addMode || tempSlot) return; // Ignora se c'è già un posteggio temporaneo
       
-      const width = parseFloat(document.getElementById('slot-width').value);
-      const height = parseFloat(document.getElementById('slot-height').value);
       const keepDim = document.getElementById('keep-dimensions').checked;
+      const number = document.getElementById('slot-number').value;
       
-      // Crea marker posteggio
+      // Crea marker posteggio TEMPORANEO (giallo)
       const marker = L.marker(e.latlng, {
         icon: L.divIcon({
-          className: 'slot-marker',
-          html: `<div style="transform: rotate(${slotRotation}deg); width: 100%; height: 100%;">${slotCounter}</div>`,
-          iconSize: [keepDim ? 30 : width * 5, keepDim ? 50 : height * 5],
-          iconAnchor: [keepDim ? 15 : width * 2.5, keepDim ? 25 : height * 2.5]
+          className: 'slot-marker temp-slot',
+          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 0, 0.7); border: 2px solid #ff0; border-radius: 4px; transform: rotate(${slotRotation}deg);">${number}</div>`,
+          iconSize: [keepDim ? 30 : slotWidth * 5, keepDim ? 50 : slotHeight * 5],
+          iconAnchor: [keepDim ? 15 : slotWidth * 2.5, keepDim ? 25 : slotHeight * 2.5]
         }),
         draggable: true
       }).addTo(map);
       
-      const slot = {
-        number: slotCounter,
+      // Aggiorna posizione quando viene trascinato
+      marker.on('dragend', function() {
+        const pos = marker.getLatLng();
+        tempSlot.lat = pos.lat;
+        tempSlot.lng = pos.lng;
+      });
+      
+      tempSlot = {
+        number: parseInt(number),
         lat: e.latlng.lat,
         lng: e.latlng.lng,
-        width: width,
-        height: height,
+        width: slotWidth,
+        height: slotHeight,
         rotation: slotRotation,
         marker: marker
       };
       
-      slots.push(slot);
-      slotCounter++;
+      // Mostra pulsante Fissa
+      document.getElementById('btn-confirm-slot').style.display = 'block';
+      
+      DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
+    });
+    
+    // Pulsante Fissa Posteggio
+    document.getElementById('btn-confirm-slot').addEventListener('click', () => {
+      if (!tempSlot) return;
+      
+      // Cambia colore marker da giallo a verde
+      const keepDim = document.getElementById('keep-dimensions').checked;
+      tempSlot.marker.setIcon(L.divIcon({
+        className: 'slot-marker',
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg);">${tempSlot.number}</div>`,
+        iconSize: [keepDim ? 30 : tempSlot.width * 5, keepDim ? 50 : tempSlot.height * 5],
+        iconAnchor: [keepDim ? 15 : tempSlot.width * 2.5, keepDim ? 25 : tempSlot.height * 2.5]
+      }));
+      
+      // Disabilita drag
+      tempSlot.marker.dragging.disable();
+      
+      // Aggiorna posizione finale
+      const pos = tempSlot.marker.getLatLng();
+      tempSlot.lat = pos.lat;
+      tempSlot.lng = pos.lng;
+      
+      // Aggiungi a lista
+      slots.push(tempSlot);
+      
+      // Incrementa numero per prossimo posteggio
+      const nextNumber = tempSlot.number + 1;
+      document.getElementById('slot-number').value = nextNumber;
+      
+      DMSConsole.log(`✅ Posteggio ${tempSlot.number} fissato`);
+      
+      // Reset
+      tempSlot = null;
+      document.getElementById('btn-confirm-slot').style.display = 'none';
       
       updateSlotList();
-      DMSConsole.log(`✅ Posteggio ${slot.number} aggiunto`);
     });
     
     // Aggiorna lista posteggi
