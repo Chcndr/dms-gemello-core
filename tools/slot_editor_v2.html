@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DMS • Slot Editor v2 (Standalone)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="../shared/dms-console.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    .container { display: flex; height: calc(100vh - 48px); }
+    
+    .sidebar {
+      width: 380px;
+      background: #0f2830;
+      color: #d5f0e6;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    
+    .sidebar h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #4CAF50; }
+    .sidebar h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem; color: #81C784; }
+    
+    .section { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #1a4a5a; }
+    
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.25rem 0;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    button:hover { background: #45a049; }
+    button:disabled { background: #666; cursor: not-allowed; }
+    button.secondary { background: #2196F3; }
+    button.danger { background: #F44336; }
+    button.active { background: #FF9800; }
+    
+    input[type="text"], input[type="number"], input[type="file"], input[type="range"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: #1a4a5a;
+      color: #d5f0e6;
+      border: 1px solid #2a5a6a;
+      border-radius: 4px;
+    }
+    
+    input[type="range"] {
+      padding: 0;
+      height: 30px;
+    }
+    
+    label { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
+    
+    .slider-container {
+      background: #1a4a5a;
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+    }
+    
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .info { 
+      background: #1a4a5a; 
+      padding: 0.75rem; 
+      border-radius: 4px; 
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+    }
+    
+    .slot-list {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #1a4a5a;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    
+    .slot-item {
+      padding: 0.25rem;
+      margin: 0.25rem 0;
+      background: #0f2830;
+      border-radius: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .slot-item button {
+      width: auto;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      margin: 0;
+    }
+    
+    #map { flex: 1; }
+    
+    .leaflet-overlay-pane img {
+      opacity: 0.7;
+    }
+    
+    .slot-marker {
+      background: rgba(76, 175, 80, 0.8);
+      color: white;
+      border: 2px solid #4CAF50;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 11px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <h1>🎯 Slot Editor v2</h1>
+      <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem;">
+        Editor standalone con controlli completi per pianta e posteggi
+      </p>
+      
+      <!-- 1. Carica Pianta -->
+      <div class="section">
+        <h2>1️⃣ Carica Pianta</h2>
+        <input type="file" id="png-file" accept="image/png" />
+        <button id="btn-load-png" class="secondary">📂 Carica PNG Trasparente</button>
+        <div class="info" id="png-status">Nessuna pianta caricata</div>
+      </div>
+      
+      <!-- 2. Posiziona Pianta -->
+      <div class="section">
+        <h2>2️⃣ Posiziona Pianta</h2>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Rotazione pianta:</span>
+            <span id="plant-rotation-value">0°</span>
+          </div>
+          <input type="range" id="plant-rotation" min="0" max="360" value="0" step="1" />
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Scala pianta:</span>
+            <span id="plant-scale-value">100%</span>
+          </div>
+          <input type="range" id="plant-scale" min="50" max="200" value="100" step="1" />
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Opacità pianta:</span>
+            <span id="plant-opacity-value">70%</span>
+          </div>
+          <input type="range" id="plant-opacity" min="0" max="100" value="70" step="5" />
+        </div>
+        
+        <button id="btn-center-plant" class="secondary">🎯 Centra Pianta sulla Mappa</button>
+        <div class="info">Trascina la pianta per posizionarla</div>
+      </div>
+      
+      <!-- 3. Configura Posteggi -->
+      <div class="section">
+        <h2>3️⃣ Configura Posteggi</h2>
+        
+        <label>Larghezza posteggio (m):</label>
+        <input type="number" id="slot-width" value="3" min="1" max="10" step="0.5" />
+        
+        <label>Altezza posteggio (m):</label>
+        <input type="number" id="slot-height" value="6" min="1" max="20" step="0.5" />
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Rotazione posteggi:</span>
+            <span id="slot-rotation-value">0°</span>
+          </div>
+          <input type="range" id="slot-rotation" min="0" max="360" value="0" step="1" />
+        </div>
+        
+        <div class="checkbox-container">
+          <input type="checkbox" id="keep-dimensions" checked />
+          <label for="keep-dimensions" style="margin: 0;">Mantieni dimensioni fisse</label>
+        </div>
+        
+        <button id="btn-add-mode" class="active">📍 Modalità Aggiungi Posteggio</button>
+        <div class="info" id="slot-count">0 posteggi aggiunti</div>
+      </div>
+      
+      <!-- 4. Lista Posteggi -->
+      <div class="section">
+        <h2>4️⃣ Posteggi Aggiunti (<span id="total-slots">0</span>)</h2>
+        <div class="slot-list" id="slot-list">
+          <div style="opacity: 0.6;">Nessun posteggio</div>
+        </div>
+        <button id="btn-clear-all" class="danger">🗑️ Cancella Tutti</button>
+      </div>
+      
+      <!-- 5. Esporta -->
+      <div class="section">
+        <h2>5️⃣ Esporta</h2>
+        <button id="btn-export-json" class="secondary">💾 Esporta GeoJSON</button>
+        <button id="btn-save-bus">🚌 Salva nel Bus</button>
+        <div class="info" id="export-status">Pronto per esportare</div>
+      </div>
+    </aside>
+    
+    <div id="map"></div>
+  </div>
+  
+  <div id="dms-console"></div>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../shared/dmsbus.js"></script>
+  <script src="../shared/dms-console.js"></script>
+  <script>
+    // Inizializza console
+    DMSConsole.init();
+    DMSConsole.log('🚀 Slot Editor v2 inizializzato');
+    
+    // Inizializza mappa su Grosseto
+    const map = L.map('map').setView([42.7589, 11.1135], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 20
+    }).addTo(map);
+    
+    // Variabili globali
+    let pdfOverlay = null;
+    let pdfBlob = null;
+    let plantBounds = null;
+    let plantRotation = 0;
+    let plantScale = 1.0;
+    let slotRotation = 0;
+    let slots = [];
+    let addMode = false;
+    let slotCounter = 1;
+    
+    // Funzione per calcolare bounds ruotati e scalati
+    function calculatePlantBounds(center, width, height, rotation, scale) {
+      const scaledWidth = width * scale;
+      const scaledHeight = height * scale;
+      
+      // Calcola offset in metri
+      const latOffset = (scaledHeight / 2) / 111320; // 1 grado lat ≈ 111.32 km
+      const lngOffset = (scaledWidth / 2) / (111320 * Math.cos(center.lat * Math.PI / 180));
+      
+      // Corner base (senza rotazione)
+      const corners = [
+        [center.lat + latOffset, center.lng - lngOffset], // top-left
+        [center.lat + latOffset, center.lng + lngOffset], // top-right
+        [center.lat - latOffset, center.lng + lngOffset], // bottom-right
+        [center.lat - latOffset, center.lng - lngOffset]  // bottom-left
+      ];
+      
+      // Applica rotazione
+      if (rotation !== 0) {
+        const rad = rotation * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        return corners.map(([lat, lng]) => {
+          const dLat = lat - center.lat;
+          const dLng = lng - center.lng;
+          return [
+            center.lat + (dLat * cos - dLng * sin),
+            center.lng + (dLat * sin + dLng * cos)
+          ];
+        });
+      }
+      
+      return corners;
+    }
+    
+    // Funzione per aggiornare overlay pianta
+    function updatePlantOverlay() {
+      if (!pdfBlob || !plantBounds) return;
+      
+      const center = map.getCenter();
+      const corners = calculatePlantBounds(center, 500, 400, plantRotation, plantScale);
+      const bounds = L.latLngBounds([corners[0], corners[2]]);
+      
+      if (pdfOverlay) {
+        map.removeLayer(pdfOverlay);
+      }
+      
+      const url = URL.createObjectURL(pdfBlob);
+      pdfOverlay = L.imageOverlay(url, bounds, {
+        opacity: parseFloat(document.getElementById('plant-opacity').value) / 100,
+        interactive: true,
+        zIndex: 400
+      }).addTo(map);
+      
+      // Rendi draggable
+      pdfOverlay.on('click', function() {
+        if (!pdfOverlay.dragging) {
+          pdfOverlay.dragging = new L.Draggable(pdfOverlay.getElement());
+          pdfOverlay.dragging.enable();
+        }
+      });
+      
+      plantBounds = bounds;
+      DMSConsole.log('✅ Pianta aggiornata');
+    }
+    
+    // Carica PNG
+    document.getElementById('btn-load-png').addEventListener('click', () => {
+      const file = document.getElementById('png-file').files[0];
+      if (!file) {
+        alert('⚠️ Seleziona un file PNG prima!');
+        return;
+      }
+      
+      pdfBlob = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const center = map.getCenter();
+        plantBounds = L.latLngBounds([
+          [center.lat + 0.002, center.lng - 0.002],
+          [center.lat - 0.002, center.lng + 0.002]
+        ]);
+        
+        updatePlantOverlay();
+        document.getElementById('png-status').textContent = `✅ ${file.name} caricato`;
+        DMSConsole.log(`✅ PNG caricato: ${file.name}`);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Slider rotazione pianta
+    document.getElementById('plant-rotation').addEventListener('input', (e) => {
+      plantRotation = parseInt(e.target.value);
+      document.getElementById('plant-rotation-value').textContent = plantRotation + '°';
+      updatePlantOverlay();
+    });
+    
+    // Slider scala pianta
+    document.getElementById('plant-scale').addEventListener('input', (e) => {
+      plantScale = parseInt(e.target.value) / 100;
+      document.getElementById('plant-scale-value').textContent = e.target.value + '%';
+      updatePlantOverlay();
+    });
+    
+    // Slider opacità pianta
+    document.getElementById('plant-opacity').addEventListener('input', (e) => {
+      document.getElementById('plant-opacity-value').textContent = e.target.value + '%';
+      if (pdfOverlay) {
+        pdfOverlay.setOpacity(parseInt(e.target.value) / 100);
+      }
+    });
+    
+    // Centra pianta
+    document.getElementById('btn-center-plant').addEventListener('click', () => {
+      if (!pdfBlob) {
+        alert('⚠️ Carica prima una pianta!');
+        return;
+      }
+      map.setView([42.7589, 11.1135], 17);
+      updatePlantOverlay();
+    });
+    
+    // Slider rotazione posteggi
+    document.getElementById('slot-rotation').addEventListener('input', (e) => {
+      slotRotation = parseInt(e.target.value);
+      document.getElementById('slot-rotation-value').textContent = slotRotation + '°';
+      // Aggiorna tutti i posteggi esistenti
+      slots.forEach(slot => {
+        if (slot.marker) {
+          const elem = slot.marker.getElement();
+          if (elem) {
+            elem.style.transform = `rotate(${slotRotation}deg)`;
+          }
+        }
+      });
+    });
+    
+    // Modalità aggiungi posteggio
+    document.getElementById('btn-add-mode').addEventListener('click', function() {
+      addMode = !addMode;
+      this.textContent = addMode ? '🛑 Disattiva Modalità' : '📍 Modalità Aggiungi Posteggio';
+      this.className = addMode ? 'danger' : 'active';
+      map.getContainer().style.cursor = addMode ? 'crosshair' : '';
+    });
+    
+    // Click sulla mappa per aggiungere posteggio
+    map.on('click', (e) => {
+      if (!addMode) return;
+      
+      const width = parseFloat(document.getElementById('slot-width').value);
+      const height = parseFloat(document.getElementById('slot-height').value);
+      const keepDim = document.getElementById('keep-dimensions').checked;
+      
+      // Crea marker posteggio
+      const marker = L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: 'slot-marker',
+          html: `<div style="transform: rotate(${slotRotation}deg); width: 100%; height: 100%;">${slotCounter}</div>`,
+          iconSize: [keepDim ? 30 : width * 5, keepDim ? 50 : height * 5],
+          iconAnchor: [keepDim ? 15 : width * 2.5, keepDim ? 25 : height * 2.5]
+        }),
+        draggable: true
+      }).addTo(map);
+      
+      const slot = {
+        number: slotCounter,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        width: width,
+        height: height,
+        rotation: slotRotation,
+        marker: marker
+      };
+      
+      slots.push(slot);
+      slotCounter++;
+      
+      updateSlotList();
+      DMSConsole.log(`✅ Posteggio ${slot.number} aggiunto`);
+    });
+    
+    // Aggiorna lista posteggi
+    function updateSlotList() {
+      const list = document.getElementById('slot-list');
+      const count = document.getElementById('slot-count');
+      const total = document.getElementById('total-slots');
+      
+      count.textContent = `${slots.length} posteggi aggiunti`;
+      total.textContent = slots.length;
+      
+      if (slots.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun posteggio</div>';
+        return;
+      }
+      
+      list.innerHTML = slots.map(slot => `
+        <div class="slot-item">
+          <span>Posteggio ${slot.number} (${slot.width}m × ${slot.height}m)</span>
+          <button onclick="removeSlot(${slot.number})">❌</button>
+        </div>
+      `).join('');
+    }
+    
+    // Rimuovi posteggio
+    window.removeSlot = function(number) {
+      const index = slots.findIndex(s => s.number === number);
+      if (index !== -1) {
+        map.removeLayer(slots[index].marker);
+        slots.splice(index, 1);
+        updateSlotList();
+        DMSConsole.log(`🗑️ Posteggio ${number} rimosso`);
+      }
+    };
+    
+    // Cancella tutti
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      if (!confirm('⚠️ Cancellare tutti i posteggi?')) return;
+      
+      slots.forEach(slot => map.removeLayer(slot.marker));
+      slots = [];
+      slotCounter = 1;
+      updateSlotList();
+      DMSConsole.log('🗑️ Tutti i posteggi cancellati');
+    });
+    
+    // Esporta GeoJSON
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+      if (slots.length === 0) {
+        alert('⚠️ Aggiungi almeno un posteggio prima di esportare!');
+        return;
+      }
+      
+      if (!plantBounds) {
+        alert('⚠️ Carica e posiziona la pianta prima di esportare!');
+        return;
+      }
+      
+      // Cattura 4 corner della pianta
+      const corners = [
+        [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
+        [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
+        [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
+        [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
+      ];
+      
+      // Crea GeoJSON posteggi
+      const stallsGeoJSON = {
+        type: 'FeatureCollection',
+        features: slots.map(slot => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [slot.lng, slot.lat]
+          },
+          properties: {
+            number: slot.number,
+            orientation: slot.rotation,
+            kind: 'slot',
+            status: 'free',
+            dimensions: `${slot.width}m × ${slot.height}m`
+          }
+        }))
+      };
+      
+      // Crea JSON completo
+      const exportData = {
+        container: corners,
+        stalls_geojson: stallsGeoJSON,
+        plant_rotation: plantRotation,
+        plant_scale: plantScale,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mercato-esperanto-${slots.length}-posteggi-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi esportati!`;
+      DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
+    });
+    
+    // Salva nel Bus
+    document.getElementById('btn-save-bus').addEventListener('click', async () => {
+      if (slots.length === 0) {
+        alert('⚠️ Aggiungi almeno un posteggio prima di salvare!');
+        return;
+      }
+      
+      try {
+        // Salva posteggi
+        const stallsGeoJSON = {
+          type: 'FeatureCollection',
+          features: slots.map(slot => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [slot.lng, slot.lat]
+            },
+            properties: {
+              number: slot.number,
+              orientation: slot.rotation,
+              kind: 'slot',
+              status: 'free',
+              dimensions: `${slot.width}m × ${slot.height}m`
+            }
+          }))
+        };
+        
+        await DMSBUS.setJSON('stalls_geojson', stallsGeoJSON);
+        
+        // Salva container se disponibile
+        if (plantBounds) {
+          const corners = [
+            [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
+            [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
+            [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
+            [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
+          ];
+          await DMSBUS.setJSON('container', corners);
+        }
+        
+        // Salva PNG se disponibile
+        if (pdfBlob) {
+          await DMSBUS.setBlob('png_transparent', pdfBlob);
+        }
+        
+        document.getElementById('export-status').textContent = `✅ Salvato nel Bus!`;
+        DMSConsole.log(`✅ ${slots.length} posteggi salvati nel BUS`);
+        alert(`✅ ${slots.length} posteggi salvati nel BUS!`);
+      } catch (err) {
+        alert('❌ Errore salvataggio: ' + err.message);
+        DMSConsole.log('❌ Errore: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
