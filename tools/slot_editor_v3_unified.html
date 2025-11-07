@@ -431,9 +431,11 @@
       return area;
     }
     
-    // Inizializza console
-    DMSConsole.init();
-    DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
+    // Console si auto-inizializza da dms-console.js
+    // Aspetta che sia pronta prima di loggare
+    setTimeout(() => {
+      DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
+    }, 100);
     
     // NOTA: Caricamento automatico dal BUS spostato dopo inizializzazione variabili (vedi sotto)
     
