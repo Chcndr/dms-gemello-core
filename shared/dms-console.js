@@ -12,14 +12,14 @@
 const DMSConsole = {
   messages: [],
   maxMessages: 100,
-  isOpen: false,
+  isOpen: true,
   container: null,
   logList: null,
   
   init() {
     // Crea HTML console
     const consoleHTML = `
-      <div id="dms-console" class="dms-console collapsed">
+      <div id="dms-console" class="dms-console">
         <div class="dms-console-header">
           <span class="dms-console-title">📋 Console Log</span>
           <div class="dms-console-actions">
@@ -50,7 +50,7 @@ const DMSConsole = {
     this.container.classList.toggle('collapsed');
     
     const btn = this.container.querySelector('.dms-console-actions button:last-child');
-    btn.textContent = this.isOpen ? '▲' : '▼';
+    btn.textContent = this.isOpen ? '▼' : '▲';
   },
   
   log(message, type = 'info') {
