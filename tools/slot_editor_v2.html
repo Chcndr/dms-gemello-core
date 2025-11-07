@@ -323,12 +323,26 @@
           <button id="btn-ref-zoom-in" style="padding: 4px 8px; font-size: 14px;">+</button>
           <span id="ref-zoom-value" style="font-size: 12px; min-width: 45px;">100%</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
           <span style="font-size: 12px; min-width: 50px;">Ruota:</span>
           <button id="btn-ref-rotate-left" style="padding: 4px 8px; font-size: 14px;">↶</button>
           <input type="range" id="ref-rotation" min="0" max="360" value="0" step="1" style="flex: 1;" />
           <button id="btn-ref-rotate-right" style="padding: 4px 8px; font-size: 14px;">↷</button>
           <span id="ref-rotation-value" style="font-size: 12px; min-width: 35px;">0°</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 12px; min-width: 50px;">Sposta:</span>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; flex: 1;">
+            <div></div>
+            <button id="btn-ref-up" style="padding: 4px; font-size: 14px;">⬆️</button>
+            <div></div>
+            <button id="btn-ref-left" style="padding: 4px; font-size: 14px;">⬅️</button>
+            <button id="btn-ref-center" style="padding: 4px; font-size: 10px;">🎯</button>
+            <button id="btn-ref-right" style="padding: 4px; font-size: 14px;">➡️</button>
+            <div></div>
+            <button id="btn-ref-down" style="padding: 4px; font-size: 14px;">⬇️</button>
+            <div></div>
+          </div>
         </div>
         <button id="btn-ref-reset" style="width: 100%; margin-top: 4px; padding: 4px; font-size: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Reset</button>
       </div>
@@ -635,23 +649,56 @@
       updateReferenceImage();
     });
     
-    // Pan immagine con drag
+    // Pulsanti freccia per spostare immagine
+    const panStep = 20; // pixel per click
+    
+    document.getElementById('btn-ref-up').addEventListener('click', () => {
+      refPanY += panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-down').addEventListener('click', () => {
+      refPanY -= panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-left').addEventListener('click', () => {
+      refPanX += panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-right').addEventListener('click', () => {
+      refPanX -= panStep;
+      updateReferenceImage();
+    });
+    
+    document.getElementById('btn-ref-center').addEventListener('click', () => {
+      refPanX = 0;
+      refPanY = 0;
+      updateReferenceImage();
+    });
+    
+    // Pan immagine con drag (FIXATO: direzione corretta)
     const refContent = document.getElementById('reference-content');
     const refImage = document.getElementById('reference-image');
     let isImageDragging = false;
-    let imageStartX, imageStartY;
+    let imageStartX, imageStartY, imagePanStartX, imagePanStartY;
     
     refImage.addEventListener('mousedown', (e) => {
       isImageDragging = true;
-      imageStartX = e.clientX - refPanX;
-      imageStartY = e.clientY - refPanY;
+      imageStartX = e.clientX;
+      imageStartY = e.clientY;
+      imagePanStartX = refPanX;
+      imagePanStartY = refPanY;
       e.preventDefault();
     });
     
     document.addEventListener('mousemove', (e) => {
       if (isImageDragging) {
-        refPanX = e.clientX - imageStartX;
-        refPanY = e.clientY - imageStartY;
+        const deltaX = e.clientX - imageStartX;
+        const deltaY = e.clientY - imageStartY;
+        refPanX = imagePanStartX + deltaX;
+        refPanY = imagePanStartY + deltaY;
         updateReferenceImage();
       }
     });
