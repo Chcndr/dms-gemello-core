@@ -299,8 +299,10 @@
         
         <button id="btn-center-plant" class="secondary">🎯 Centra Pianta sulla Mappa</button>
         <button id="btn-save-plant-position" class="success" style="margin-top: 8px;">💾 Salva Posizione Pianta</button>
+        <button id="btn-save-marker-position" class="success" style="margin-top: 8px;">💾 Salva Posizione Segnaposto</button>
         <div class="info">Trascina la pianta per posizionarla</div>
         <div id="plant-save-status" class="info" style="display: none; background: #4CAF50; color: white;"></div>
+        <div id="marker-save-status" class="info" style="display: none; background: #4CAF50; color: white;"></div>
       </div>
       
       <!-- 3. Configura Posteggi -->
@@ -637,6 +639,78 @@
           }
           
           updatePlantOverlay();
+          
+          // Carica posizione segnaposto da localStorage (sovrascrive BUS se presente)
+          try {
+            const savedMarkerPos = localStorage.getItem('plant_marker_position');
+            if (savedMarkerPos) {
+              const markerData = JSON.parse(savedMarkerPos);
+              console.log('💾 Caricamento posizione segnaposto da localStorage:', markerData);
+              
+              // Posiziona marker rosso
+              const markerLatLng = L.latLng(markerData.lat, markerData.lng);
+              
+              if (plantMarker) {
+                plantMarker.setLatLng(markerLatLng);
+              } else {
+                plantMarker = L.marker(markerLatLng, {
+                  draggable: true,
+                  icon: L.divIcon({
+                    className: 'plant-marker',
+                    html: '<div style="background: #ff4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">M</div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                  })
+                }).addTo(map);
+                
+                // Listener drag marker
+                plantMarker.on('drag', () => {
+                  if (plantBounds && plantImageSize) {
+                    const newCenter = plantMarker.getLatLng();
+                    plantBounds = calculatePlantBounds(newCenter, plantImageSize.width, plantImageSize.height, plantScale, plantRotation);
+                    updatePlantOverlay();
+                  }
+                });
+              }
+              
+              // Applica parametri salvati
+              if (markerData.rotation !== undefined) {
+                plantRotation = markerData.rotation;
+                document.getElementById('plant-rotation').value = plantRotation;
+                document.getElementById('plant-rotation-input').value = plantRotation.toFixed(1);
+                document.getElementById('plant-rotation-value').textContent = plantRotation.toFixed(1) + '°';
+              }
+              
+              if (markerData.scale !== undefined) {
+                plantScale = markerData.scale;
+                document.getElementById('plant-scale').value = plantScale * 100;
+                document.getElementById('plant-scale-input').value = (plantScale * 100).toFixed(0);
+                document.getElementById('plant-scale-value').textContent = (plantScale * 100).toFixed(0) + '%';
+              }
+              
+              if (markerData.opacity !== undefined) {
+                document.getElementById('plant-opacity').value = markerData.opacity;
+                document.getElementById('plant-opacity-value').textContent = markerData.opacity + '%';
+              }
+              
+              // Ricalcola bounds piantina dal marker
+              if (plantImageSize) {
+                plantBounds = calculatePlantBounds(markerLatLng, plantImageSize.width, plantImageSize.height, plantScale, plantRotation);
+                
+                // Applica rotazione
+                if (plantRotation > 0) {
+                  await updateRotation(plantRotation);
+                }
+                
+                updatePlantOverlay();
+                console.log('✅ Posizione segnaposto ripristinata da localStorage');
+                document.getElementById('png-status').textContent = '✅ PNG e segnaposto ripristinati';
+              }
+            }
+          } catch (err) {
+            console.error('❌ Errore caricamento segnaposto:', err);
+          }
+          
           // DMSConsole.log('✅ PNG trasparente caricato dal BUS');
         } else {
           // DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
@@ -1350,6 +1424,43 @@
         
       } catch (err) {
         alert('❌ Errore salvataggio: ' + err.message);
+      }
+    });
+    
+    // Salva posizione segnaposto (marker rosso) in localStorage
+    document.getElementById('btn-save-marker-position').addEventListener('click', () => {
+      if (!plantMarker) {
+        alert('⚠️ Posiziona prima la pianta sulla mappa!');
+        return;
+      }
+      
+      try {
+        const markerPos = plantMarker.getLatLng();
+        
+        const markerPosition = {
+          lat: markerPos.lat,
+          lng: markerPos.lng,
+          imageSize: plantImageSize,
+          rotation: plantRotation,
+          scale: plantScale,
+          opacity: parseInt(document.getElementById('plant-opacity').value),
+          timestamp: new Date().toISOString()
+        };
+        
+        // Salva in localStorage
+        localStorage.setItem('plant_marker_position', JSON.stringify(markerPosition));
+        
+        console.log('💾 Posizione segnaposto salvata:', markerPosition);
+        
+        const status = document.getElementById('marker-save-status');
+        status.textContent = '✅ Posizione segnaposto salvata!';
+        status.style.display = 'block';
+        setTimeout(() => {
+          status.style.display = 'none';
+        }, 3000);
+      } catch (err) {
+        console.error('❌ Errore salvataggio segnaposto:', err);
+        alert('❌ Errore durante il salvataggio!');
       }
     });
     
