@@ -358,7 +358,9 @@
         
         <button id="btn-add-mode" class="active">📍 Modalità Aggiungi Posteggio</button>
         <button id="btn-confirm-slot" class="success">✅ Fissa Posteggio</button>
+        <button id="btn-save-slots-position" class="success" style="margin-top: 8px;">💾 Salva Posizione Posteggi</button>
         <div class="info" id="slot-count">0 posteggi aggiunti</div>
+        <div id="slots-save-status" class="info" style="display: none; background: #4CAF50; color: white;"></div>
       </div>
       
       <!-- 4. Marker Personalizzabili -->
@@ -739,6 +741,93 @@
       } catch (err) {
         console.error('❌ Errore caricamento BUS:', err);
         // DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
+      }
+      
+      // Carica posteggi da localStorage (se non caricati dal BUS)
+      if (slots.length === 0) {
+        try {
+          const savedSlots = localStorage.getItem('slots_positions');
+          console.log('🔍 Tentativo caricamento posteggi da localStorage...');
+          
+          if (savedSlots) {
+            const slotsData = JSON.parse(savedSlots);
+            console.log(`💾 ${slotsData.length} posteggi trovati in localStorage`);
+            
+            slotsData.forEach(slotData => {
+              const { number, lat, lng, width, height, rotation } = slotData;
+              
+              // Calcola corner geografici
+              const center = { lat, lng };
+              const corners = calculateSlotBounds(center, width, height, rotation);
+              
+              // Crea polygon verde
+              const polygon = L.polygon(corners, {
+                color: '#4CAF50',
+                weight: 2,
+                fillColor: '#4CAF50',
+                fillOpacity: 0.9,
+                className: 'fixed-slot',
+                pane: 'slotsPane'
+              }).addTo(map);
+              
+              // Aggiungi tooltip
+              const tooltip = L.tooltip({
+                permanent: true,
+                direction: 'center',
+                className: 'slot-number-label',
+                offset: [0, 0]
+              })
+              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
+              .setLatLng(center);
+              
+              polygon.bindTooltip(tooltip).openTooltip();
+              
+              // Aggiungi popup
+              const popupContent = `
+                <div style="font-family: sans-serif; min-width: 200px;">
+                  <h3 style="margin: 0 0 10px 0; color: #4CAF50;">🅿️ Posteggio #${number}</h3>
+                  <p style="margin: 5px 0;"><strong>📏 Dimensioni:</strong> ${width.toFixed(1)}m × ${height.toFixed(1)}m</p>
+                  <p style="margin: 5px 0;"><strong>🔄 Rotazione:</strong> ${rotation.toFixed(1)}°</p>
+                  <p style="margin: 5px 0;"><strong>📍 Coordinate:</strong></p>
+                  <p style="margin: 0 0 10px 15px; font-size: 11px; color: #666;">
+                    Lat: ${lat.toFixed(8)}<br>
+                    Lng: ${lng.toFixed(8)}
+                  </p>
+                  <button onclick="openVetrinaEditor(${number}, ${lat}, ${lng}, ${width}, ${height}, ${rotation})" 
+                          style="width: 100%; padding: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                    🏪 Vai a Vetrina Editor
+                  </button>
+                </div>
+              `;
+              polygon.bindPopup(popupContent);
+              
+              // Aggiungi a lista
+              slots.push({
+                number,
+                lat,
+                lng,
+                width,
+                height,
+                rotation,
+                polygon,
+                tooltip
+              });
+              
+              // Aggiorna counter
+              if (number >= slotCounter) {
+                slotCounter = number + 1;
+              }
+            });
+            
+            updateSlotList();
+            console.log(`✅ ${slots.length} posteggi caricati da localStorage`);
+            document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi caricati da localStorage`;
+          } else {
+            console.log('⚠️ Nessun posteggio salvato in localStorage');
+          }
+        } catch (err) {
+          console.error('❌ Errore caricamento localStorage:', err);
+        }
       }
     })();
     
@@ -1605,6 +1694,42 @@
       // Pulsante sempre visibile
       
       updateSlotList();
+    });
+    
+    // Pulsante Salva Posizione Posteggi
+    document.getElementById('btn-save-slots-position').addEventListener('click', () => {
+      if (slots.length === 0) {
+        alert('⚠️ Nessun posteggio da salvare!');
+        return;
+      }
+      
+      try {
+        // Prepara dati da salvare (solo le proprietà necessarie)
+        const slotsData = slots.map(slot => ({
+          number: slot.number,
+          lat: slot.lat,
+          lng: slot.lng,
+          width: slot.width,
+          height: slot.height,
+          rotation: slot.rotation
+        }));
+        
+        // Salva in localStorage
+        localStorage.setItem('slots_positions', JSON.stringify(slotsData));
+        
+        console.log(`💾 ${slots.length} posteggi salvati in localStorage`);
+        
+        // Mostra feedback
+        const status = document.getElementById('slots-save-status');
+        status.textContent = `✅ ${slots.length} posteggi salvati!`;
+        status.style.display = 'block';
+        setTimeout(() => {
+          status.style.display = 'none';
+        }, 3000);
+      } catch (err) {
+        console.error('❌ Errore salvataggio localStorage:', err);
+        alert('❌ Errore durante il salvataggio!');
+      }
     });
     
     // Aggiorna lista posteggi
