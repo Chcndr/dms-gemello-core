@@ -1050,8 +1050,9 @@
     let slotWidth = 3.0;
     let slotHeight = 6.0;
     
-    // Scala conversione metri → pixel (zoom 19)
-    const meterToPixel = 156.543;
+    // Scala conversione metri → pixel (ridotta per posteggi visibili)
+    // Nota: 156.543 era troppo grande (3m = 469px!), usiamo scala più piccola
+    const meterToPixel = 25; // 3m × 25 = 75px (ragionevole per posteggi)
     
     // Sincronizzazione controlli larghezza
     function updateWidthControls(value) {
