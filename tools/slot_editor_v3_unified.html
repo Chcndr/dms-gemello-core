@@ -493,8 +493,8 @@
     map.createPane('slotsPane');
     map.getPane('slotsPane').style.zIndex = 450; // overlayPane=400, markerPane=600
     
-    // Listener zoom per aggiornare dimensione font tooltip
-    map.on('zoomend', () => {
+    // Funzione per aggiornare font-size tooltip in base allo zoom
+    function updateTooltipFontSize() {
       try {
         const zoom = map.getZoom();
         // Calcola font size in base allo zoom (zoom 17 = 14px, scala proporzionalmente)
@@ -502,7 +502,7 @@
         const baseZoom = 17;
         const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, zoom - baseZoom)));
         
-        console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px (${slots.length} posteggi)`);
+        console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px`);
         
         // Aspetta che il DOM sia aggiornato
         setTimeout(() => {
@@ -515,11 +515,14 @@
           });
           
           console.log(`✅ Aggiornati ${tooltipLabels.length} tooltip`);
-        }, 50);
+        }, 100); // Aumentato timeout per dare tempo al DOM
       } catch (err) {
-        console.error('❌ Errore listener zoom:', err);
+        console.error('❌ Errore aggiornamento font tooltip:', err);
       }
-    });
+    }
+    
+    // Listener zoom per aggiornare dimensione font tooltip
+    map.on('zoomend', updateTooltipFontSize);
     
     // Variabili globali
     let pdfBlob = null;
@@ -766,7 +769,7 @@
               className: 'slot-number-label',
               offset: [0, 0]
             })
-            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
+            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
             .setLatLng(center);
             
             polygon.bindTooltip(tooltip).openTooltip();
@@ -851,7 +854,7 @@
                 className: 'slot-number-label',
                 offset: [0, 0]
               })
-              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
+              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
               .setLatLng(center);
               
               polygon.bindTooltip(tooltip).openTooltip();
@@ -896,6 +899,11 @@
             updateSlotList();
             console.log(`✅ ${slots.length} posteggi caricati da localStorage`);
             document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi caricati da localStorage`;
+            
+            // Aggiorna font-size tooltip in base allo zoom corrente
+            setTimeout(() => {
+              updateTooltipFontSize();
+            }, 200);
           } else {
             console.log('⚠️ Nessun posteggio salvato in localStorage');
           }
@@ -1578,7 +1586,7 @@
         className: 'slot-number-label',
         offset: [0, 0]
       })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
+      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
       .setLatLng(currentCenter);
       
       newPolygon.bindTooltip(newTooltip).openTooltip();
@@ -1647,7 +1655,7 @@
         className: 'slot-number-label',
         offset: [0, 0]
       })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
+      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
       .setLatLng(center);
       
       polygon.bindTooltip(tooltip).openTooltip();
@@ -1664,6 +1672,11 @@
         polygon: polygon,
         tooltip: tooltip
       };
+      
+      // Aggiorna font-size tooltip
+      setTimeout(() => {
+        updateTooltipFontSize();
+      }, 100);
       
       // Implementa dragging manuale per polygon
       let isDragging = false;
@@ -1761,7 +1774,7 @@
         className: 'slot-number-label',
         offset: [0, 0]
       })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${tempSlot.number}</div>`)
+      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${tempSlot.number}</div>`)
       .setLatLng(currentCenter);
       
       greenPolygon.bindTooltip(greenTooltip).openTooltip();
@@ -1805,6 +1818,11 @@
       // Pulsante sempre visibile
       
       updateSlotList();
+      
+      // Aggiorna font-size tooltip
+      setTimeout(() => {
+        updateTooltipFontSize();
+      }, 100);
     });
     
     // Pulsante Salva Posizione Posteggi
