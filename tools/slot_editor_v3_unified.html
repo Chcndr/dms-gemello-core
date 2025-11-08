@@ -485,6 +485,10 @@
       maxZoom: 20
     }).addTo(map);
     
+    // Crea custom pane per posteggi (sopra piantina ma sotto marker)
+    map.createPane('slotsPane');
+    map.getPane('slotsPane').style.zIndex = 450; // overlayPane=400, markerPane=600
+    
     // Listener zoom per aggiornare dimensione font tooltip
     map.on('zoomend', () => {
       const zoom = map.getZoom();
@@ -495,45 +499,13 @@
       
       console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px (${slots.length} posteggi)`);
       
-      // Aggiorna tutti i tooltip dei posteggi
-      slots.forEach(slot => {
-        if (slot.polygon && slot.tooltip) {
-          // Chiudi e rimuovi tooltip vecchio
-          slot.polygon.unbindTooltip();
-          map.closeTooltip(slot.tooltip);
-          
-          // Crea nuovo tooltip con font size aggiornato
-          const newTooltip = L.tooltip({
-            permanent: true,
-            direction: 'center',
-            className: 'slot-number-label',
-            offset: [0, 0]
-          })
-          .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${slot.number}</div>`)
-          .setLatLng({ lat: slot.lat, lng: slot.lng });
-          
-          slot.polygon.bindTooltip(newTooltip).openTooltip();
-          slot.tooltip = newTooltip;
-        }
+      // Aggiorna font-size di tutti i tooltip usando DOM
+      const tooltipLabels = document.querySelectorAll('.slot-number-label div');
+      tooltipLabels.forEach(label => {
+        label.style.fontSize = `${fontSize}px`;
       });
       
-      // Aggiorna tooltip temporaneo se esiste
-      if (tempSlot && tempSlot.polygon && tempSlot.tooltip) {
-        tempSlot.polygon.unbindTooltip();
-        map.closeTooltip(tempSlot.tooltip);
-        
-        const newTooltip = L.tooltip({
-          permanent: true,
-          direction: 'center',
-          className: 'slot-number-label',
-          offset: [0, 0]
-        })
-        .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${tempSlot.number}</div>`)
-        .setLatLng({ lat: tempSlot.lat, lng: tempSlot.lng });
-        
-        tempSlot.polygon.bindTooltip(newTooltip).openTooltip();
-        tempSlot.tooltip = newTooltip;
-      }
+      console.log(`✅ Aggiornati ${tooltipLabels.length} tooltip`);
     });
     
     // Variabili globali
@@ -695,7 +667,8 @@
               weight: 2,
               fillColor: '#4CAF50',
               fillOpacity: 0.9,
-              className: 'fixed-slot'
+              className: 'fixed-slot',
+              pane: 'slotsPane'
             }).addTo(map);
             
             // Aggiungi tooltip con numero
@@ -1381,7 +1354,8 @@
         weight: 2,
         fillColor: '#ffa500',
         fillOpacity: 0.9,
-        className: 'temp-slot'
+        className: 'temp-slot',
+        pane: 'slotsPane'
       }).addTo(map);
       
       // RICREA tooltip con numero
@@ -1448,7 +1422,8 @@
         weight: 2,
         fillColor: '#ffa500',
         fillOpacity: 0.9,
-        className: 'temp-slot'
+        className: 'temp-slot',
+        pane: 'slotsPane'
       }).addTo(map);
       
       // Aggiungi tooltip permanente con numero al centro
@@ -1473,9 +1448,50 @@
         width: slotWidth,
         height: slotHeight,
         rotation: slotRotation,
-        polygon: polygon,  // Ora usiamo polygon
+        polygon: polygon,
         tooltip: tooltip
       };
+      
+      // Implementa dragging manuale per polygon
+      let isDragging = false;
+      let dragStartLatLng = null;
+      
+      polygon.on('mousedown', (e) => {
+        isDragging = true;
+        dragStartLatLng = e.latlng;
+        map.dragging.disable(); // Disabilita drag mappa
+        L.DomEvent.stopPropagation(e); // Evita propagazione
+      });
+      
+      map.on('mousemove', (e) => {
+        if (isDragging && tempSlot) {
+          // Calcola offset
+          const dLat = e.latlng.lat - dragStartLatLng.lat;
+          const dLng = e.latlng.lng - dragStartLatLng.lng;
+          
+          // Aggiorna posizione centro
+          tempSlot.lat += dLat;
+          tempSlot.lng += dLng;
+          dragStartLatLng = e.latlng;
+          
+          // Ricalcola corner
+          const newCenter = { lat: tempSlot.lat, lng: tempSlot.lng };
+          const newCorners = calculateSlotBounds(newCenter, tempSlot.width, tempSlot.height, tempSlot.rotation);
+          
+          // Aggiorna polygon
+          tempSlot.polygon.setLatLngs(newCorners);
+          
+          // Aggiorna tooltip
+          tempSlot.tooltip.setLatLng(newCenter);
+        }
+      });
+      
+      map.on('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          map.dragging.enable(); // Riabilita drag mappa
+        }
+      });
       
       // Mostra pulsante Fissa
       document.getElementById('btn-confirm-slot').style.display = 'block';
@@ -1521,7 +1537,8 @@
         weight: 2,
         fillColor: '#4CAF50',
         fillOpacity: 0.9,
-        className: 'fixed-slot'
+        className: 'fixed-slot',
+        pane: 'slotsPane'
       }).addTo(map);
       
       // Aggiungi tooltip permanente con numero
