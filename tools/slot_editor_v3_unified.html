@@ -1091,6 +1091,29 @@
     // 2.5m × 10 = 25px (piccolo ma visibile)
     const meterToPixel = 10;
     
+    // Funzione per aprire Vetrina Editor con dati posteggio
+    function openVetrinaEditor(number, lat, lng, width, height, rotation) {
+      const stallData = {
+        number: number,
+        lat: lat,
+        lng: lng,
+        width: width,
+        height: height,
+        rotation: rotation,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Salva nel DMSBUS
+      const key = `stall_${number}`;
+      DMSBUS.set(key, JSON.stringify(stallData));
+      
+      alert(`✅ Dati posteggio #${number} salvati nel DMSBUS!\nChiave: ${key}`);
+      
+      // Apri Vetrina Editor in nuova tab con parametri
+      const vetrinaUrl = `./vetrina_editor.html?stall=${number}&lat=${lat}&lng=${lng}`;
+      window.open(vetrinaUrl, '_blank');
+    }
+    
     // Sincronizzazione controlli larghezza
     function updateWidthControls(value) {
       slotWidth = parseFloat(value);
@@ -1292,6 +1315,25 @@
         }),
         draggable: false  // Verde non è draggable
       }).addTo(map);
+      
+      // Aggiungi popup con informazioni complete
+      const popupContent = `
+        <div style="font-family: sans-serif; min-width: 200px;">
+          <h3 style="margin: 0 0 10px 0; color: #4CAF50;">🅿️ Posteggio #${tempSlot.number}</h3>
+          <p style="margin: 5px 0;"><strong>📐 Dimensioni:</strong> ${tempSlot.width.toFixed(1)}m × ${tempSlot.height.toFixed(1)}m</p>
+          <p style="margin: 5px 0;"><strong>🔄 Rotazione:</strong> ${tempSlot.rotation.toFixed(1)}°</p>
+          <p style="margin: 5px 0;"><strong>📍 Coordinate:</strong></p>
+          <p style="margin: 0 0 10px 15px; font-size: 11px; color: #666;">
+            Lat: ${currentLatLng.lat.toFixed(8)}<br>
+            Lng: ${currentLatLng.lng.toFixed(8)}
+          </p>
+          <button onclick="openVetrinaEditor(${tempSlot.number}, ${currentLatLng.lat}, ${currentLatLng.lng}, ${tempSlot.width}, ${tempSlot.height}, ${tempSlot.rotation})" 
+                  style="width: 100%; padding: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            🏪 Vai a Vetrina Editor
+          </button>
+        </div>
+      `;
+      greenMarker.bindPopup(popupContent);
       
       console.log(`✅ Posteggio verde #${tempSlot.number} fissato con rotazione ${tempSlot.rotation}°`);
       
@@ -2056,7 +2098,7 @@
           }))
         };
         
-        await DMSBUS.setJSON('stalls_geojson', stallsGeoJSON);
+        await DMSBUS.set('stalls_geojson', JSON.stringify(stallsGeoJSON));
         
         // Salva container se disponibile
         if (plantBounds) {
@@ -2066,7 +2108,7 @@
             [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
             [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
           ];
-          await DMSBUS.setJSON('container', corners);
+          await DMSBUS.set('container', JSON.stringify(corners));
         }
         
         // Salva PNG se disponibile
