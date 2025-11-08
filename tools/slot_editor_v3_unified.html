@@ -1034,7 +1034,7 @@
     
     document.getElementById('slot-width').addEventListener('input', (e) => updateWidthControls(e.target.value));
     document.getElementById('slot-width-input').addEventListener('input', (e) => updateWidthControls(e.target.value));
-    document.getElementById('btn-width-plus').addEventListener('click', () => updateWidthControls(Math.min(10, slotWidth + 0.1)));
+    document.getElementById('btn-width-plus').addEventListener('click', () => updateWidthControls(Math.min(50, slotWidth + 0.1)));
     document.getElementById('btn-width-minus').addEventListener('click', () => updateWidthControls(Math.max(1, slotWidth - 0.1)));
     
     // Sincronizzazione controlli altezza
@@ -1062,8 +1062,8 @@
     
     document.getElementById('slot-rotation').addEventListener('input', (e) => updateRotationControls(e.target.value));
     document.getElementById('slot-rotation-input').addEventListener('input', (e) => updateRotationControls(e.target.value));
-    document.getElementById('btn-rotation-plus').addEventListener('click', () => updateRotationControls(slotRotation + 0.1));
-    document.getElementById('btn-rotation-minus').addEventListener('click', () => updateRotationControls(slotRotation - 0.1));
+    document.getElementById('btn-rotation-plus').addEventListener('click', () => updateRotationControls(Math.min(360, slotRotation + 1)));
+    document.getElementById('btn-rotation-minus').addEventListener('click', () => updateRotationControls(Math.max(0, slotRotation - 1)));
     
     // Funzione per aggiornare posteggio temporaneo
     function updateTempSlot() {
