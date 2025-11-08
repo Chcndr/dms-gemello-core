@@ -1155,7 +1155,7 @@
       console.log(`📐 Dimensioni pixel: ${iconWidth}px × ${iconHeight}px`);
       tempSlot.marker.setIcon(L.divIcon({
         className: 'slot-marker temp-slot',
-        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px;">${number}</div>`,
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg); transform-origin: center center;">${number}</div>`,
         iconSize: [iconWidth, iconHeight],
         iconAnchor: [iconWidth / 2, iconHeight / 2]
       }));
@@ -1163,17 +1163,7 @@
       // Ripristina posizione (setIcon può spostarla)
       tempSlot.marker.setLatLng(currentLatLng);
       
-      // Applica rotazione all'elemento DOM (usa requestAnimationFrame per sincronizzare)
-      requestAnimationFrame(() => {
-        const icon = tempSlot.marker.getElement();
-        if (icon) {
-          icon.style.transform = `rotate(${slotRotation}deg)`;
-          icon.style.transformOrigin = 'center center';
-          console.log(`🔄 Rotazione ${slotRotation}° applicata a posteggio temporaneo`);
-        } else {
-          console.warn('⚠️ Elemento DOM posteggio temporaneo non trovato!');
-        }
-      });
+      console.log(`🔄 Posteggio temporaneo aggiornato: ${iconWidth}px × ${iconHeight}px, rotation=${slotRotation}°`);
       
       tempSlot.width = slotWidth;
       tempSlot.height = slotHeight;
@@ -1211,24 +1201,14 @@
       const marker = L.marker(e.latlng, {
         icon: L.divIcon({
           className: 'slot-marker temp-slot',
-          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px;">${number}</div>`,
+          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg); transform-origin: center center;">${number}</div>`,
           iconSize: [iconWidth, iconHeight],
           iconAnchor: [iconWidth / 2, iconHeight / 2]
         }),
         draggable: true
       }).addTo(map);
       
-      // Applica rotazione (usa requestAnimationFrame)
-      requestAnimationFrame(() => {
-        const icon = marker.getElement();
-        if (icon) {
-          icon.style.transform = `rotate(${slotRotation}deg)`;
-          icon.style.transformOrigin = 'center center';
-          console.log(`🟡 Rotazione ${slotRotation}° applicata a nuovo posteggio`);
-        } else {
-          console.warn('⚠️ Elemento DOM nuovo posteggio non trovato!');
-        }
-      });
+      console.log(`🟡 Nuovo posteggio creato: ${iconWidth}px × ${iconHeight}px, rotation=${slotRotation}°`);
       
       // Aggiorna posizione quando viene trascinato
       marker.on('dragend', function() {
@@ -1280,22 +1260,12 @@
       
       tempSlot.marker.setIcon(L.divIcon({
         className: 'slot-marker',
-        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px;">${tempSlot.number}</div>`,
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg); transform-origin: center center;">${tempSlot.number}</div>`,
         iconSize: [iconWidth, iconHeight],
         iconAnchor: [iconWidth / 2, iconHeight / 2]
       }));
       
-      // Applica rotazione all'elemento DOM (come pianta!) - usa requestAnimationFrame
-      requestAnimationFrame(() => {
-        const icon = tempSlot.marker.getElement();
-        if (icon) {
-          icon.style.transform = `rotate(${tempSlot.rotation}deg)`;
-          icon.style.transformOrigin = 'center center';
-          console.log(`✅ Rotazione ${tempSlot.rotation}° applicata a posteggio verde #${tempSlot.number}`);
-        } else {
-          console.warn(`⚠️ Elemento DOM posteggio verde #${tempSlot.number} non trovato!`);
-        }
-      });
+      console.log(`✅ Posteggio verde #${tempSlot.number} fissato con rotazione ${tempSlot.rotation}°`);
       
       // Disabilita drag
       tempSlot.marker.dragging.disable();
