@@ -493,16 +493,46 @@
       const baseZoom = 17;
       const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, zoom - baseZoom)));
       
+      console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px (${slots.length} posteggi)`);
+      
       // Aggiorna tutti i tooltip dei posteggi
       slots.forEach(slot => {
-        if (slot.tooltip) {
-          slot.tooltip.setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${slot.number}</div>`);
+        if (slot.polygon && slot.tooltip) {
+          // Chiudi e rimuovi tooltip vecchio
+          slot.polygon.unbindTooltip();
+          map.closeTooltip(slot.tooltip);
+          
+          // Crea nuovo tooltip con font size aggiornato
+          const newTooltip = L.tooltip({
+            permanent: true,
+            direction: 'center',
+            className: 'slot-number-label',
+            offset: [0, 0]
+          })
+          .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${slot.number}</div>`)
+          .setLatLng({ lat: slot.lat, lng: slot.lng });
+          
+          slot.polygon.bindTooltip(newTooltip).openTooltip();
+          slot.tooltip = newTooltip;
         }
       });
       
       // Aggiorna tooltip temporaneo se esiste
-      if (tempSlot && tempSlot.tooltip) {
-        tempSlot.tooltip.setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${tempSlot.number}</div>`);
+      if (tempSlot && tempSlot.polygon && tempSlot.tooltip) {
+        tempSlot.polygon.unbindTooltip();
+        map.closeTooltip(tempSlot.tooltip);
+        
+        const newTooltip = L.tooltip({
+          permanent: true,
+          direction: 'center',
+          className: 'slot-number-label',
+          offset: [0, 0]
+        })
+        .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${tempSlot.number}</div>`)
+        .setLatLng({ lat: tempSlot.lat, lng: tempSlot.lng });
+        
+        tempSlot.polygon.bindTooltip(newTooltip).openTooltip();
+        tempSlot.tooltip = newTooltip;
       }
     });
     
@@ -664,7 +694,7 @@
               color: '#4CAF50',
               weight: 2,
               fillColor: '#4CAF50',
-              fillOpacity: 0.6,
+              fillOpacity: 0.9,
               className: 'fixed-slot'
             }).addTo(map);
             
@@ -740,18 +770,26 @@
         [center.lat - latOffset, center.lng - lngOffset]  // bottom-left
       ];
       
-      // Applica rotazione
+      // Applica rotazione (compensando proiezione Mercatore)
       if (rotation !== 0) {
         const rad = rotation * Math.PI / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
         
+        // Fattore di compensazione Mercatore alla latitudine corrente
+        const mercatorFactor = Math.cos(center.lat * Math.PI / 180);
+        
         return corners.map(([lat, lng]) => {
           const dLat = lat - center.lat;
-          const dLng = lng - center.lng;
+          const dLng = (lng - center.lng) * mercatorFactor; // Scala lng per compensare
+          
+          // Ruota in spazio "piatto"
+          const rotatedLat = dLat * cos - dLng * sin;
+          const rotatedLng = (dLat * sin + dLng * cos) / mercatorFactor; // Descala lng
+          
           return [
-            center.lat + (dLat * cos - dLng * sin),
-            center.lng + (dLat * sin + dLng * cos)
+            center.lat + rotatedLat,
+            center.lng + rotatedLng
           ];
         });
       }
@@ -776,18 +814,26 @@
         [center.lat - latOffset, center.lng - lngOffset]  // bottom-left
       ];
       
-      // Applica rotazione
+      // Applica rotazione (compensando proiezione Mercatore)
       if (rotation !== 0) {
         const rad = rotation * Math.PI / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
         
+        // Fattore di compensazione Mercatore alla latitudine corrente
+        const mercatorFactor = Math.cos(center.lat * Math.PI / 180);
+        
         return corners.map(([lat, lng]) => {
           const dLat = lat - center.lat;
-          const dLng = lng - center.lng;
+          const dLng = (lng - center.lng) * mercatorFactor; // Scala lng per compensare
+          
+          // Ruota in spazio "piatto"
+          const rotatedLat = dLat * cos - dLng * sin;
+          const rotatedLng = (dLat * sin + dLng * cos) / mercatorFactor; // Descala lng
+          
           return [
-            center.lat + (dLat * cos - dLng * sin),
-            center.lng + (dLat * sin + dLng * cos)
+            center.lat + rotatedLat,
+            center.lng + rotatedLng
           ];
         });
       }
@@ -1334,7 +1380,7 @@
         color: '#ff8800',
         weight: 2,
         fillColor: '#ffa500',
-        fillOpacity: 0.6,
+        fillOpacity: 0.9,
         className: 'temp-slot'
       }).addTo(map);
       
@@ -1401,7 +1447,7 @@
         color: '#ff8800',
         weight: 2,
         fillColor: '#ffa500',
-        fillOpacity: 0.6,
+        fillOpacity: 0.9,
         className: 'temp-slot'
       }).addTo(map);
       
@@ -1474,7 +1520,7 @@
         color: '#4CAF50',
         weight: 2,
         fillColor: '#4CAF50',
-        fillOpacity: 0.6,
+        fillOpacity: 0.9,
         className: 'fixed-slot'
       }).addTo(map);
       
