@@ -202,6 +202,14 @@
       box-shadow: none !important;
       padding: 0 !important;
       margin: 0 !important;
+      transform: translate(-50%, -50%) !important;
+      left: 50% !important;
+      top: 50% !important;
+    }
+    
+    .slot-number-label div {
+      text-align: center !important;
+      line-height: 1 !important;
     }
     
     .slot-number-label::before {
@@ -615,10 +623,10 @@
     function updateTooltipFontSize() {
       try {
         const zoom = map.getZoom();
-        // Calcola font size in base allo zoom (zoom 17 = 14px, scala proporzionalmente)
-        const baseFontSize = 14;
+        // Calcola font size in base allo zoom (zoom 17 = 16px, scala proporzionalmente)
+        const baseFontSize = 16;
         const baseZoom = 17;
-        const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, zoom - baseZoom)));
+        const fontSize = Math.max(10, Math.min(35, baseFontSize * Math.pow(1.25, zoom - baseZoom)));
         
         console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px`);
         
@@ -882,9 +890,9 @@
             
             // Aggiungi tooltip con numero (con font-size basato su zoom corrente)
             const currentZoom = map.getZoom();
-            const baseFontSize = 14;
+            const baseFontSize = 16;
             const baseZoom = 17;
-            const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, currentZoom - baseZoom)));
+            const fontSize = Math.max(10, Math.min(35, baseFontSize * Math.pow(1.25, currentZoom - baseZoom)));
             
             const tooltip = L.tooltip({
               permanent: true,
@@ -977,9 +985,9 @@
               
               // Aggiungi tooltip con font-size basato su zoom corrente
               const currentZoom = map.getZoom();
-              const baseFontSize = 14;
+              const baseFontSize = 16;
               const baseZoom = 17;
-              const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, currentZoom - baseZoom)));
+              const fontSize = Math.max(10, Math.min(35, baseFontSize * Math.pow(1.25, currentZoom - baseZoom)));
               
               const tooltip = L.tooltip({
                 permanent: true,
@@ -1886,9 +1894,9 @@
       
       // Aggiungi tooltip permanente con numero (con font-size basato su zoom corrente)
       const currentZoom = map.getZoom();
-      const baseFontSize = 14;
+      const baseFontSize = 16;
       const baseZoom = 17;
-      const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, currentZoom - baseZoom)));
+      const fontSize = Math.max(10, Math.min(35, baseFontSize * Math.pow(1.25, currentZoom - baseZoom)));
       
       const greenTooltip = L.tooltip({
         permanent: true,
