@@ -56,6 +56,33 @@
     input[type="range"] {
       padding: 0;
       height: 30px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #2196F3 0%, #2196F3 var(--value, 0%), #1a4a5a var(--value, 0%), #1a4a5a 100%);
+      outline: none;
+    }
+    
+    /* Thumb per Safari/Chrome */
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+    
+    /* Thumb per Firefox */
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 2px rgba(0,0,0,0.5);
     }
     
     label { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
