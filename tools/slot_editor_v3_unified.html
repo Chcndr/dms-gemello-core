@@ -892,7 +892,7 @@
               className: 'slot-number-label',
               offset: [0, 0]
             })
-            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${number}</div>`)
+            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
             .setLatLng(center);
             
             polygon.bindTooltip(tooltip).openTooltip();
@@ -937,6 +937,11 @@
           updateSlotList();
           console.log(`✅ ${slots.length} posteggi caricati dal BUS`);
           document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi caricati dal BUS`;
+          
+          // Forza aggiornamento font-size tooltip
+          setTimeout(() => {
+            updateTooltipFontSize();
+          }, 100);
         }
       } catch (err) {
         console.error('❌ Errore caricamento BUS:', err);
@@ -982,7 +987,7 @@
                 className: 'slot-number-label',
                 offset: [0, 0]
               })
-              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${number}</div>`)
+              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
               .setLatLng(center);
               
               polygon.bindTooltip(tooltip).openTooltip();
@@ -1028,10 +1033,10 @@
             console.log(`✅ ${slots.length} posteggi caricati da localStorage`);
             document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi caricati da localStorage`;
             
-            // Aggiorna font-size tooltip in base allo zoom corrente
+            // Forza aggiornamento font-size tooltip
             setTimeout(() => {
               updateTooltipFontSize();
-            }, 200);
+            }, 100);
           } else {
             console.log('⚠️ Nessun posteggio salvato in localStorage');
           }
@@ -1683,8 +1688,8 @@
       polygon.off('mousedown');
       
       polygon.on('mousedown', (e) => {
-        isDragging = true;
-        dragStartLatLng = e.latlng;
+        slotIsDragging = true;
+        slotDragStartLatLng = e.latlng;
         map.dragging.disable(); // Disabilita drag mappa
         L.DomEvent.stopPropagation(e); // Evita propagazione
       });
@@ -1891,12 +1896,17 @@
         className: 'slot-number-label',
         offset: [0, 0]
       })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${tempSlot.number}</div>`)
+      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${tempSlot.number}</div>`)
       .setLatLng(currentCenter);
       
       greenPolygon.bindTooltip(greenTooltip).openTooltip();
       
-      console.log(`🔢 Tooltip verde creato con fontSize ${fontSize.toFixed(1)}px (zoom ${currentZoom})`);
+      // Forza aggiornamento font-size basato su zoom corrente
+      setTimeout(() => {
+        updateTooltipFontSize();
+      }, 50);
+      
+      console.log(`🔢 Tooltip verde creato, fontSize verrà impostato da updateTooltipFontSize()`);
       
       // Aggiungi popup con informazioni complete
       const popupContent = `
