@@ -1099,6 +1099,9 @@
       const keepDim = document.getElementById('keep-dimensions').checked;
       const number = document.getElementById('slot-number').value;
       
+      // Salva posizione corrente
+      const currentLatLng = tempSlot.marker.getLatLng();
+      
       // Aggiorna icona con rotazione dal centro
       const iconWidth = keepDim ? 30 : slotWidth * 5;
       const iconHeight = keepDim ? 50 : slotHeight * 5;
@@ -1108,6 +1111,9 @@
         iconSize: [iconWidth, iconHeight],
         iconAnchor: [iconWidth / 2, iconHeight / 2]
       }));
+      
+      // Ripristina posizione (setIcon può spostarla)
+      tempSlot.marker.setLatLng(currentLatLng);
       
       // Applica rotazione all'elemento DOM
       setTimeout(() => {
