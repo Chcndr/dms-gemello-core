@@ -1148,14 +1148,7 @@
       // Salva posizione corrente
       const currentLatLng = tempSlot.marker.getLatLng();
       
-      // RIMUOVI vecchio elemento DOM per evitare duplicati
-      const oldIcon = tempSlot.marker.getElement();
-      if (oldIcon && oldIcon.parentNode) {
-        oldIcon.parentNode.removeChild(oldIcon);
-        console.log('🗑️ Vecchio elemento DOM rimosso');
-      }
-      
-      // Aggiorna icona con SCALA CORRETTA (come pianta)
+      // Aggiorna icona con SCALA CORRETTA (Leaflet gestisce automaticamente il DOM)
       const iconWidth = keepDim ? 30 : slotWidth * meterToPixel;
       const iconHeight = keepDim ? 50 : slotHeight * meterToPixel;
       
