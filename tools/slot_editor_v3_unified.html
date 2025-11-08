@@ -954,12 +954,14 @@
     
     // Pulsanti +/- scala (0.1% alla volta per precisione)
     document.getElementById('btn-scale-minus').addEventListener('click', () => {
-      const newValue = Math.max(10, parseFloat(document.getElementById('plant-scale').value) - 0.1);
+      const currentValue = parseFloat(document.getElementById('plant-scale').value);
+      const newValue = Math.max(10, Math.round((currentValue - 0.1) * 10) / 10);
       updateScale(newValue);
     });
     
     document.getElementById('btn-scale-plus').addEventListener('click', () => {
-      const newValue = Math.min(400, parseFloat(document.getElementById('plant-scale').value) + 0.1);
+      const currentValue = parseFloat(document.getElementById('plant-scale').value);
+      const newValue = Math.min(400, Math.round((currentValue + 0.1) * 10) / 10);
       updateScale(newValue);
     });
     
@@ -1046,7 +1048,7 @@
     
     document.getElementById('slot-height').addEventListener('input', (e) => updateHeightControls(e.target.value));
     document.getElementById('slot-height-input').addEventListener('input', (e) => updateHeightControls(e.target.value));
-    document.getElementById('btn-height-plus').addEventListener('click', () => updateHeightControls(Math.min(20, slotHeight + 0.1)));
+    document.getElementById('btn-height-plus').addEventListener('click', () => updateHeightControls(Math.min(50, slotHeight + 0.1)));
     document.getElementById('btn-height-minus').addEventListener('click', () => updateHeightControls(Math.max(1, slotHeight - 0.1)));
     
     // Sincronizzazione controlli rotazione
@@ -1071,12 +1073,23 @@
       const number = document.getElementById('slot-number').value;
       
       // Aggiorna icona con rotazione dal centro
+      const iconWidth = keepDim ? 30 : slotWidth * 5;
+      const iconHeight = keepDim ? 50 : slotHeight * 5;
       tempSlot.marker.setIcon(L.divIcon({
         className: 'slot-marker temp-slot',
-        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg);">${number}</div>`,
-        iconSize: [keepDim ? 30 : slotWidth * 5, keepDim ? 50 : slotHeight * 5],
-        iconAnchor: [keepDim ? 15 : slotWidth * 2.5, keepDim ? 25 : slotHeight * 2.5]
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px;">${number}</div>`,
+        iconSize: [iconWidth, iconHeight],
+        iconAnchor: [iconWidth / 2, iconHeight / 2]
       }));
+      
+      // Applica rotazione all'elemento DOM
+      setTimeout(() => {
+        const icon = tempSlot.marker.getElement();
+        if (icon) {
+          icon.style.transform = `rotate(${slotRotation}deg)`;
+          icon.style.transformOrigin = 'center center';
+        }
+      }, 10);
       
       tempSlot.width = slotWidth;
       tempSlot.height = slotHeight;
@@ -1106,16 +1119,27 @@
       const keepDim = document.getElementById('keep-dimensions').checked;
       const number = document.getElementById('slot-number').value;
       
-      // Crea marker posteggio TEMPORANEO (giallo)
+      // Crea marker posteggio TEMPORANEO (arancione)
+      const iconWidth = keepDim ? 30 : slotWidth * 5;
+      const iconHeight = keepDim ? 50 : slotHeight * 5;
       const marker = L.marker(e.latlng, {
         icon: L.divIcon({
           className: 'slot-marker temp-slot',
-          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg);">${number}</div>`,
-          iconSize: [keepDim ? 30 : slotWidth * 5, keepDim ? 50 : slotHeight * 5],
-          iconAnchor: [keepDim ? 15 : slotWidth * 2.5, keepDim ? 25 : slotHeight * 2.5]
+          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px;">${number}</div>`,
+          iconSize: [iconWidth, iconHeight],
+          iconAnchor: [iconWidth / 2, iconHeight / 2]
         }),
         draggable: true
       }).addTo(map);
+      
+      // Applica rotazione
+      setTimeout(() => {
+        const icon = marker.getElement();
+        if (icon) {
+          icon.style.transform = `rotate(${slotRotation}deg)`;
+          icon.style.transformOrigin = 'center center';
+        }
+      }, 10);
       
       // Aggiorna posizione quando viene trascinato
       marker.on('dragend', function() {
