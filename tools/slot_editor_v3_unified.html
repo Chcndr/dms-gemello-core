@@ -258,7 +258,9 @@
         </div>
         
         <button id="btn-center-plant" class="secondary">🎯 Centra Pianta sulla Mappa</button>
+        <button id="btn-save-plant-position" class="success" style="margin-top: 8px;">💾 Salva Posizione Pianta</button>
         <div class="info">Trascina la pianta per posizionarla</div>
+        <div id="plant-save-status" class="info" style="display: none; background: #4CAF50; color: white;"></div>
       </div>
       
       <!-- 3. Configura Posteggi -->
@@ -486,13 +488,43 @@
             URL.revokeObjectURL(img.src);
           };
           
-          const center = map.getCenter();
-          plantBounds = L.latLngBounds([
-            [center.lat + 0.002, center.lng - 0.002],
-            [center.lat - 0.002, center.lng + 0.002]
-          ]);
+          // Prova a caricare posizione salvata
+          const savedPosition = await DMSBUS.get('plant_position');
+          if (savedPosition && savedPosition.corners) {
+            // Ripristina posizione salvata
+            plantBounds = L.latLngBounds([
+              savedPosition.corners[0],
+              savedPosition.corners[2]
+            ]);
+            plantRotation = savedPosition.rotation || 0;
+            plantScale = savedPosition.scale || 1.0;
+            
+            // Aggiorna controlli UI
+            document.getElementById('plant-rotation').value = plantRotation;
+            document.getElementById('plant-rotation-input').value = plantRotation.toFixed(1);
+            document.getElementById('plant-rotation-value').textContent = plantRotation.toFixed(1) + '°';
+            
+            document.getElementById('plant-scale').value = plantScale * 100;
+            document.getElementById('plant-scale-input').value = (plantScale * 100).toFixed(1);
+            document.getElementById('plant-scale-value').textContent = (plantScale * 100).toFixed(1) + '%';
+            
+            if (savedPosition.opacity) {
+              document.getElementById('plant-opacity').value = savedPosition.opacity;
+              document.getElementById('plant-opacity-value').textContent = savedPosition.opacity + '%';
+            }
+            
+            document.getElementById('png-status').textContent = '✅ PNG e posizione ripristinati dal BUS';
+          } else {
+            // Posizione di default
+            const center = map.getCenter();
+            plantBounds = L.latLngBounds([
+              [center.lat + 0.002, center.lng - 0.002],
+              [center.lat - 0.002, center.lng + 0.002]
+            ]);
+            document.getElementById('png-status').textContent = '✅ PNG trasparente caricato dal BUS';
+          }
+          
           updatePlantOverlay();
-          document.getElementById('png-status').textContent = '✅ PNG trasparente caricato dal BUS';
           // DMSConsole.log('✅ PNG trasparente caricato dal BUS');
         } else {
           // DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
@@ -942,6 +974,41 @@
       }
       map.setView([42.7589, 11.1135], 17);
       updatePlantOverlay();
+    });
+    
+    // Salva posizione pianta nel BUS
+    document.getElementById('btn-save-plant-position').addEventListener('click', async () => {
+      if (!plantBounds) {
+        alert('⚠️ Posiziona prima la pianta sulla mappa!');
+        return;
+      }
+      
+      try {
+        const plantPosition = {
+          corners: [
+            [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
+            [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
+            [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
+            [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
+          ],
+          rotation: plantRotation,
+          scale: plantScale,
+          opacity: parseInt(document.getElementById('plant-opacity').value),
+          timestamp: new Date().toISOString()
+        };
+        
+        await DMSBUS.set('plant_position', plantPosition);
+        
+        const status = document.getElementById('plant-save-status');
+        status.textContent = '✅ Posizione pianta salvata!';
+        status.style.display = 'block';
+        setTimeout(() => {
+          status.style.display = 'none';
+        }, 3000);
+        
+      } catch (err) {
+        alert('❌ Errore salvataggio: ' + err.message);
+      }
     });
     
     // Variabili per posteggio temporaneo
