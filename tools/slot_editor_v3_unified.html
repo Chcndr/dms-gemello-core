@@ -1110,6 +1110,13 @@
       // Salva posizione corrente
       const currentLatLng = tempSlot.marker.getLatLng();
       
+      // RIMUOVI vecchio elemento DOM per evitare duplicati
+      const oldIcon = tempSlot.marker.getElement();
+      if (oldIcon && oldIcon.parentNode) {
+        oldIcon.parentNode.removeChild(oldIcon);
+        console.log('🗑️ Vecchio elemento DOM rimosso');
+      }
+      
       // Aggiorna icona con SCALA CORRETTA (come pianta)
       const iconWidth = keepDim ? 30 : slotWidth * meterToPixel;
       const iconHeight = keepDim ? 50 : slotHeight * meterToPixel;
@@ -1125,14 +1132,17 @@
       // Ripristina posizione (setIcon può spostarla)
       tempSlot.marker.setLatLng(currentLatLng);
       
-      // Applica rotazione all'elemento DOM
-      setTimeout(() => {
+      // Applica rotazione all'elemento DOM (usa requestAnimationFrame per sincronizzare)
+      requestAnimationFrame(() => {
         const icon = tempSlot.marker.getElement();
         if (icon) {
           icon.style.transform = `rotate(${slotRotation}deg)`;
           icon.style.transformOrigin = 'center center';
+          console.log(`🔄 Rotazione ${slotRotation}° applicata a posteggio temporaneo`);
+        } else {
+          console.warn('⚠️ Elemento DOM posteggio temporaneo non trovato!');
         }
-      }, 10);
+      });
       
       tempSlot.width = slotWidth;
       tempSlot.height = slotHeight;
@@ -1177,14 +1187,17 @@
         draggable: true
       }).addTo(map);
       
-      // Applica rotazione
-      setTimeout(() => {
+      // Applica rotazione (usa requestAnimationFrame)
+      requestAnimationFrame(() => {
         const icon = marker.getElement();
         if (icon) {
           icon.style.transform = `rotate(${slotRotation}deg)`;
           icon.style.transformOrigin = 'center center';
+          console.log(`🟡 Rotazione ${slotRotation}° applicata a nuovo posteggio`);
+        } else {
+          console.warn('⚠️ Elemento DOM nuovo posteggio non trovato!');
         }
-      }, 10);
+      });
       
       // Aggiorna posizione quando viene trascinato
       marker.on('dragend', function() {
@@ -1241,15 +1254,17 @@
         iconAnchor: [iconWidth / 2, iconHeight / 2]
       }));
       
-      // Applica rotazione all'elemento DOM (come pianta!)
-      setTimeout(() => {
+      // Applica rotazione all'elemento DOM (come pianta!) - usa requestAnimationFrame
+      requestAnimationFrame(() => {
         const icon = tempSlot.marker.getElement();
         if (icon) {
           icon.style.transform = `rotate(${tempSlot.rotation}deg)`;
           icon.style.transformOrigin = 'center center';
-          console.log(`✅ Rotazione ${tempSlot.rotation}° applicata a posteggio #${tempSlot.number}`);
+          console.log(`✅ Rotazione ${tempSlot.rotation}° applicata a posteggio verde #${tempSlot.number}`);
+        } else {
+          console.warn(`⚠️ Elemento DOM posteggio verde #${tempSlot.number} non trovato!`);
         }
-      }, 10);
+      });
       
       // Disabilita drag
       tempSlot.marker.dragging.disable();
