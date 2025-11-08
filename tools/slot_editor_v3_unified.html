@@ -1675,8 +1675,8 @@
     document.getElementById('btn-slot-rotation-minus').addEventListener('click', () => updateRotationControls(Math.max(0, slotRotation - 1)));
     
     // Funzione per abilitare dragging su un polygon
-    let isDragging = false;
-    let dragStartLatLng = null;
+    let slotIsDragging = false;
+    let slotDragStartLatLng = null;
     
     function setupDragging(polygon) {
       // Rimuovi vecchi listener se esistono
@@ -1692,15 +1692,15 @@
     
     // Listener globali per mousemove e mouseup
     map.on('mousemove', (e) => {
-      if (isDragging && tempSlot) {
+      if (slotIsDragging && tempSlot) {
         // Calcola offset
-        const dLat = e.latlng.lat - dragStartLatLng.lat;
-        const dLng = e.latlng.lng - dragStartLatLng.lng;
+        const dLat = e.latlng.lat - slotDragStartLatLng.lat;
+        const dLng = e.latlng.lng - slotDragStartLatLng.lng;
         
         // Aggiorna posizione centro
         tempSlot.lat += dLat;
         tempSlot.lng += dLng;
-        dragStartLatLng = e.latlng;
+        slotDragStartLatLng = e.latlng;
         
         // Ricalcola corner
         const newCenter = { lat: tempSlot.lat, lng: tempSlot.lng };
@@ -1712,8 +1712,8 @@
     });
     
     map.on('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
+      if (slotIsDragging) {
+        slotIsDragging = false;
         map.dragging.enable(); // Riabilita drag mappa
       }
     });
