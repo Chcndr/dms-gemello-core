@@ -297,26 +297,26 @@
         <div class="slider-container">
           <div class="slider-label">
             <span>Larghezza (m):</span>
-            <span id="slot-width-value">3.0m</span>
+            <span id="slot-width-value">2.5m</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button id="btn-width-minus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">−</button>
-            <input type="range" id="slot-width" min="1" max="50" value="3" step="0.1" style="flex: 1; min-width: 0;" />
+            <input type="range" id="slot-width" min="1" max="50" value="2.5" step="0.1" style="flex: 1; min-width: 0;" />
             <button id="btn-width-plus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">+</button>
-            <input type="number" id="slot-width-input" value="3.0" min="1" max="50" step="0.1" style="width: 60px;" />
+            <input type="number" id="slot-width-input" value="2.5" min="1" max="50" step="0.1" style="width: 60px;" />
           </div>
         </div>
         
         <div class="slider-container">
           <div class="slider-label">
             <span>Altezza (m):</span>
-            <span id="slot-height-value">6.0m</span>
+            <span id="slot-height-value">5.0m</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button id="btn-height-minus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">−</button>
-            <input type="range" id="slot-height" min="1" max="50" value="6" step="0.1" style="flex: 1; min-width: 0;" />
+            <input type="range" id="slot-height" min="1" max="50" value="5.0" step="0.1" style="flex: 1; min-width: 0;" />
             <button id="btn-height-plus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">+</button>
-            <input type="number" id="slot-height-input" value="6.0" min="1" max="50" step="0.1" style="width: 60px;" />
+            <input type="number" id="slot-height-input" value="5.0" min="1" max="50" step="0.1" style="width: 60px;" />
           </div>
         </div>
         
@@ -1084,12 +1084,12 @@
     
     // Variabili per posteggio temporaneo
     let tempSlot = null;
-    let slotWidth = 3.0;
-    let slotHeight = 6.0;
+    let slotWidth = 2.5;  // Larghezza standard posteggio auto
+    let slotHeight = 5.0; // Lunghezza standard posteggio auto
     
-    // Scala conversione metri → pixel (ridotta per posteggi visibili)
-    // Nota: 156.543 era troppo grande (3m = 469px!), usiamo scala più piccola
-    const meterToPixel = 25; // 3m × 25 = 75px (ragionevole per posteggi)
+    // Scala conversione metri → pixel (calibrata per posteggi visibili)
+    // 2.5m × 10 = 25px (piccolo ma visibile)
+    const meterToPixel = 10;
     
     // Sincronizzazione controlli larghezza
     function updateWidthControls(value) {
