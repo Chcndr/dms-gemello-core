@@ -1139,10 +1139,10 @@
       map.getContainer().style.cursor = addMode ? 'crosshair' : '';
     });
     
-    // Click sulla mappa per aggiungere posteggio
+    // Click sulla mappa per aggiungere posteggio/marker/area
     map.on('click', (e) => {
-      if (!addMode || tempSlot) return; // Ignora se c'è già un posteggio temporaneo
-      
+      // Gestione posteggi
+      if (addMode && !tempSlot) {
       const keepDim = document.getElementById('keep-dimensions').checked;
       const number = document.getElementById('slot-number').value;
       
@@ -1189,6 +1189,20 @@
       document.getElementById('btn-confirm-slot').style.display = 'block';
       
       // DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
+        return; // Evita altri handler
+      }
+      
+      // Gestione marker
+      if (markerMode) {
+        addCustomMarker(e.latlng);
+        return;
+      }
+      
+      // Gestione aree
+      if (areaDrawingMode) {
+        addAreaVertex(e.latlng);
+        return;
+      }
     });
     
     // Pulsante Fissa Posteggio
@@ -1298,20 +1312,7 @@
       }
     });
     
-    // Click mappa per aggiungere marker
-    map.on('click', (e) => {
-      // Gestione marker
-      if (markerMode) {
-        addCustomMarker(e.latlng);
-        return;
-      }
-      
-      // Gestione aree
-      if (areaDrawingMode) {
-        addAreaVertex(e.latlng);
-        return;
-      }
-    });
+
     
     // Funzione per aggiungere marker personalizzabile
     function addCustomMarker(latlng) {
