@@ -880,14 +880,19 @@
               pane: 'slotsPane'
             }).addTo(map);
             
-            // Aggiungi tooltip con numero
+            // Aggiungi tooltip con numero (con font-size basato su zoom corrente)
+            const currentZoom = map.getZoom();
+            const baseFontSize = 14;
+            const baseZoom = 17;
+            const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, currentZoom - baseZoom)));
+            
             const tooltip = L.tooltip({
               permanent: true,
               direction: 'center',
               className: 'slot-number-label',
               offset: [0, 0]
             })
-            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
+            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${number}</div>`)
             .setLatLng(center);
             
             polygon.bindTooltip(tooltip).openTooltip();
@@ -965,14 +970,19 @@
                 pane: 'slotsPane'
               }).addTo(map);
               
-              // Aggiungi tooltip
+              // Aggiungi tooltip con font-size basato su zoom corrente
+              const currentZoom = map.getZoom();
+              const baseFontSize = 14;
+              const baseZoom = 17;
+              const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, currentZoom - baseZoom)));
+              
               const tooltip = L.tooltip({
                 permanent: true,
                 direction: 'center',
                 className: 'slot-number-label',
                 offset: [0, 0]
               })
-              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
+              .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${number}</div>`)
               .setLatLng(center);
               
               polygon.bindTooltip(tooltip).openTooltip();
@@ -1664,6 +1674,50 @@
     document.getElementById('btn-slot-rotation-plus').addEventListener('click', () => updateRotationControls(Math.min(360, slotRotation + 1)));
     document.getElementById('btn-slot-rotation-minus').addEventListener('click', () => updateRotationControls(Math.max(0, slotRotation - 1)));
     
+    // Funzione per abilitare dragging su un polygon
+    let isDragging = false;
+    let dragStartLatLng = null;
+    
+    function setupDragging(polygon) {
+      // Rimuovi vecchi listener se esistono
+      polygon.off('mousedown');
+      
+      polygon.on('mousedown', (e) => {
+        isDragging = true;
+        dragStartLatLng = e.latlng;
+        map.dragging.disable(); // Disabilita drag mappa
+        L.DomEvent.stopPropagation(e); // Evita propagazione
+      });
+    }
+    
+    // Listener globali per mousemove e mouseup
+    map.on('mousemove', (e) => {
+      if (isDragging && tempSlot) {
+        // Calcola offset
+        const dLat = e.latlng.lat - dragStartLatLng.lat;
+        const dLng = e.latlng.lng - dragStartLatLng.lng;
+        
+        // Aggiorna posizione centro
+        tempSlot.lat += dLat;
+        tempSlot.lng += dLng;
+        dragStartLatLng = e.latlng;
+        
+        // Ricalcola corner
+        const newCenter = { lat: tempSlot.lat, lng: tempSlot.lng };
+        const newCorners = calculateSlotBounds(newCenter, tempSlot.width, tempSlot.height, tempSlot.rotation);
+        
+        // Aggiorna polygon
+        tempSlot.polygon.setLatLngs(newCorners);
+      }
+    });
+    
+    map.on('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        map.dragging.enable(); // Riabilita drag mappa
+      }
+    });
+    
     // Funzione per aggiornare posteggio temporaneo
     function updateTempSlot() {
       if (!tempSlot) {
@@ -1697,27 +1751,20 @@
         pane: 'slotsPane'
       }).addTo(map);
       
-      // RICREA tooltip con numero
-      const newTooltip = L.tooltip({
-        permanent: true,
-        direction: 'center',
-        className: 'slot-number-label',
-        offset: [0, 0]
-      })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
-      .setLatLng(currentCenter);
-      
-      newPolygon.bindTooltip(newTooltip).openTooltip();
+      // NON ricrea tooltip (posteggio arancione temporaneo senza numero)
       
       console.log(`🔄 Polygon geografico aggiornato: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
       
       // Aggiorna riferimento
       tempSlot.polygon = newPolygon;
-      tempSlot.tooltip = newTooltip;
+      tempSlot.tooltip = null;  // Nessun tooltip per posteggio temporaneo
       tempSlot.width = slotWidth;
       tempSlot.height = slotHeight;
       tempSlot.rotation = slotRotation;
       tempSlot.number = parseInt(number);
+      
+      // Ri-abilita dragging sul nuovo polygon
+      setupDragging(newPolygon);
     }
     
     // Modalità aggiungi posteggio
@@ -1765,18 +1812,8 @@
         pane: 'slotsPane'
       }).addTo(map);
       
-      // Aggiungi tooltip permanente con numero al centro
-      const center = polygon.getBounds().getCenter();
-      const tooltip = L.tooltip({
-        permanent: true,
-        direction: 'center',
-        className: 'slot-number-label',
-        offset: [0, 0]
-      })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${number}</div>`)
-      .setLatLng(center);
-      
-      polygon.bindTooltip(tooltip).openTooltip();
+      // NON aggiungiamo tooltip al posteggio arancione (temporaneo)
+      // Il numero apparirà solo quando fissi (verde)
       
       console.log(`🟡 Polygon geografico creato: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
       
@@ -1788,54 +1825,11 @@
         height: slotHeight,
         rotation: slotRotation,
         polygon: polygon,
-        tooltip: tooltip
+        tooltip: null  // Nessun tooltip per posteggio temporaneo
       };
       
-      // Aggiorna font-size tooltip
-      setTimeout(() => {
-        updateTooltipFontSize();
-      }, 100);
-      
-      // Implementa dragging manuale per polygon
-      let isDragging = false;
-      let dragStartLatLng = null;
-      
-      polygon.on('mousedown', (e) => {
-        isDragging = true;
-        dragStartLatLng = e.latlng;
-        map.dragging.disable(); // Disabilita drag mappa
-        L.DomEvent.stopPropagation(e); // Evita propagazione
-      });
-      
-      map.on('mousemove', (e) => {
-        if (isDragging && tempSlot) {
-          // Calcola offset
-          const dLat = e.latlng.lat - dragStartLatLng.lat;
-          const dLng = e.latlng.lng - dragStartLatLng.lng;
-          
-          // Aggiorna posizione centro
-          tempSlot.lat += dLat;
-          tempSlot.lng += dLng;
-          dragStartLatLng = e.latlng;
-          
-          // Ricalcola corner
-          const newCenter = { lat: tempSlot.lat, lng: tempSlot.lng };
-          const newCorners = calculateSlotBounds(newCenter, tempSlot.width, tempSlot.height, tempSlot.rotation);
-          
-          // Aggiorna polygon
-          tempSlot.polygon.setLatLngs(newCorners);
-          
-          // Aggiorna tooltip
-          tempSlot.tooltip.setLatLng(newCenter);
-        }
-      });
-      
-      map.on('mouseup', () => {
-        if (isDragging) {
-          isDragging = false;
-          map.dragging.enable(); // Riabilita drag mappa
-        }
-      });
+      // Abilita dragging per il posteggio temporaneo
+      setupDragging(polygon);
       
       // Mostra pulsante Fissa
       // Pulsante sempre visibile
@@ -1885,17 +1879,24 @@
         pane: 'slotsPane'
       }).addTo(map);
       
-      // Aggiungi tooltip permanente con numero
+      // Aggiungi tooltip permanente con numero (con font-size basato su zoom corrente)
+      const currentZoom = map.getZoom();
+      const baseFontSize = 14;
+      const baseZoom = 17;
+      const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, currentZoom - baseZoom)));
+      
       const greenTooltip = L.tooltip({
         permanent: true,
         direction: 'center',
         className: 'slot-number-label',
         offset: [0, 0]
       })
-      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${tempSlot.number}</div>`)
+      .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${tempSlot.number}</div>`)
       .setLatLng(currentCenter);
       
       greenPolygon.bindTooltip(greenTooltip).openTooltip();
+      
+      console.log(`🔢 Tooltip verde creato con fontSize ${fontSize.toFixed(1)}px (zoom ${currentZoom})');
       
       // Aggiungi popup con informazioni complete
       const popupContent = `
