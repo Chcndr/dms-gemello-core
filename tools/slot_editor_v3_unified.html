@@ -1285,7 +1285,7 @@
       // RICREA marker verde con dimensioni e rotazione corrette
       const greenMarker = L.marker(currentLatLng, {
         icon: L.divIcon({
-          className: 'slot-marker',
+          className: 'fixed-slot',
           html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg); transform-origin: center center;">${tempSlot.number}</div>`,
           iconSize: [iconWidth, iconHeight],
           iconAnchor: [iconWidth / 2, iconHeight / 2]
