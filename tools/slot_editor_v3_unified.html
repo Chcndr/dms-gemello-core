@@ -243,9 +243,9 @@
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button id="btn-scale-minus" class="secondary" style="width: 40px; padding: 8px;">−</button>
-            <input type="range" id="plant-scale" min="1" max="40" value="10" step="0.1" style="flex: 1;" />
+            <input type="range" id="plant-scale" min="10" max="400" value="100" step="1" style="flex: 1;" />
             <button id="btn-scale-plus" class="secondary" style="width: 40px; padding: 8px;">+</button>
-            <input type="number" id="plant-scale-input" min="1" max="40" value="10.0" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
+            <input type="number" id="plant-scale-input" min="10" max="400" value="100" step="1" style="width: 80px; padding: 4px; text-align: center;" />
           </div>
         </div>
         
@@ -504,13 +504,18 @@
             document.getElementById('plant-rotation-input').value = plantRotation.toFixed(1);
             document.getElementById('plant-rotation-value').textContent = plantRotation.toFixed(1) + '°';
             
-            document.getElementById('plant-scale').value = plantScale * 10;
-            document.getElementById('plant-scale-input').value = (plantScale * 10).toFixed(1);
-            document.getElementById('plant-scale-value').textContent = (plantScale * 1000).toFixed(0) + '%';
+            document.getElementById('plant-scale').value = plantScale * 100;
+            document.getElementById('plant-scale-input').value = (plantScale * 100).toFixed(0);
+            document.getElementById('plant-scale-value').textContent = (plantScale * 100).toFixed(0) + '%';
             
             if (savedPosition.opacity) {
               document.getElementById('plant-opacity').value = savedPosition.opacity;
               document.getElementById('plant-opacity-value').textContent = savedPosition.opacity + '%';
+            }
+            
+            // Applica rotazione salvata
+            if (plantRotation > 0) {
+              await updateRotation(plantRotation);
             }
             
             document.getElementById('png-status').textContent = '✅ PNG e posizione ripristinati dal BUS';
@@ -929,8 +934,8 @@
     
     // Funzione per aggiornare scala
     function updateScale(value) {
-      plantScale = parseFloat(value) / 10; // Converti da percentuale (1-40) a scala (0.1-4.0)
-      const displayValue = parseFloat(value * 10).toFixed(0); // Mostra come percentuale
+      plantScale = parseFloat(value) / 100; // Converti da percentuale (10-400) a scala (0.1-4.0)
+      const displayValue = parseFloat(value).toFixed(0); // Mostra come percentuale
       document.getElementById('plant-scale-value').textContent = displayValue + '%';
       document.getElementById('plant-scale').value = value;
       document.getElementById('plant-scale-input').value = value;
@@ -949,12 +954,12 @@
     
     // Pulsanti +/- scala (1% alla volta)
     document.getElementById('btn-scale-minus').addEventListener('click', () => {
-      const newValue = Math.max(1, parseFloat(document.getElementById('plant-scale').value) - 0.1);
+      const newValue = Math.max(10, parseFloat(document.getElementById('plant-scale').value) - 1);
       updateScale(newValue);
     });
     
     document.getElementById('btn-scale-plus').addEventListener('click', () => {
-      const newValue = Math.min(40, parseFloat(document.getElementById('plant-scale').value) + 0.1);
+      const newValue = Math.min(400, parseFloat(document.getElementById('plant-scale').value) + 1);
       updateScale(newValue);
     });
     
