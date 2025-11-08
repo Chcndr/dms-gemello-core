@@ -25,7 +25,7 @@ const DMSConsole = {
           <div class="dms-console-actions">
             <button class="dms-console-btn" onclick="event.stopPropagation(); DMSConsole.clear()">🗑️</button>
             <button class="dms-console-btn" onclick="event.stopPropagation(); DMSConsole.copy()">📋</button>
-            <button class="dms-console-btn" id="dms-console-toggle-btn" onclick="event.stopPropagation(); DMSConsole.toggle()">▲</button>
+            <button class="dms-console-btn" id="dms-console-toggle-btn" onclick="event.stopPropagation(); DMSConsole.toggle()">Chiudi</button>
           </div>
         </div>
         <div class="dms-console-body">
@@ -50,7 +50,7 @@ const DMSConsole = {
     this.container.classList.toggle('collapsed');
     
     const btn = this.container.querySelector('.dms-console-actions button:last-child');
-    btn.textContent = this.isOpen ? '▲' : '▼';
+    btn.textContent = this.isOpen ? 'Chiudi' : 'Apri';
     
     console.log(`Console ${this.isOpen ? 'aperta' : 'chiusa'}`);
   },
