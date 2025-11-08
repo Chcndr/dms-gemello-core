@@ -1201,6 +1201,8 @@
     });
     
     // Click sulla mappa per aggiungere posteggio/marker/area
+    // IMPORTANTE: Rimuovi vecchi listener per evitare duplicati!
+    map.off('click');
     map.on('click', (e) => {
       // Gestione posteggi
       if (addMode && !tempSlot) {
@@ -1272,17 +1274,27 @@
       
       console.log(`🟢 Fissa posteggio #${tempSlot.number}: ${tempSlot.width}m × ${tempSlot.height}m = ${iconWidth}px × ${iconHeight}px, rotation=${tempSlot.rotation}°`);
       
-      tempSlot.marker.setIcon(L.divIcon({
-        className: 'slot-marker',
-        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg); transform-origin: center center;">${tempSlot.number}</div>`,
-        iconSize: [iconWidth, iconHeight],
-        iconAnchor: [iconWidth / 2, iconHeight / 2]
-      }));
+      // Salva posizione corrente
+      const currentLatLng = tempSlot.marker.getLatLng();
+      
+      // RIMUOVI completamente marker arancione (evita doppio posteggio!)
+      tempSlot.marker.remove();
+      
+      // RICREA marker verde con dimensioni e rotazione corrette
+      const greenMarker = L.marker(currentLatLng, {
+        icon: L.divIcon({
+          className: 'slot-marker',
+          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg); transform-origin: center center;">${tempSlot.number}</div>`,
+          iconSize: [iconWidth, iconHeight],
+          iconAnchor: [iconWidth / 2, iconHeight / 2]
+        }),
+        draggable: false  // Verde non è draggable
+      }).addTo(map);
       
       console.log(`✅ Posteggio verde #${tempSlot.number} fissato con rotazione ${tempSlot.rotation}°`);
       
-      // Disabilita drag
-      tempSlot.marker.dragging.disable();
+      // Aggiorna riferimento marker
+      tempSlot.marker = greenMarker;
       
       // Aggiorna posizione finale
       const pos = tempSlot.marker.getLatLng();
