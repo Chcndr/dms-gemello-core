@@ -517,14 +517,47 @@
           
           // Prova a caricare posizione salvata
           const savedPosition = await DMSBUS.getJSON('plant_position');
-          if (savedPosition && savedPosition.corners) {
-            // Ripristina posizione salvata
-            plantBounds = L.latLngBounds([
-              savedPosition.corners[0],
-              savedPosition.corners[2]
-            ]);
-            plantRotation = savedPosition.rotation || 0;
-            plantScale = savedPosition.scale || 1.0;
+          if (savedPosition) {
+            console.log('📞 Posizione salvata caricata:', savedPosition);
+            
+            // NUOVO: Usa centro + dimensioni originali (compatibile con vecchio formato)
+            if (savedPosition.center && savedPosition.imageSize) {
+              // Nuovo formato: centro + dimensioni
+              const center = savedPosition.center;
+              const size = savedPosition.imageSize;
+              plantRotation = savedPosition.rotation || 0;
+              plantScale = savedPosition.scale || 1.0;
+              
+              // Calcola bounds da centro + dimensioni + scala
+              const corners = calculatePlantBounds(
+                center,
+                size.width,
+                size.height,
+                0, // Rotazione applicata dopo
+                plantScale
+              );
+              
+              // Converti array corners in LatLngBounds
+              plantBounds = L.latLngBounds([
+                corners[0], // top-left
+                corners[2]  // bottom-right
+              ]);
+              
+              console.log('✅ Bounds calcolati da centro:', plantBounds);
+            } else if (savedPosition.corners) {
+              // Vecchio formato: corners (retrocompatibilità)
+              plantBounds = L.latLngBounds([
+                savedPosition.corners[0],
+                savedPosition.corners[2]
+              ]);
+              plantRotation = savedPosition.rotation || 0;
+              plantScale = savedPosition.scale || 1.0;
+              
+              console.log('⚠️ Usato vecchio formato corners');
+            } else {
+              console.warn('⚠️ Formato posizione salvata non riconosciuto');
+              return;
+            }
             
             // Aggiorna controlli UI
             document.getElementById('plant-rotation').value = plantRotation;
@@ -1018,18 +1051,22 @@
       }
       
       try {
+        // Salva CENTRO marker rosso + dimensioni originali (non bounds ruotati!)
+        const center = plantMarker ? plantMarker.getLatLng() : map.getCenter();
+        
         const plantPosition = {
-          corners: [
-            [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
-            [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
-            [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
-            [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
-          ],
+          center: {
+            lat: center.lat,
+            lng: center.lng
+          },
+          imageSize: plantImageSize, // Dimensioni originali PNG
           rotation: plantRotation,
           scale: plantScale,
           opacity: parseInt(document.getElementById('plant-opacity').value),
           timestamp: new Date().toISOString()
         };
+        
+        console.log('💾 Salvataggio posizione pianta:', plantPosition);
         
         await DMSBUS.putJSON('plant_position', plantPosition);
         
