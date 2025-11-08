@@ -1184,7 +1184,10 @@
       const newMarker = L.marker(currentLatLng, {
         icon: L.divIcon({
           className: 'temp-slot',
-          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg); transform-origin: center center;">${number}</div>`,
+          html: `<div style="width: 100%; height: 100%; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg); transform-origin: center center;"></div>
+            <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); z-index: 1;">${number}</div>
+          </div>`,
           iconSize: [iconWidth, iconHeight],
           iconAnchor: [iconWidth / 2, iconHeight / 2]
         }),
@@ -1242,7 +1245,10 @@
       const marker = L.marker(e.latlng, {
         icon: L.divIcon({
           className: 'temp-slot',
-          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg); transform-origin: center center;">${number}</div>`,
+          html: `<div style="width: 100%; height: 100%; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px; transform: rotate(${slotRotation}deg); transform-origin: center center;"></div>
+            <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); z-index: 1;">${number}</div>
+          </div>`,
           iconSize: [iconWidth, iconHeight],
           iconAnchor: [iconWidth / 2, iconHeight / 2]
         }),
@@ -1309,7 +1315,10 @@
       const greenMarker = L.marker(currentLatLng, {
         icon: L.divIcon({
           className: 'fixed-slot',
-          html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg); transform-origin: center center;">${tempSlot.number}</div>`,
+          html: `<div style="width: 100%; height: 100%; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg); transform-origin: center center;"></div>
+            <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); z-index: 1;">${tempSlot.number}</div>
+          </div>`,
           iconSize: [iconWidth, iconHeight],
           iconAnchor: [iconWidth / 2, iconHeight / 2]
         }),
