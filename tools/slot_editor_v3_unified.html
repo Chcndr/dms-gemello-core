@@ -1204,6 +1204,8 @@
     // IMPORTANTE: Rimuovi vecchi listener per evitare duplicati!
     map.off('click');
     map.on('click', (e) => {
+      console.log(`🗺️ MAP CLICK! addMode=${addMode}, tempSlot=${tempSlot ? 'EXISTS' : 'null'}`);
+      
       // Gestione posteggi
       if (addMode && !tempSlot) {
       const keepDim = document.getElementById('keep-dimensions').checked;
