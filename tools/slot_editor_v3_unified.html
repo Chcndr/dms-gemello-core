@@ -326,9 +326,9 @@
             <span id="slot-rotation-value">0.0°</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
-            <button id="btn-rotation-minus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">−</button>
+            <button id="btn-slot-rotation-minus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">−</button>
             <input type="range" id="slot-rotation" min="0" max="360" value="0" step="0.1" style="flex: 1; min-width: 0;" />
-            <button id="btn-rotation-plus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">+</button>
+            <button id="btn-slot-rotation-plus" class="secondary" style="width: 30px; height: 30px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">+</button>
             <input type="number" id="slot-rotation-input" value="0.0" min="0" max="360" step="0.1" style="width: 60px;" />
           </div>
         </div>
@@ -1050,6 +1050,9 @@
     let slotWidth = 3.0;
     let slotHeight = 6.0;
     
+    // Scala conversione metri → pixel (zoom 19)
+    const meterToPixel = 156.543;
+    
     // Sincronizzazione controlli larghezza
     function updateWidthControls(value) {
       slotWidth = parseFloat(value);
@@ -1089,22 +1092,29 @@
     
     document.getElementById('slot-rotation').addEventListener('input', (e) => updateRotationControls(e.target.value));
     document.getElementById('slot-rotation-input').addEventListener('input', (e) => updateRotationControls(e.target.value));
-    document.getElementById('btn-rotation-plus').addEventListener('click', () => updateRotationControls(Math.min(360, slotRotation + 1)));
-    document.getElementById('btn-rotation-minus').addEventListener('click', () => updateRotationControls(Math.max(0, slotRotation - 1)));
+    document.getElementById('btn-slot-rotation-plus').addEventListener('click', () => updateRotationControls(Math.min(360, slotRotation + 1)));
+    document.getElementById('btn-slot-rotation-minus').addEventListener('click', () => updateRotationControls(Math.max(0, slotRotation - 1)));
     
     // Funzione per aggiornare posteggio temporaneo
     function updateTempSlot() {
-      if (!tempSlot) return;
+      if (!tempSlot) {
+        console.log('⚠️ updateTempSlot: tempSlot è null');
+        return;
+      }
       
       const keepDim = document.getElementById('keep-dimensions').checked;
       const number = document.getElementById('slot-number').value;
       
+      console.log(`🔄 updateTempSlot: width=${slotWidth}m, height=${slotHeight}m, rotation=${slotRotation}°, keepDim=${keepDim}`);
+      
       // Salva posizione corrente
       const currentLatLng = tempSlot.marker.getLatLng();
       
-      // Aggiorna icona con rotazione dal centro
-      const iconWidth = keepDim ? 30 : slotWidth * 5;
-      const iconHeight = keepDim ? 50 : slotHeight * 5;
+      // Aggiorna icona con SCALA CORRETTA (come pianta)
+      const iconWidth = keepDim ? 30 : slotWidth * meterToPixel;
+      const iconHeight = keepDim ? 50 : slotHeight * meterToPixel;
+      
+      console.log(`📐 Dimensioni pixel: ${iconWidth}px × ${iconHeight}px`);
       tempSlot.marker.setIcon(L.divIcon({
         className: 'slot-marker temp-slot',
         html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 165, 0, 0.8); border: 2px solid #ff8800; border-radius: 4px;">${number}</div>`,
@@ -1152,9 +1162,11 @@
       const keepDim = document.getElementById('keep-dimensions').checked;
       const number = document.getElementById('slot-number').value;
       
-      // Crea marker posteggio TEMPORANEO (arancione)
-      const iconWidth = keepDim ? 30 : slotWidth * 5;
-      const iconHeight = keepDim ? 50 : slotHeight * 5;
+      // Crea marker posteggio TEMPORANEO (arancione) con SCALA CORRETTA
+      const iconWidth = keepDim ? 30 : slotWidth * meterToPixel;
+      const iconHeight = keepDim ? 50 : slotHeight * meterToPixel;
+      
+      console.log(`🟡 Nuovo posteggio: ${slotWidth}m × ${slotHeight}m = ${iconWidth}px × ${iconHeight}px, rotation=${slotRotation}°`);
       const marker = L.marker(e.latlng, {
         icon: L.divIcon({
           className: 'slot-marker temp-slot',
@@ -1215,14 +1227,29 @@
     document.getElementById('btn-confirm-slot').addEventListener('click', () => {
       if (!tempSlot) return;
       
-      // Cambia colore marker da giallo a verde
+      // Cambia colore marker da arancione a verde con SCALA CORRETTA
       const keepDim = document.getElementById('keep-dimensions').checked;
+      const iconWidth = keepDim ? 30 : tempSlot.width * meterToPixel;
+      const iconHeight = keepDim ? 50 : tempSlot.height * meterToPixel;
+      
+      console.log(`🟢 Fissa posteggio #${tempSlot.number}: ${tempSlot.width}m × ${tempSlot.height}m = ${iconWidth}px × ${iconHeight}px, rotation=${tempSlot.rotation}°`);
+      
       tempSlot.marker.setIcon(L.divIcon({
         className: 'slot-marker',
-        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px; transform: rotate(${tempSlot.rotation}deg);">${tempSlot.number}</div>`,
-        iconSize: [keepDim ? 30 : tempSlot.width * 5, keepDim ? 50 : tempSlot.height * 5],
-        iconAnchor: [keepDim ? 15 : tempSlot.width * 2.5, keepDim ? 25 : tempSlot.height * 2.5]
+        html: `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.8); border: 2px solid #4CAF50; border-radius: 4px;">${tempSlot.number}</div>`,
+        iconSize: [iconWidth, iconHeight],
+        iconAnchor: [iconWidth / 2, iconHeight / 2]
       }));
+      
+      // Applica rotazione all'elemento DOM (come pianta!)
+      setTimeout(() => {
+        const icon = tempSlot.marker.getElement();
+        if (icon) {
+          icon.style.transform = `rotate(${tempSlot.rotation}deg)`;
+          icon.style.transformOrigin = 'center center';
+          console.log(`✅ Rotazione ${tempSlot.rotation}° applicata a posteggio #${tempSlot.number}`);
+        }
+      }, 10);
       
       // Disabilita drag
       tempSlot.marker.dragging.disable();
