@@ -404,11 +404,8 @@
   </div>
   </div>
   
-  <div id="dms-console"></div>
-  
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../shared/dms-bus.js"></script>
-  <script src="../shared/dms-console.js"></script>
   <script>
     // Funzione per calcolare area poligono (algoritmo Shoelace)
     function calculatePolygonArea(coordinates) {
@@ -434,7 +431,7 @@
     // Console si auto-inizializza da dms-console.js
     // Aspetta che sia pronta prima di loggare
     setTimeout(() => {
-      DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
+      // DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
     }, 100);
     
     // NOTA: Caricamento automatico dal BUS spostato dopo inizializzazione variabili (vedi sotto)
@@ -472,7 +469,7 @@
     // Carica automaticamente PNG dal BUS
     (async () => {
       try {
-        DMSConsole.log('🔍 Cerco PNG nel BUS...');
+        // DMSConsole.log('🔍 Cerco PNG nel BUS...');
         
         // Carica PNG trasparente
         const blobTransparent = await DMSBUS.getBlob('png_transparent');
@@ -485,7 +482,7 @@
           img.src = URL.createObjectURL(blobTransparent);
           img.onload = () => {
             plantImageSize = { width: img.width, height: img.height };
-            DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+            // DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
             URL.revokeObjectURL(img.src);
           };
           
@@ -496,9 +493,9 @@
           ]);
           updatePlantOverlay();
           document.getElementById('png-status').textContent = '✅ PNG trasparente caricato dal BUS';
-          DMSConsole.log('✅ PNG trasparente caricato dal BUS');
+          // DMSConsole.log('✅ PNG trasparente caricato dal BUS');
         } else {
-          DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
+          // DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
         }
         
         // Carica PNG originale
@@ -506,12 +503,12 @@
         if (blobOriginal) {
           const url = URL.createObjectURL(blobOriginal);
           document.getElementById('reference-image').src = url;
-          DMSConsole.log('✅ PNG originale caricato dal BUS');
+          // DMSConsole.log('✅ PNG originale caricato dal BUS');
         } else {
-          DMSConsole.log('⚠️ png_original non trovato nel BUS');
+          // DMSConsole.log('⚠️ png_original non trovato nel BUS');
         }
       } catch (err) {
-        DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
+        // DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
       }
     })();
     
@@ -599,17 +596,17 @@
         });
         
         plantMarker.on('dragend', () => {
-          DMSConsole.log('✅ Pianta riposizionata');
+          // DMSConsole.log('✅ Pianta riposizionata');
         });
         
-        DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
+        // DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
       } else {
         plantMarker.setLatLng(center);
       }
       
       plantBounds = bounds;
       isUpdatingPlant = false;
-      DMSConsole.log('✅ Pianta aggiornata');
+      // DMSConsole.log('✅ Pianta aggiornata');
     }
     
     // Toggle pannello riferimento
@@ -820,7 +817,7 @@
       img.src = URL.createObjectURL(file);
       img.onload = () => {
         plantImageSize = { width: img.width, height: img.height };
-        DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+        // DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
         URL.revokeObjectURL(img.src);
         
         const center = map.getCenter();
@@ -831,7 +828,7 @@
         
         updatePlantOverlay();
         document.getElementById('png-status').textContent = `✅ ${file.name} caricato`;
-        DMSConsole.log(`✅ PNG caricato: ${file.name}`);
+        // DMSConsole.log(`✅ PNG caricato: ${file.name}`);
       };
     });
     
@@ -875,7 +872,7 @@
         
         URL.revokeObjectURL(url);
         updatePlantOverlay();
-        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation.toFixed(1) + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
+        // DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation.toFixed(1) + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
       };
     }
     
@@ -1068,7 +1065,7 @@
       // Mostra pulsante Fissa
       document.getElementById('btn-confirm-slot').style.display = 'block';
       
-      DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
+      // DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
     });
     
     // Pulsante Fissa Posteggio
@@ -1099,7 +1096,7 @@
       const nextNumber = tempSlot.number + 1;
       document.getElementById('slot-number').value = nextNumber;
       
-      DMSConsole.log(`✅ Posteggio ${tempSlot.number} fissato`);
+      // DMSConsole.log(`✅ Posteggio ${tempSlot.number} fissato`);
       
       // Reset
       tempSlot = null;
@@ -1137,7 +1134,7 @@
         map.removeLayer(slots[index].marker);
         slots.splice(index, 1);
         updateSlotList();
-        DMSConsole.log(`🗑️ Posteggio ${number} rimosso`);
+        // DMSConsole.log(`🗑️ Posteggio ${number} rimosso`);
       }
     };
     
@@ -1149,7 +1146,7 @@
       slots = [];
       slotCounter = 1;
       updateSlotList();
-      DMSConsole.log('🗑️ Tutti i posteggi cancellati');
+      // DMSConsole.log('🗑️ Tutti i posteggi cancellati');
     });
     
     // ===== MARKER PERSONALIZZABILI =====
@@ -1172,9 +1169,9 @@
       map.getContainer().style.cursor = markerMode ? 'crosshair' : '';
       
       if (markerMode) {
-        DMSConsole.log('✅ Modalità marker attiva - click sulla mappa');
+        // DMSConsole.log('✅ Modalità marker attiva - click sulla mappa');
       } else {
-        DMSConsole.log('❌ Modalità marker disattivata');
+        // DMSConsole.log('❌ Modalità marker disattivata');
       }
     });
     
@@ -1247,7 +1244,7 @@
       markerCounter++;
       
       updateMarkerList();
-      DMSConsole.log(`✅ Marker #${markerData.number} aggiunto`);
+      // DMSConsole.log(`✅ Marker #${markerData.number} aggiunto`);
     }
     
     // Form configurazione marker
@@ -1399,7 +1396,7 @@
       marker.marker.bindPopup(finalPopup);
       
       updateMarkerList();
-      DMSConsole.log(`✅ Marker #${number} aggiornato`);
+      // DMSConsole.log(`✅ Marker #${number} aggiornato`);
     };
     
     // Aggiorna lista marker
@@ -1428,7 +1425,7 @@
         map.removeLayer(marker.marker);
         markers = markers.filter(m => m.number !== number);
         updateMarkerList();
-        DMSConsole.log(`🗑️ Marker ${number} rimosso`);
+        // DMSConsole.log(`🗑️ Marker ${number} rimosso`);
       }
     };
     
@@ -1465,7 +1462,7 @@
       document.getElementById('area-drawing-info').style.display = 'block';
       
       map.getContainer().style.cursor = 'crosshair';
-      DMSConsole.log('✅ Modalità disegno area attiva - click per aggiungere vertici, doppio-click per chiudere');
+      // DMSConsole.log('✅ Modalità disegno area attiva - click per aggiungere vertici, doppio-click per chiudere');
     }
     
     // Aggiungi vertice area
@@ -1494,7 +1491,7 @@
         }).addTo(map);
       }
       
-      DMSConsole.log(`🔵 Vertice ${currentAreaVertices.length} aggiunto`);
+      // DMSConsole.log(`🔵 Vertice ${currentAreaVertices.length} aggiunto`);
     }
     
     // Doppio click per completare area
@@ -1562,7 +1559,7 @@
       map.getContainer().style.cursor = '';
       
       updateAreaList();
-      DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
+      // DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
     }
     
     // Pulsante Annulla Area
@@ -1584,7 +1581,7 @@
       document.getElementById('area-drawing-info').style.display = 'none';
       map.getContainer().style.cursor = '';
       
-      DMSConsole.log('❌ Disegno area annullato');
+      // DMSConsole.log('❌ Disegno area annullato');
     }
     
     // Form configurazione area
@@ -1683,7 +1680,7 @@
       area.polygon.bindPopup(finalPopup);
       
       updateAreaList();
-      DMSConsole.log(`✅ Area #${number} aggiornata`);
+      // DMSConsole.log(`✅ Area #${number} aggiornata`);
     };
     
     // Aggiorna lista aree
@@ -1712,7 +1709,7 @@
         map.removeLayer(area.polygon);
         areas = areas.filter(a => a.number !== number);
         updateAreaList();
-        DMSConsole.log(`🗑️ Area ${number} rimossa`);
+        // DMSConsole.log(`🗑️ Area ${number} rimossa`);
       }
     };
     
@@ -1828,7 +1825,7 @@
       URL.revokeObjectURL(url);
       
       document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree esportati!`;
-      DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
+      // DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
     });
     
     // Salva nel Bus
@@ -1877,11 +1874,11 @@
         }
         
         document.getElementById('export-status').textContent = `✅ Salvato nel Bus!`;
-        DMSConsole.log(`✅ ${slots.length} posteggi salvati nel BUS`);
+        // DMSConsole.log(`✅ ${slots.length} posteggi salvati nel BUS`);
         alert(`✅ ${slots.length} posteggi salvati nel BUS!`);
       } catch (err) {
         alert('❌ Errore salvataggio: ' + err.message);
-        DMSConsole.log('❌ Errore: ' + err.message);
+        // DMSConsole.log('❌ Errore: ' + err.message);
       }
     });
   </script>
