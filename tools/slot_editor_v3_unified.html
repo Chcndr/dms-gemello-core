@@ -485,6 +485,27 @@
       maxZoom: 20
     }).addTo(map);
     
+    // Listener zoom per aggiornare dimensione font tooltip
+    map.on('zoomend', () => {
+      const zoom = map.getZoom();
+      // Calcola font size in base allo zoom (zoom 17 = 14px, scala proporzionalmente)
+      const baseFontSize = 14;
+      const baseZoom = 17;
+      const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, zoom - baseZoom)));
+      
+      // Aggiorna tutti i tooltip dei posteggi
+      slots.forEach(slot => {
+        if (slot.tooltip) {
+          slot.tooltip.setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${slot.number}</div>`);
+        }
+      });
+      
+      // Aggiorna tooltip temporaneo se esiste
+      if (tempSlot && tempSlot.tooltip) {
+        tempSlot.tooltip.setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: ${fontSize}px;">${tempSlot.number}</div>`);
+      }
+    });
+    
     // Variabili globali
     let pdfBlob = null;
     let pdfBlobOriginal = null; // Blob originale non ruotato
@@ -616,6 +637,89 @@
           // DMSConsole.log('✅ PNG originale caricato dal BUS');
         } else {
           // DMSConsole.log('⚠️ png_original non trovato nel BUS');
+        }
+        
+        // Carica posteggi salvati
+        const stallsGeoJSON = await DMSBUS.getJSON('stalls_geojson');
+        if (stallsGeoJSON && stallsGeoJSON.features) {
+          console.log(`🅿️ Caricamento ${stallsGeoJSON.features.length} posteggi dal BUS...`);
+          
+          stallsGeoJSON.features.forEach(feature => {
+            const props = feature.properties;
+            const [lng, lat] = feature.geometry.coordinates;
+            
+            // Estrai dimensioni da stringa "2.5m × 5.0m"
+            const dimMatch = props.dimensions.match(/([\d.]+)m\s*×\s*([\d.]+)m/);
+            const width = dimMatch ? parseFloat(dimMatch[1]) : 2.5;
+            const height = dimMatch ? parseFloat(dimMatch[2]) : 5.0;
+            const rotation = props.orientation || 0;
+            const number = props.number || slotCounter;
+            
+            // Calcola corner geografici
+            const center = { lat, lng };
+            const corners = calculateSlotBounds(center, width, height, rotation);
+            
+            // Crea polygon verde
+            const polygon = L.polygon(corners, {
+              color: '#4CAF50',
+              weight: 2,
+              fillColor: '#4CAF50',
+              fillOpacity: 0.6,
+              className: 'fixed-slot'
+            }).addTo(map);
+            
+            // Aggiungi tooltip con numero
+            const tooltip = L.tooltip({
+              permanent: true,
+              direction: 'center',
+              className: 'slot-number-label',
+              offset: [0, 0]
+            })
+            .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
+            .setLatLng(center);
+            
+            polygon.bindTooltip(tooltip).openTooltip();
+            
+            // Aggiungi popup
+            const popupContent = `
+              <div style="font-family: sans-serif; min-width: 200px;">
+                <h3 style="margin: 0 0 10px 0; color: #4CAF50;">🅿️ Posteggio #${number}</h3>
+                <p style="margin: 5px 0;"><strong>📏 Dimensioni:</strong> ${width.toFixed(1)}m × ${height.toFixed(1)}m</p>
+                <p style="margin: 5px 0;"><strong>🔄 Rotazione:</strong> ${rotation.toFixed(1)}°</p>
+                <p style="margin: 5px 0;"><strong>📍 Coordinate:</strong></p>
+                <p style="margin: 0 0 10px 15px; font-size: 11px; color: #666;">
+                  Lat: ${lat.toFixed(8)}<br>
+                  Lng: ${lng.toFixed(8)}
+                </p>
+                <button onclick="openVetrinaEditor(${number}, ${lat}, ${lng}, ${width}, ${height}, ${rotation})" 
+                        style="width: 100%; padding: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                  🏪 Vai a Vetrina Editor
+                </button>
+              </div>
+            `;
+            polygon.bindPopup(popupContent);
+            
+            // Aggiungi a lista slots
+            slots.push({
+              number,
+              lat,
+              lng,
+              width,
+              height,
+              rotation,
+              polygon,
+              tooltip
+            });
+            
+            // Aggiorna counter
+            if (number >= slotCounter) {
+              slotCounter = number + 1;
+            }
+          });
+          
+          updateSlotList();
+          console.log(`✅ ${slots.length} posteggi caricati dal BUS`);
+          document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi caricati dal BUS`;
         }
       } catch (err) {
         // DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
@@ -1213,20 +1317,20 @@
       
       console.log(`🔄 updateTempSlot: width=${slotWidth}m, height=${slotHeight}m, rotation=${slotRotation}°`);
       
-      // Salva posizione corrente (centro del rectangle)
+      // Salva posizione corrente (centro del polygon)
       const currentCenter = { lat: tempSlot.lat, lng: tempSlot.lng };
       
-      // RIMUOVI rectangle e tooltip vecchi
-      tempSlot.rectangle.remove();
+      // RIMUOVI polygon e tooltip vecchi
+      tempSlot.polygon.remove();
       if (tempSlot.tooltip) {
         map.closeTooltip(tempSlot.tooltip);
       }
       
-      // Calcola nuovi bounds geografici
-      const bounds = calculateSlotBounds(currentCenter, slotWidth, slotHeight, slotRotation);
+      // Calcola nuovi corner geografici (con rotazione)
+      const corners = calculateSlotBounds(currentCenter, slotWidth, slotHeight, slotRotation);
       
-      // RICREA rectangle con nuove dimensioni e rotazione
-      const newRectangle = L.rectangle(bounds, {
+      // RICREA polygon con nuove dimensioni e rotazione
+      const newPolygon = L.polygon(corners, {
         color: '#ff8800',
         weight: 2,
         fillColor: '#ffa500',
@@ -1244,12 +1348,12 @@
       .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
       .setLatLng(currentCenter);
       
-      newRectangle.bindTooltip(newTooltip).openTooltip();
+      newPolygon.bindTooltip(newTooltip).openTooltip();
       
-      console.log(`🔄 Rectangle geografico aggiornato: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
+      console.log(`🔄 Polygon geografico aggiornato: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
       
       // Aggiorna riferimento
-      tempSlot.rectangle = newRectangle;
+      tempSlot.polygon = newPolygon;
       tempSlot.tooltip = newTooltip;
       tempSlot.width = slotWidth;
       tempSlot.height = slotHeight;
@@ -1261,7 +1365,7 @@
     document.getElementById('btn-add-mode').addEventListener('click', function() {
       // Se c'è un posteggio temporaneo, rimuovilo
       if (tempSlot) {
-        tempSlot.rectangle.remove();
+        tempSlot.polygon.remove();
         if (tempSlot.tooltip) {
           map.closeTooltip(tempSlot.tooltip);
         }
@@ -1286,14 +1390,14 @@
       const keepDim = document.getElementById('keep-dimensions').checked;
       const number = document.getElementById('slot-number').value;
       
-      // Crea RECTANGLE geografico TEMPORANEO (arancione) che scala con zoom
+      // Crea POLYGON geografico TEMPORANEO (arancione) che scala con zoom e ruota
       console.log(`🟡 Nuovo posteggio: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
       
-      // Calcola bounds geografici da dimensioni in metri
-      const bounds = calculateSlotBounds(e.latlng, slotWidth, slotHeight, slotRotation);
+      // Calcola corner geografici da dimensioni in metri (con rotazione)
+      const corners = calculateSlotBounds(e.latlng, slotWidth, slotHeight, slotRotation);
       
-      // Crea rectangle geografico
-      const rectangle = L.rectangle(bounds, {
+      // Crea polygon geografico (4 corner ruotati)
+      const polygon = L.polygon(corners, {
         color: '#ff8800',
         weight: 2,
         fillColor: '#ffa500',
@@ -1302,7 +1406,7 @@
       }).addTo(map);
       
       // Aggiungi tooltip permanente con numero al centro
-      const center = rectangle.getBounds().getCenter();
+      const center = polygon.getBounds().getCenter();
       const tooltip = L.tooltip({
         permanent: true,
         direction: 'center',
@@ -1312,12 +1416,9 @@
       .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${number}</div>`)
       .setLatLng(center);
       
-      rectangle.bindTooltip(tooltip).openTooltip();
+      polygon.bindTooltip(tooltip).openTooltip();
       
-      console.log(`🟡 Rectangle geografico creato: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
-      
-      // NOTA: Rectangle non è draggable nativamente, ma possiamo aggiungere interattività
-      // Per ora lo rendiamo cliccabile per modifiche
+      console.log(`🟡 Polygon geografico creato: ${slotWidth}m × ${slotHeight}m, rotation=${slotRotation}°`);
       
       tempSlot = {
         number: parseInt(number),
@@ -1326,7 +1427,7 @@
         width: slotWidth,
         height: slotHeight,
         rotation: slotRotation,
-        rectangle: rectangle,  // Ora usiamo rectangle invece di marker
+        polygon: polygon,  // Ora usiamo polygon
         tooltip: tooltip
       };
       
@@ -1359,17 +1460,17 @@
       // Salva posizione corrente (centro)
       const currentCenter = { lat: tempSlot.lat, lng: tempSlot.lng };
       
-      // RIMUOVI rectangle e tooltip arancioni
-      tempSlot.rectangle.remove();
+      // RIMUOVI polygon e tooltip arancioni
+      tempSlot.polygon.remove();
       if (tempSlot.tooltip) {
         map.closeTooltip(tempSlot.tooltip);
       }
       
-      // Calcola bounds geografici
-      const bounds = calculateSlotBounds(currentCenter, tempSlot.width, tempSlot.height, tempSlot.rotation);
+      // Calcola corner geografici (con rotazione)
+      const corners = calculateSlotBounds(currentCenter, tempSlot.width, tempSlot.height, tempSlot.rotation);
       
-      // CREA rectangle VERDE fisso
-      const greenRectangle = L.rectangle(bounds, {
+      // CREA polygon VERDE fisso
+      const greenPolygon = L.polygon(corners, {
         color: '#4CAF50',
         weight: 2,
         fillColor: '#4CAF50',
@@ -1387,7 +1488,7 @@
       .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 14px;">${tempSlot.number}</div>`)
       .setLatLng(currentCenter);
       
-      greenRectangle.bindTooltip(greenTooltip).openTooltip();
+      greenPolygon.bindTooltip(greenTooltip).openTooltip();
       
       // Aggiungi popup con informazioni complete
       const popupContent = `
@@ -1406,12 +1507,12 @@
           </button>
         </div>
       `;
-      greenRectangle.bindPopup(popupContent);
+      greenPolygon.bindPopup(popupContent);
       
-      console.log(`✅ Rectangle verde #${tempSlot.number} fissato con rotazione ${tempSlot.rotation}°`);
+      console.log(`✅ Polygon verde #${tempSlot.number} fissato con rotazione ${tempSlot.rotation}°`);
       
       // Aggiorna riferimenti
-      tempSlot.rectangle = greenRectangle;
+      tempSlot.polygon = greenPolygon;
       tempSlot.tooltip = greenTooltip;
       
       // Aggiungi a lista
@@ -1457,7 +1558,7 @@
       const index = slots.findIndex(s => s.number === number);
       if (index !== -1) {
         const slot = slots[index];
-        map.removeLayer(slot.rectangle);
+        map.removeLayer(slot.polygon);
         if (slot.tooltip) {
           map.closeTooltip(slot.tooltip);
         }
@@ -1472,7 +1573,7 @@
       if (!confirm('⚠️ Cancellare tutti i posteggi?')) return;
       
       slots.forEach(slot => {
-        map.removeLayer(slot.rectangle);
+        map.removeLayer(slot.polygon);
         if (slot.tooltip) {
           map.closeTooltip(slot.tooltip);
         }
