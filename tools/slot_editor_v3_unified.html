@@ -357,7 +357,7 @@
         </div>
         
         <button id="btn-add-mode" class="active">📍 Modalità Aggiungi Posteggio</button>
-        <button id="btn-confirm-slot" class="success" style="display: none;">✅ Fissa Posteggio</button>
+        <button id="btn-confirm-slot" class="success">✅ Fissa Posteggio</button>
         <div class="info" id="slot-count">0 posteggi aggiunti</div>
       </div>
       
@@ -491,21 +491,30 @@
     
     // Listener zoom per aggiornare dimensione font tooltip
     map.on('zoomend', () => {
-      const zoom = map.getZoom();
-      // Calcola font size in base allo zoom (zoom 17 = 14px, scala proporzionalmente)
-      const baseFontSize = 14;
-      const baseZoom = 17;
-      const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, zoom - baseZoom)));
-      
-      console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px (${slots.length} posteggi)`);
-      
-      // Aggiorna font-size di tutti i tooltip usando DOM
-      const tooltipLabels = document.querySelectorAll('.slot-number-label div');
-      tooltipLabels.forEach(label => {
-        label.style.fontSize = `${fontSize}px`;
-      });
-      
-      console.log(`✅ Aggiornati ${tooltipLabels.length} tooltip`);
+      try {
+        const zoom = map.getZoom();
+        // Calcola font size in base allo zoom (zoom 17 = 14px, scala proporzionalmente)
+        const baseFontSize = 14;
+        const baseZoom = 17;
+        const fontSize = Math.max(8, Math.min(24, baseFontSize * Math.pow(1.15, zoom - baseZoom)));
+        
+        console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px (${slots.length} posteggi)`);
+        
+        // Aspetta che il DOM sia aggiornato
+        setTimeout(() => {
+          // Aggiorna font-size di tutti i tooltip usando DOM
+          const tooltipLabels = document.querySelectorAll('.leaflet-tooltip-pane .slot-number-label div');
+          console.log(`🔎 Trovati ${tooltipLabels.length} tooltip nel DOM`);
+          
+          tooltipLabels.forEach(label => {
+            label.style.fontSize = `${fontSize}px`;
+          });
+          
+          console.log(`✅ Aggiornati ${tooltipLabels.length} tooltip`);
+        }, 50);
+      } catch (err) {
+        console.error('❌ Errore listener zoom:', err);
+      }
     });
     
     // Variabili globali
@@ -642,7 +651,10 @@
         }
         
         // Carica posteggi salvati
+        console.log('🔍 Tentativo caricamento posteggi dal BUS...');
         const stallsGeoJSON = await DMSBUS.getJSON('stalls_geojson');
+        console.log('📦 Dati BUS:', stallsGeoJSON);
+        
         if (stallsGeoJSON && stallsGeoJSON.features) {
           console.log(`🅿️ Caricamento ${stallsGeoJSON.features.length} posteggi dal BUS...`);
           
@@ -725,6 +737,7 @@
           document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi caricati dal BUS`;
         }
       } catch (err) {
+        console.error('❌ Errore caricamento BUS:', err);
         // DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
       }
     })();
@@ -1390,7 +1403,7 @@
           map.closeTooltip(tempSlot.tooltip);
         }
         tempSlot = null;
-        document.getElementById('btn-confirm-slot').style.display = 'none';
+        // Pulsante sempre visibile
       }
       
       addMode = !addMode;
@@ -1494,7 +1507,7 @@
       });
       
       // Mostra pulsante Fissa
-      document.getElementById('btn-confirm-slot').style.display = 'block';
+      // Pulsante sempre visibile
       
       // DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
         return; // Evita altri handler
@@ -1589,7 +1602,7 @@
       
       // Reset
       tempSlot = null;
-      document.getElementById('btn-confirm-slot').style.display = 'none';
+      // Pulsante sempre visibile
       
       updateSlotList();
     });
