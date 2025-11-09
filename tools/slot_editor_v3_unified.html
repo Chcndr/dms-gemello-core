@@ -619,39 +619,36 @@
     map.createPane('slotsPane');
     map.getPane('slotsPane').style.zIndex = 450; // overlayPane=400, markerPane=600
     
-    // Funzione per aggiornare scala tooltip in base allo zoom
-    // Usa CSS transform scale() invece di font-size per compatibilità Safari iPad
-    function updateTooltipScale() {
+    // Funzione per aggiornare font-size tooltip in base allo zoom
+    function updateTooltipFontSize() {
       try {
         const zoom = map.getZoom();
+        // Calcola font size in base allo zoom (zoom 17 = 16px, scala proporzionalmente)
+        const baseFontSize = 16;
         const baseZoom = 17;
-        const scale = Math.max(0.6, Math.min(2.5, Math.pow(1.25, zoom - baseZoom)));
+        const fontSize = Math.max(10, Math.min(35, baseFontSize * Math.pow(1.25, zoom - baseZoom)));
         
-        console.log(`🔍 ZOOM ${zoom} → scale ${scale.toFixed(2)}`);
+        console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px`);
         
         // Aspetta che il DOM sia aggiornato
         setTimeout(() => {
-          const labels = document.querySelectorAll('.leaflet-tooltip-pane .slot-number-label div');
-          console.log(`🔎 Trovati ${labels.length} tooltip nel DOM`);
+          // Aggiorna font-size di tutti i tooltip usando DOM
+          const tooltipLabels = document.querySelectorAll('.leaflet-tooltip-pane .slot-number-label div');
+          console.log(`🔎 Trovati ${tooltipLabels.length} tooltip nel DOM`);
           
-          labels.forEach(el => {
-            el.style.transformOrigin = 'center center';
-            el.style.transform = `scale(${scale})`;
+          tooltipLabels.forEach(label => {
+            label.style.fontSize = `${fontSize}px`;
           });
           
-          console.log(`✅ Aggiornati ${labels.length} tooltip con scale ${scale.toFixed(2)}`);
-        }, 100);
+          console.log(`✅ Aggiornati ${tooltipLabels.length} tooltip`);
+        }, 100); // Aumentato timeout per dare tempo al DOM
       } catch (err) {
-        console.error('❌ Errore aggiornamento scala tooltip:', err);
+        console.error('❌ Errore aggiornamento font tooltip:', err);
       }
     }
     
-    // Listener zoom per aggiornare scala (durante e a fine zoom)
-    map.on('zoom', updateTooltipScale);
-    map.on('zoomend', updateTooltipScale);
-    
-    // Inizializza scala
-    updateTooltipScale();
+    // Listener zoom per aggiornare dimensione font tooltip
+    map.on('zoomend', updateTooltipFontSize);
     
     // Variabili globali
     let pdfBlob = null;
@@ -951,7 +948,7 @@
           
           // Forza aggiornamento font-size tooltip
           setTimeout(() => {
-            updateTooltipScale();
+            updateTooltipFontSize();
           }, 100);
         }
       } catch (err) {
@@ -1046,7 +1043,7 @@
             
             // Forza aggiornamento font-size tooltip
             setTimeout(() => {
-              updateTooltipScale();
+              updateTooltipFontSize();
             }, 100);
           } else {
             console.log('⚠️ Nessun posteggio salvato in localStorage');
@@ -1914,10 +1911,10 @@
       
       // Forza aggiornamento font-size basato su zoom corrente
       setTimeout(() => {
-        updateTooltipScale();
+        updateTooltipFontSize();
       }, 50);
       
-      console.log(`🔢 Tooltip verde creato, fontSize verrà impostato da updateTooltipScale()`);
+      console.log(`🔢 Tooltip verde creato, fontSize verrà impostato da updateTooltipFontSize()`);
       
       // Aggiungi popup con informazioni complete
       const popupContent = `
@@ -1961,7 +1958,7 @@
       
       // Aggiorna font-size tooltip
       setTimeout(() => {
-        updateTooltipScale();
+        updateTooltipFontSize();
       }, 100);
     });
     
