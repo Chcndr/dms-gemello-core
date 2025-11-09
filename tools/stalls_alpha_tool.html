@@ -83,7 +83,7 @@
   <button id="rotate" disabled style="background: #ff9800;">🔄 Ruota 90°</button>
   <button id="download" disabled>📥 Scarica PNG Trasparente</button>
   <button id="saveToBus" disabled style="background: #1f8f5f;">💾 Salva nel Bus</button>
-  <button id="sendToSlotV2" disabled style="background: #ff5722;">🎯 Vai a Slot Editor v2</button>
+  <button id="sendToSlotV2" disabled style="background: #ff5722;">🎯 Vai a Slot Editor v3</button>
   <a href="bus_hub.html" style="display: block; background: #1a9e9e; color: white; padding: 12px; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; margin-top: 16px;">🚌 Vai al BUS HUB</a>
   <p style="font-size: 11px; opacity: 0.6; margin-top: 8px;">Regola i parametri finché il risultato è soddisfacente, poi scarica o invia all'Area Editor</p>
 </div>
@@ -218,9 +218,9 @@ sendToSlotV2Btn.onclick=async()=>{
     DMSConsole.log('✅ png_original salvato nel BUS');
     
     await DMSBUS.putJSON('png_meta', {w:dC.width, h:dC.height, rotation:rotationAngle});
-    DMSConsole.success('PNG salvato nel bus (trasparente + originale), apertura Slot Editor v2');
-    alert('✅ PNG salvato nel bus! Apro Slot Editor v2...');
-    window.open('slot_editor_v2.html', '_blank');
+    DMSConsole.success('PNG salvato nel bus (trasparente + originale), apertura Slot Editor v3 Unified');
+    alert('✅ PNG salvato nel bus! Apro Slot Editor v3 Unified...');
+    window.open('slot_editor_v3_unified.html', '_blank');
   }catch(err){
     DMSConsole.error('Errore invio: '+err.message);
     alert('❌ Errore: '+err.message);
