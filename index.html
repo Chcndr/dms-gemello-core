@@ -1,97 +1,418 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <title>DMS • Core Map (mod v1)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DMS HUB • Gemello Digitale del Commercio Nazionale</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/app.css">
-  <style>/* fallback minimal if css fails */ .app{display:flex;height:100vh}.sidebar{width:320px;background:#0f2830;color:#d5f0e6}#map{flex:1}</style>
+  <link rel="stylesheet" href="css/dms-public.css">
+  <style>
+    /* Critical CSS inline per caricamento veloce */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0a1628;
+      color: #e8fbff;
+      overflow-x: hidden;
+    }
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s;
+    }
+    .loading-screen.hidden { opacity: 0; pointer-events: none; }
+    .loader {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(20, 184, 166, 0.2);
+      border-top-color: #14b8a6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">DMS • GEMELLO DIGITALE — Core Map</div>
-    <div class="ver" id="ver">mod v1</div>
-  </header>
-
-  <div class="app">
-    <aside class="sidebar">
-      <div class="section">
-        <h3>Ricerca indirizzo</h3>
-        <div class="row">
-          <input id="addr" type="text" placeholder="Es. Grosseto, Via X">
-          <button id="go">Cerca</button>
-        </div>
-        <div id="msg" class="msg"></div>
-      </div>
-
-      <div class="section">
-        <h3>Layer</h3>
-        <label><input type="checkbox" id="chkAreas" checked> Aree Mercato (demo)</label><br>
-        <label><input type="checkbox" id="chkSlots" checked> Posteggi (demo)</label><br>
-        <label><input type="checkbox" id="chkItaly" checked> Italia (confini)</label>
-      </div>
-
-      <div class="section">
-        <h3>Azioni</h3>
-        <button id="fit">Fit su dati</button>
-        <button id="reset">Vista Italia</button>
-      </div>
-
-      <div class="section">
-        <h3>Strumenti</h3>
-        <a href="area-editor.html" style="display: block; padding: 0.5rem; background: #1a4a5a; color: #d5f0e6; text-decoration: none; border-radius: 4px; text-align: center; margin-bottom: 0.5rem;">🗺️ Area Editor →</a>
-        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 0.5rem;">Disegna aree mercato e hub sulla mappa</p>
-      </div>
-
-      <div class="section small">
-        <p>Questa è una base modulare. Collega i moduli successivi senza toccare il core.</p>
-      </div>
-    </aside>
-
-    <main id="map"></main>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loader"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="libs/turf.min.js?v=mod23-001"></script>
-  <script src="js/dms-core.js?v=mod23-001"></script>
-  <script src="js/dms-areas.js?v=mod23-001"></script>
-  <script src="js/dms-checkin.js?v=mod23-001"></script>
-  <script>
-    // Demo aree per test
-    window.DMS_DEMO = {
-      areas: [
-        {
-          type: 'Feature',
-          properties: { code: 'TR01', name: 'Mercato Tripoli', category: 'mercato', tolerance_m: 10 },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[
-              [11.1094, 42.7598], [11.1104, 42.7598], [11.1104, 42.7588], [11.1094, 42.7588], [11.1094, 42.7598]
-            ]]
-          }
-        },
-        {
-          type: 'Feature', 
-          properties: { code: 'ES01', name: 'Mercato Esperanto', category: 'mercato', tolerance_m: 15 },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[
-              [11.1124, 42.7578], [11.1134, 42.7578], [11.1134, 42.7568], [11.1124, 42.7568], [11.1124, 42.7578]
-            ]]
-          }
-        }
-      ]
-    };
+  <!-- Audio Player (musica di sottofondo) -->
+  <audio id="bgMusic" loop>
+    <!-- Useremo Web Audio API per generare musica ambient -->
+  </audio>
 
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.DMS && DMS.Map) {
-        DMS.Areas.mount(DMS.Map, { sidebarSelector:'.sidebar' });
-        DMS.Checkin.mount(DMS.Map, { sidebarSelector:'.sidebar' });
-        // Vista Italia all'avvio
-        DMS.Core.fitItaly();
-      }
-    });
-  </script>
+  <!-- Music Control -->
+  <button class="music-control" id="musicControl" aria-label="Toggle music">
+    <svg class="icon-sound" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+      <path class="sound-wave" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      <path class="sound-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+    </svg>
+    <svg class="icon-mute hidden" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+      <line x1="23" y1="9" x2="17" y2="15"/>
+      <line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>
+  </button>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <span class="brand-icon">🇮🇹</span>
+        <span class="brand-text">DMS HUB</span>
+        <span class="brand-badge">NAZIONALE</span>
+      </div>
+      <div class="nav-links">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#about" class="nav-link">Chi Siamo</a>
+        <a href="#stats" class="nav-link">Statistiche</a>
+        <a href="#access" class="nav-link">Accedi</a>
+      </div>
+      <button class="nav-toggle" id="navToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="hero-bg">
+      <div class="hero-gradient"></div>
+      <div id="heroMap" class="hero-map"></div>
+      <div class="hero-particles" id="particles"></div>
+    </div>
+    
+    <div class="hero-content">
+      <div class="hero-badge animate-fade-in">
+        <span class="badge-dot"></span>
+        <span>Sistema Operativo dal 2024</span>
+      </div>
+      
+      <h1 class="hero-title animate-slide-up">
+        Gemello Digitale<br>
+        del <span class="gradient-text">Commercio</span> Nazionale
+      </h1>
+      
+      <p class="hero-subtitle animate-slide-up delay-1">
+        La piattaforma che connette cittadini, commercianti e pubblica amministrazione<br>
+        per un commercio locale sostenibile e tracciato
+      </p>
+      
+      <div class="hero-stats animate-slide-up delay-2">
+        <div class="stat-item">
+          <div class="stat-number" data-target="847">0</div>
+          <div class="stat-label">Mercati Attivi</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" data-target="12450">0</div>
+          <div class="stat-label">Commercianti</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" data-target="89320">0</div>
+          <div class="stat-label">Cittadini</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" data-target="1250000">0</div>
+          <div class="stat-label">Carbon Credits</div>
+        </div>
+      </div>
+      
+      <div class="hero-cta animate-slide-up delay-3">
+        <a href="#access" class="btn btn-primary btn-lg">
+          <span>Inizia Ora</span>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <a href="#about" class="btn btn-secondary btn-lg">
+          <span>Scopri di più</span>
+        </a>
+      </div>
+    </div>
+    
+    <div class="scroll-indicator animate-bounce">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="section section-about" id="about">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Il Sistema DMS HUB</h2>
+        <p class="section-subtitle">
+          Una rete nazionale di gemelli digitali per mercati e hub commerciali,<br>
+          con tracciabilità blockchain e incentivi sostenibili
+        </p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🗺️</div>
+          <h3>Mappa Nazionale</h3>
+          <p>Visualizza tutti i mercati e hub sostenibili d'Italia in tempo reale</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎫</div>
+          <h3>Carbon Credits</h3>
+          <p>Guadagna crediti per ogni acquisto sostenibile e locale</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Tracciabilità</h3>
+          <p>Ogni prodotto tracciato dalla produzione al consumo</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌱</div>
+          <h3>Sostenibilità</h3>
+          <p>Riduci l'impatto CO₂ con scelte consapevoli</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>AI Assistant</h3>
+          <p>Assistente intelligente per trovare prodotti e percorsi</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Mobile First</h3>
+          <p>App ottimizzata per smartphone e tablet</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Access Section (3 Target Cards) -->
+  <section class="section section-access" id="access">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Scegli il tuo accesso</h2>
+        <p class="section-subtitle">
+          Tre portali dedicati per tre esperienze diverse
+        </p>
+      </div>
+      
+      <div class="access-grid">
+        <!-- Cittadini -->
+        <div class="access-card card-citizens">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <div class="card-icon">👥</div>
+            <h3 class="card-title">Cittadini</h3>
+            <p class="card-description">
+              Scopri mercati sostenibili, accumula carbon credits e fai shopping etico
+            </p>
+            <ul class="card-features">
+              <li>🗺️ Mappa mercati e negozi</li>
+              <li>🎫 Wallet carbon credits</li>
+              <li>📍 Percorsi shopping eco</li>
+              <li>📊 Impatto CO₂ personale</li>
+              <li>💬 Chat AI assistente</li>
+            </ul>
+            <a href="https://dms-app-clienti.manus.space" class="btn btn-card">
+              <span>Accedi come Cittadino</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </a>
+          </div>
+          <div class="card-preview">
+            <img src="assets/preview-citizens.png" alt="App Cittadini" onerror="this.style.display='none'">
+          </div>
+        </div>
+
+        <!-- Commercianti -->
+        <div class="access-card card-merchants">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <div class="card-icon">🏪</div>
+            <h3 class="card-title">Commercianti</h3>
+            <p class="card-description">
+              Gestisci il tuo punto vendita, monitora vendite e guadagna carbon credits
+            </p>
+            <ul class="card-features">
+              <li>📈 Dashboard vendite</li>
+              <li>🎯 Gestione posteggio</li>
+              <li>💰 Carbon credits guadagnati</li>
+              <li>📦 Catalogo prodotti</li>
+              <li>📊 Analytics clienti</li>
+            </ul>
+            <a href="https://dms-app-clienti.manus.space/hub-operatore" class="btn btn-card">
+              <span>Accedi come Commerciante</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </a>
+          </div>
+          <div class="card-preview">
+            <img src="assets/preview-merchants.png" alt="App Commercianti" onerror="this.style.display='none'">
+          </div>
+        </div>
+
+        <!-- PA/Admin -->
+        <div class="access-card card-admin">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <div class="card-icon">🏛️</div>
+            <h3 class="card-title">PA / Amministratori</h3>
+            <p class="card-description">
+              Dashboard completa per monitorare e gestire l'intero sistema DMS
+            </p>
+            <ul class="card-features">
+              <li>📊 Dashboard 21 sezioni</li>
+              <li>🗺️ Monitoraggio mercati</li>
+              <li>💰 Sistema carbon credits</li>
+              <li>📈 Statistiche nazionali</li>
+              <li>🔧 Gestione completa</li>
+            </ul>
+            <a href="https://dms-app-clienti.manus.space/dashboard-pa" class="btn btn-card">
+              <span>Accedi come PA</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </a>
+          </div>
+          <div class="card-preview">
+            <img src="assets/preview-admin.png" alt="Dashboard PA" onerror="this.style.display='none'">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="section section-stats" id="stats">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Impatto Nazionale</h2>
+        <p class="section-subtitle">
+          Dati in tempo reale dal sistema DMS HUB
+        </p>
+      </div>
+      
+      <div class="stats-dashboard">
+        <div class="stat-card">
+          <div class="stat-icon">🌍</div>
+          <div class="stat-value" data-target="847">0</div>
+          <div class="stat-label">Mercati Digitalizzati</div>
+          <div class="stat-trend positive">+12% questo mese</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-value" data-target="2450000">0</div>
+          <div class="stat-label">Transazioni Totali</div>
+          <div class="stat-trend positive">+8% questo mese</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🌱</div>
+          <div class="stat-value" data-target="145">0</div>
+          <div class="stat-label">Tonnellate CO₂ Risparmiate</div>
+          <div class="stat-trend positive">+15% questo mese</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎫</div>
+          <div class="stat-value" data-target="1250000">0</div>
+          <div class="stat-label">Carbon Credits Emessi</div>
+          <div class="stat-trend positive">+20% questo mese</div>
+        </div>
+      </div>
+      
+      <div class="map-preview">
+        <div id="statsMap" class="stats-map"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-brand">
+            <span class="brand-icon">🇮🇹</span>
+            <span class="brand-text">DMS HUB</span>
+          </div>
+          <p class="footer-description">
+            Gemello Digitale del Commercio Nazionale<br>
+            Sistema operativo dal 2024
+          </p>
+          <div class="footer-social">
+            <a href="#" aria-label="Twitter">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="LinkedIn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/>
+                <circle cx="4" cy="4" r="2"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="GitHub">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+        
+        <div class="footer-col">
+          <h4>Piattaforma</h4>
+          <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">Chi Siamo</a></li>
+            <li><a href="#stats">Statistiche</a></li>
+            <li><a href="tools/bus_hub.html">BUS HUB</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-col">
+          <h4>Accessi</h4>
+          <ul>
+            <li><a href="https://dms-app-clienti.manus.space">Cittadini</a></li>
+            <li><a href="https://dms-app-clienti.manus.space/hub-operatore">Commercianti</a></li>
+            <li><a href="https://dms-app-clienti.manus.space/dashboard-pa">PA / Admin</a></li>
+            <li><a href="tools/slot_editor_v3_unified.html">Slot Editor</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-col">
+          <h4>Supporto</h4>
+          <ul>
+            <li><a href="#">Documentazione</a></li>
+            <li><a href="#">API</a></li>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Contatti</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2024 DMS HUB. Tutti i diritti riservati.</p>
+        <div class="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Termini di Servizio</a>
+          <a href="#">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/dms-public.js"></script>
 </body>
 </html>
