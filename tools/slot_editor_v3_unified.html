@@ -1914,7 +1914,7 @@
     };
     
     // Cancella tutti
-    document.getElementById('btn-clear-all').addEventListener('click', () => {
+    document.getElementById('btn-clear-all').addEventListener('click', async () => {
       if (!confirm('⚠️ Cancellare tutti i posteggi?')) return;
       
       slots.forEach(slot => {
