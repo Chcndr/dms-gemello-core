@@ -233,7 +233,7 @@
     
     #preview-map {
       width: 100%;
-      height: 300px;
+      height: 500px;
       border-radius: 8px;
       margin-top: 12px;
     }
@@ -338,14 +338,8 @@
         <a href="stalls_alpha_tool.html" class="btn" id="btn-png-tool">
           🎨 PNG Transparent Tool
         </a>
-        <a href="area_editor_v2.html" class="btn" id="btn-area-editor">
-          🗺️ Area Editor v2
-        </a>
         <a href="slot_editor_v3_unified.html" class="btn" id="btn-slot-editor">
           📍 Slot Editor v3
-        </a>
-        <a href="result_viewer.html" class="btn" id="btn-result-viewer">
-          📊 Result Viewer
         </a>
       </div>
 
@@ -417,31 +411,37 @@
           <a href="stalls_alpha_tool.html" class="btn secondary" style="margin-top: 8px;">Vai al Tool →</a>
         </div>
 
-        <div class="workflow-step" id="step-area">
-          <div class="workflow-step-header">
-            <div class="workflow-step-title">2️⃣ Area Editor v2</div>
-            <div class="workflow-step-status" id="status-area">⏸️ In attesa</div>
-          </div>
-          <div class="workflow-step-desc">Georeferenzia la pianta, disegna area mercato e area HUB</div>
-          <a href="area_editor_v2.html" class="btn secondary" style="margin-top: 8px;">Vai al Tool →</a>
-        </div>
-
         <div class="workflow-step" id="step-slot">
           <div class="workflow-step-header">
-            <div class="workflow-step-title">3️⃣ Slot Editor v3</div>
+            <div class="workflow-step-title">2️⃣ Slot Editor v3</div>
             <div class="workflow-step-status" id="status-slot">⏸️ In attesa</div>
           </div>
-          <div class="workflow-step-desc">Digitalizza i posteggi del mercato</div>
+          <div class="workflow-step-desc">Georeferenzia pianta, crea posteggi, marker personalizzati e aree mercato</div>
           <a href="slot_editor_v3_unified.html" class="btn secondary" style="margin-top: 8px;">Vai al Tool →</a>
         </div>
 
-        <div class="workflow-step" id="step-result">
-          <div class="workflow-step-header">
-            <div class="workflow-step-title">4️⃣ Result Viewer</div>
-            <div class="workflow-step-status" id="status-result">⏸️ In attesa</div>
+
+      </div>
+
+      <div class="card">
+        <h3>💾 Banca Mappe</h3>
+        <div class="workflow-step-desc" style="margin-bottom: 12px;">
+          Salva e recupera configurazioni complete di mercati digitalizzati
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button id="btn-save-map" class="btn" style="flex: 1;">
+            💾 Salva Configurazione
+          </button>
+          <button id="btn-load-map" class="btn secondary" style="flex: 1;">
+            📂 Carica Configurazione
+          </button>
+        </div>
+        
+        <div id="saved-maps-list" style="max-height: 200px; overflow-y: auto;">
+          <div style="text-align: center; opacity: 0.6; padding: 20px; font-size: 13px;">
+            Nessuna configurazione salvata
           </div>
-          <div class="workflow-step-desc">Visualizza e esporta il risultato finale</div>
-          <a href="result_viewer.html" class="btn secondary" style="margin-top: 8px;">Vai al Tool →</a>
         </div>
       </div>
 
@@ -501,16 +501,34 @@
           status1.textContent = '⏸️ In attesa';
         }
 
-        // Step 2: Area Editor
-        const step2 = document.getElementById('step-area');
-        const status2 = document.getElementById('status-area');
-        if (gcp && container) {
+        // Conta dati aggiuntivi
+        if (gcp) {
+          totalData++;
+          totalSize += JSON.stringify(gcp).length;
+        }
+        if (container) {
+          totalData++;
+          totalSize += JSON.stringify(container).length;
+        }
+        if (areaGeoJSON) {
+          totalData++;
+          totalSize += JSON.stringify(areaGeoJSON).length;
+        }
+        if (hubGeoJSON) {
+          totalData++;
+          totalSize += JSON.stringify(hubGeoJSON).length;
+        }
+
+        // Step 2: Slot Editor v3
+        const step2 = document.getElementById('step-slot');
+        const status2 = document.getElementById('status-slot');
+        if (stallsGeoJSON && gcp && container) {
           step2.classList.remove('waiting', 'in-progress');
           step2.classList.add('completed');
           status2.textContent = '✅ Completato';
           completedSteps++;
-          totalData += 2;
-          totalSize += JSON.stringify(gcp || {}).length + JSON.stringify(container || {}).length;
+          totalData++;
+          totalSize += JSON.stringify(stallsGeoJSON).length;
         } else if (pngTransparent && pngMeta) {
           step2.classList.remove('waiting', 'completed');
           step2.classList.add('in-progress');
@@ -521,70 +539,22 @@
           status2.textContent = '⏸️ In attesa';
         }
 
-        // Aggiungi area e hub se presenti
-        if (areaGeoJSON) {
-          totalData++;
-          totalSize += JSON.stringify(areaGeoJSON).length;
-        }
-        if (hubGeoJSON) {
-          totalData++;
-          totalSize += JSON.stringify(hubGeoJSON).length;
-        }
-
-        // Step 3: Slot Editor
-        const step3 = document.getElementById('step-slot');
-        const status3 = document.getElementById('status-slot');
-        if (stallsGeoJSON) {
-          step3.classList.remove('waiting', 'in-progress');
-          step3.classList.add('completed');
-          status3.textContent = '✅ Completato';
-          completedSteps++;
-          totalData++;
-          totalSize += JSON.stringify(stallsGeoJSON).length;
-        } else if (gcp && container) {
-          step3.classList.remove('waiting', 'completed');
-          step3.classList.add('in-progress');
-          status3.textContent = '⏳ Pronto per iniziare';
-        } else {
-          step3.classList.remove('completed', 'in-progress');
-          step3.classList.add('waiting');
-          status3.textContent = '⏸️ In attesa';
-        }
-
-        // Step 4: Result Viewer
-        const step4 = document.getElementById('step-result');
-        const status4 = document.getElementById('status-result');
-        if (stallsGeoJSON && areaGeoJSON && gcp) {
-          step4.classList.remove('waiting', 'in-progress');
-          step4.classList.add('completed');
-          status4.textContent = '✅ Completato';
-          completedSteps++;
-        } else if (stallsGeoJSON || (gcp && container)) {
-          step4.classList.remove('waiting', 'completed');
-          step4.classList.add('in-progress');
-          status4.textContent = '⏳ Pronto per iniziare';
-        } else {
-          step4.classList.remove('completed', 'in-progress');
-          step4.classList.add('waiting');
-          status4.textContent = '⏸️ In attesa';
-        }
-
         // Aggiorna statistiche
-        const progress = Math.round((completedSteps / 4) * 100);
+        const progress = Math.round((completedSteps / 2) * 100);
         document.getElementById('stat-progress').textContent = progress + '%';
-        document.getElementById('stat-steps').textContent = completedSteps + '/4';
+        document.getElementById('stat-steps').textContent = completedSteps + '/2';
         document.getElementById('stat-data').textContent = totalData;
         document.getElementById('stat-size').textContent = Math.round(totalSize / 1024) + ' KB';
         document.getElementById('progress-bar-fill').style.width = progress + '%';
 
         // Aggiorna alert
         const alert = document.getElementById('workflow-alert');
-        if (completedSteps === 4) {
+        if (completedSteps === 2) {
           alert.className = 'alert alert-success';
           alert.textContent = '🎉 Workflow completato! Tutti i dati sono pronti.';
         } else if (completedSteps > 0) {
           alert.className = 'alert alert-info';
-          alert.textContent = `✨ Workflow in corso... ${completedSteps} step su 4 completati.`;
+          alert.textContent = `✨ Workflow in corso... ${completedSteps} step su 2 completati.`;
         } else {
           alert.className = 'alert alert-warning';
           alert.textContent = '⚠️ Nessun dato nel bus. Inizia dal PNG Transparent Tool!';
@@ -1080,6 +1050,237 @@
       }
     }
     
+    // ========== BANCA MAPPE ==========
+    
+    async function saveToBancaMappe() {
+      try {
+        const name = prompt('💾 Nome configurazione mappa:', 'Mercato ' + new Date().toLocaleDateString('it-IT'));
+        if (!name) return;
+        
+        const timestamp = new Date().toISOString();
+        const mapId = 'map_' + Date.now();
+        
+        // Leggi tutti i dati dal BUS
+        const mapConfig = {
+          id: mapId,
+          name: name,
+          timestamp: timestamp,
+          data: {}
+        };
+        
+        const keys = ['png_transparent', 'png_meta', 'gcp', 'container', 'area_geojson', 'hub_geojson', 'stalls_geojson'];
+        for (const key of keys) {
+          try {
+            let data;
+            if (key === 'png_transparent') {
+              data = await DMSBUS.get(key);
+            } else {
+              data = await DMSBUS.getJSON(key);
+            }
+            if (data) mapConfig.data[key] = data;
+          } catch (err) {}
+        }
+        
+        // Conta elementi
+        const stats = {
+          posteggi: 0,
+          marker: 0,
+          aree: 0
+        };
+        
+        if (mapConfig.data.stalls_geojson?.features) {
+          stats.posteggi = mapConfig.data.stalls_geojson.features.filter(f => f.properties?.type === 'parking').length;
+          stats.marker = mapConfig.data.stalls_geojson.features.filter(f => f.properties?.type === 'custom_marker').length;
+          stats.aree = mapConfig.data.stalls_geojson.features.filter(f => f.properties?.type === 'custom_area').length;
+        }
+        
+        mapConfig.stats = stats;
+        
+        // Salva in localStorage
+        localStorage.setItem(mapId, JSON.stringify(mapConfig));
+        
+        alert(`✅ Configurazione "${name}" salvata!\n\n🎯 ${stats.posteggi} posteggi\n📍 ${stats.marker} marker\n🗺️ ${stats.aree} aree`);
+        
+        updateBancaMappeList();
+      } catch (err) {
+        console.error('Errore salvataggio mappa:', err);
+        alert('❌ Errore salvataggio: ' + err.message);
+      }
+    }
+    
+    async function loadFromBancaMappe(mapId) {
+      try {
+        const mapData = localStorage.getItem(mapId);
+        if (!mapData) {
+          alert('❌ Configurazione non trovata!');
+          return;
+        }
+        
+        const mapConfig = JSON.parse(mapData);
+        
+        // Ripristina dati nel BUS
+        for (const [key, value] of Object.entries(mapConfig.data)) {
+          try {
+            if (key === 'png_transparent') {
+              await DMSBUS.put(key, value);
+            } else {
+              await DMSBUS.putJSON(key, value);
+            }
+          } catch (keyErr) {
+            console.error(`Errore ripristino ${key}:`, keyErr);
+          }
+        }
+        
+        alert('✅ Configurazione "' + mapConfig.name + '" caricata!');
+        updateWorkflowStatus();
+      } catch (err) {
+        console.error('Errore caricamento mappa:', err);
+        alert('❌ Errore caricamento: ' + err.message);
+      }
+    }
+    
+    function exportFromBancaMappe(mapId) {
+      try {
+        const mapData = localStorage.getItem(mapId);
+        if (!mapData) {
+          alert('❌ Configurazione non trovata!');
+          return;
+        }
+        
+        const mapConfig = JSON.parse(mapData);
+        
+        const blob = new Blob([JSON.stringify(mapConfig, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dms-map-' + mapConfig.name.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        alert('✅ Configurazione esportata!');
+      } catch (err) {
+        console.error('Errore esportazione:', err);
+        alert('❌ Errore esportazione: ' + err.message);
+      }
+    }
+    
+    function deleteFromBancaMappe(mapId) {
+      try {
+        const mapData = localStorage.getItem(mapId);
+        if (!mapData) return;
+        
+        const mapConfig = JSON.parse(mapData);
+        
+        if (confirm('⚠️ Eliminare "' + mapConfig.name + '"?\n\nQuesta operazione non può essere annullata!')) {
+          localStorage.removeItem(mapId);
+          updateBancaMappeList();
+          alert('✅ Configurazione eliminata!');
+        }
+      } catch (err) {
+        console.error('Errore eliminazione:', err);
+        alert('❌ Errore eliminazione: ' + err.message);
+      }
+    }
+    
+    function updateBancaMappeList() {
+      const container = document.getElementById('saved-maps-list');
+      container.innerHTML = '';
+      
+      // Trova tutte le mappe salvate
+      const maps = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('map_')) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            maps.push(data);
+          } catch (err) {}
+        }
+      }
+      
+      // Ordina per timestamp (più recenti prima)
+      maps.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      if (maps.length === 0) {
+        container.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 20px; font-size: 13px;">Nessuna configurazione salvata</div>';
+        return;
+      }
+      
+      // Mostra mappe
+      maps.forEach(map => {
+        const item = document.createElement('div');
+        item.style.cssText = 'background: #1a4a5a; padding: 12px; margin-bottom: 8px; border-radius: 6px; border-left: 3px solid #4fc3a0;';
+        
+        const date = new Date(map.timestamp).toLocaleString('it-IT');
+        const stats = map.stats || { posteggi: 0, marker: 0, aree: 0 };
+        
+        item.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 4px; font-size: 14px;">🗺️ ${map.name}</div>
+          <div style="font-size: 12px; opacity: 0.7; margin-bottom: 8px;">📅 ${date}</div>
+          <div style="font-size: 12px; margin-bottom: 8px; display: flex; gap: 12px;">
+            <span>🎯 ${stats.posteggi} posteggi</span>
+            <span>📍 ${stats.marker} marker</span>
+            <span>🗺️ ${stats.aree} aree</span>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn secondary" onclick="loadFromBancaMappe('${map.id}')" style="flex: 1; min-width: 80px; padding: 6px 10px; font-size: 12px;">🔄 Carica</button>
+            <button class="btn secondary" onclick="exportFromBancaMappe('${map.id}')" style="flex: 1; min-width: 80px; padding: 6px 10px; font-size: 12px;">📄 Esporta</button>
+            <button class="btn danger" onclick="deleteFromBancaMappe('${map.id}')" style="padding: 6px 10px; font-size: 12px;">🗑️</button>
+          </div>
+        `;
+        
+        container.appendChild(item);
+      });
+    }
+    
+    // Event listeners Banca Mappe
+    document.getElementById('btn-save-map').addEventListener('click', saveToBancaMappe);
+    
+    document.getElementById('btn-load-map').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = async (e) => {
+        try {
+          const file = e.target.files[0];
+          const text = await file.text();
+          const mapConfig = JSON.parse(text);
+          
+          // Verifica struttura
+          if (!mapConfig.data) {
+            alert('❌ File non valido: manca la struttura dati!');
+            return;
+          }
+          
+          // Ripristina nel BUS
+          for (const [key, value] of Object.entries(mapConfig.data)) {
+            try {
+              if (key === 'png_transparent') {
+                await DMSBUS.put(key, value);
+              } else {
+                await DMSBUS.putJSON(key, value);
+              }
+            } catch (keyErr) {
+              console.error(`Errore ripristino ${key}:`, keyErr);
+            }
+          }
+          
+          // Salva anche in Banca Mappe
+          const mapId = 'map_' + Date.now();
+          mapConfig.id = mapId;
+          localStorage.setItem(mapId, JSON.stringify(mapConfig));
+          
+          alert('✅ Configurazione "' + (mapConfig.name || 'Importata') + '" caricata e salvata!');
+          updateWorkflowStatus();
+          updateBancaMappeList();
+        } catch (err) {
+          console.error('Errore importazione:', err);
+          alert('❌ Errore importazione: ' + err.message);
+        }
+      };
+      input.click();
+    });
+    
     // Event listeners checkpoint
     document.getElementById('btn-save-checkpoint').addEventListener('click', async () => {
       const name = prompt('💾 Nome checkpoint:', 'Checkpoint manuale ' + new Date().toLocaleTimeString('it-IT'));
@@ -1092,6 +1293,7 @@
     // Aggiorna stato all'avvio
     updateWorkflowStatus();
     updateCheckpointList();
+    updateBancaMappeList();
 
     // Auto-refresh ogni 30 secondi
     setInterval(() => {
