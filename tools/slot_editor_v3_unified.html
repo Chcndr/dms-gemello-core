@@ -237,6 +237,25 @@
   </style>
 </head>
 <body>
+  <!-- Header Navigazione -->
+  <div style="background: #0f2830; color: #d5f0e6; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4CAF50;">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <span style="font-size: 1.2rem; font-weight: 600;">🎯 Slot Editor v3 Unified</span>
+      <span style="font-size: 0.9rem; opacity: 0.7;">Sistema Unificato Georeferenziazione</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="bus_hub.html" style="background: #9C27B0; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+        🚌 BUS HUB
+      </a>
+      <a href="../index-grosseto.html" style="background: #FF9800; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+        🗺️ Core Map
+      </a>
+      <a href="https://dmshubapp-hkvujnro.manus.space/dashboard-pa" style="background: #2196F3; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+        📊 Dashboard Admin
+      </a>
+    </div>
+  </div>
+
   <div class="container">
     <aside class="sidebar">
       <h1>🎯 Slot Editor v3</h1>
@@ -1911,7 +1930,19 @@
       slots = [];
       slotCounter = 1;
       updateSlotList();
-      // DMSConsole.log('🗑️ Tutti i posteggi cancellati');
+      
+      // Salva nel BUS (posteggi vuoti)
+      try {
+        const emptyStalls = {
+          type: 'FeatureCollection',
+          features: []
+        };
+        await DMSBUS.set('stalls_geojson', JSON.stringify(emptyStalls));
+        document.getElementById('export-status').textContent = `✅ Posteggi cancellati e salvati nel Bus!`;
+        // DMSConsole.log('🗑️ Tutti i posteggi cancellati e salvati nel BUS');
+      } catch (err) {
+        console.error('❌ Errore salvataggio cancellazione:', err);
+      }
     });
     
     // ===== MARKER PERSONALIZZABILI =====
