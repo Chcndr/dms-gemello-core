@@ -419,6 +419,15 @@
         <button id="btn-save-bus">🚌 Salva nel Bus</button>
         <div class="info" id="export-status">Pronto per esportare</div>
       </div>
+      
+      <!-- 6. Reset Pianta -->
+      <div class="section">
+        <h2>6️⃣ Reset Pianta</h2>
+        <button id="btn-reset-plant" class="danger">🧹 Reset Pianta Completo</button>
+        <div class="info" style="font-size: 0.85rem; color: #ff9800; margin-top: 0.5rem;">
+          ⚠️ Cancella TUTTI i dati salvati (posteggi, marker, aree, pianta). Azione irreversibile!
+        </div>
+      </div>
     </aside>
     
     <div id="map">
@@ -2741,6 +2750,69 @@
       } catch (err) {
         alert('❌ Errore salvataggio: ' + err.message);
         // DMSConsole.log('❌ Errore: ' + err.message);
+      }
+    });
+    
+    // Reset Pianta Completo
+    document.getElementById('btn-reset-plant').addEventListener('click', () => {
+      const confirmed = confirm(
+        '🧹 RESET PIANTA COMPLETO\n\n' +
+        'Questa azione cancellerà DEFINITIVAMENTE:\n' +
+        '- Tutti i posteggi salvati\n' +
+        '- Tutti i marker personalizzati\n' +
+        '- Tutte le aree disegnate\n' +
+        '- La pianta caricata\n' +
+        '- La posizione del segnaposto\n\n' +
+        '⚠️ AZIONE IRREVERSIBILE!\n\n' +
+        'Sei sicuro di voler procedere?'
+      );
+      
+      if (!confirmed) {
+        return;
+      }
+      
+      // Seconda conferma per sicurezza
+      const doubleConfirm = confirm(
+        '⚠️ ULTIMA CONFERMA\n\n' +
+        'Stai per cancellare TUTTI i dati salvati.\n' +
+        'Questa operazione NON può essere annullata.\n\n' +
+        'Continuare?'
+      );
+      
+      if (!doubleConfirm) {
+        return;
+      }
+      
+      try {
+        // Cancella localStorage
+        localStorage.removeItem('plant_marker_position');
+        localStorage.removeItem('slots_positions');
+        
+        // Cancella anche eventuali altre chiavi (per sicurezza)
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('plant') || key.includes('slot') || key.includes('stall') || key.includes('marker') || key.includes('area'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        console.log('🧹 localStorage pulito:', keysToRemove);
+        
+        // Mostra messaggio di successo
+        alert(
+          '✅ RESET COMPLETATO!\n\n' +
+          'Tutti i dati sono stati cancellati.\n' +
+          'La pagina verrà ricaricata per iniziare da zero.'
+        );
+        
+        // Ricarica la pagina per applicare il reset
+        window.location.reload();
+        
+      } catch (err) {
+        alert('❌ Errore durante il reset: ' + err.message);
+        console.error('Errore reset:', err);
       }
     });
   </script>
