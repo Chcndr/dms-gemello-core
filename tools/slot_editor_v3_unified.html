@@ -620,48 +620,35 @@
     map.getPane('slotsPane').style.zIndex = 450; // overlayPane=400, markerPane=600
     
     // Funzione per aggiornare font-size tooltip in base allo zoom
-    // Funzione per ricreare tooltip con font-size corretto (soluzione Safari)
-    function recreateTooltipsWithCorrectSize() {
+    function updateTooltipFontSize() {
       try {
         const zoom = map.getZoom();
+        // Calcola font size in base allo zoom (zoom 17 = 16px, scala proporzionalmente)
         const baseFontSize = 16;
         const baseZoom = 17;
         const fontSize = Math.max(10, Math.min(35, baseFontSize * Math.pow(1.25, zoom - baseZoom)));
         
-        console.log(`🔍 ZOOM ${zoom} → Ricreando tooltip con fontSize ${fontSize.toFixed(1)}px`);
+        console.log(`🔍 ZOOM ${zoom} → fontSize ${fontSize.toFixed(1)}px`);
         
-        // Ricrea tooltip per ogni posteggio
-        slots.forEach(slot => {
-          if (slot.polygon && slot.polygon._map) {
-            // Chiudi e rimuovi vecchio tooltip
-            if (slot.tooltip) {
-              slot.polygon.unbindTooltip();
-            }
-            
-            // Crea nuovo tooltip con font-size inline
-            const center = slot.polygon.getBounds().getCenter();
-            const newTooltip = L.tooltip({
-              permanent: true,
-              direction: 'center',
-              className: 'slot-number-label',
-              offset: [0, 0]
-            })
-            .setContent(`<div style="font-size: ${fontSize}px; font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${slot.number}</div>`)
-            .setLatLng(center);
-            
-            slot.polygon.bindTooltip(newTooltip).openTooltip();
-            slot.tooltip = newTooltip;
-          }
-        });
-        
-        console.log(`✅ Ricreati ${slots.length} tooltip con fontSize ${fontSize.toFixed(1)}px`);
+        // Aspetta che il DOM sia aggiornato
+        setTimeout(() => {
+          // Aggiorna font-size di tutti i tooltip usando DOM
+          const tooltipLabels = document.querySelectorAll('.leaflet-tooltip-pane .slot-number-label div');
+          console.log(`🔎 Trovati ${tooltipLabels.length} tooltip nel DOM`);
+          
+          tooltipLabels.forEach(label => {
+            label.style.fontSize = `${fontSize}px`;
+          });
+          
+          console.log(`✅ Aggiornati ${tooltipLabels.length} tooltip`);
+        }, 100); // Aumentato timeout per dare tempo al DOM
       } catch (err) {
-        console.error('❌ Errore ricreazione tooltip:', err);
+        console.error('❌ Errore aggiornamento font tooltip:', err);
       }
     }
     
-    // Listener zoom per ricreare tooltip
-    map.on('zoomend', recreateTooltipsWithCorrectSize);
+    // Listener zoom per aggiornare dimensione font tooltip
+    map.on('zoomend', updateTooltipFontSize);
     
     // Variabili globali
     let pdfBlob = null;
