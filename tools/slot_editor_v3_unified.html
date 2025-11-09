@@ -420,6 +420,7 @@
       <div class="section">
         <h2>5️⃣ Esporta</h2>
         <button id="btn-export-json" class="secondary">💾 Esporta GeoJSON</button>
+        <button id="btn-export-dashboard" class="success">📊 Esporta per Dashboard Admin</button>
         <button id="btn-save-bus">🚌 Salva nel Bus</button>
         <div class="info" id="export-status">Pronto per esportare</div>
       </div>
@@ -2609,6 +2610,89 @@
       
       document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree esportati!`;
       // DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
+    });
+    
+    // Esporta per Dashboard Admin
+    document.getElementById('btn-export-dashboard').addEventListener('click', () => {
+      if (slots.length === 0) {
+        alert('⚠️ Aggiungi almeno un posteggio prima di esportare!');
+        return;
+      }
+      
+      if (!plantBounds) {
+        alert('⚠️ Carica e posiziona la pianta prima di esportare!');
+        return;
+      }
+      
+      // Calcola centro del mercato (media di tutti i posteggi)
+      const avgLat = slots.reduce((sum, s) => sum + s.lat, 0) / slots.length;
+      const avgLng = slots.reduce((sum, s) => sum + s.lng, 0) / slots.length;
+      
+      // Cattura 4 corner della pianta per container
+      const corners = [
+        [plantBounds.getNorthWest().lat, plantBounds.getNorthWest().lng],
+        [plantBounds.getNorthEast().lat, plantBounds.getNorthEast().lng],
+        [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
+        [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
+      ];
+      
+      // Prepara dati nel formato atteso dalla Dashboard Admin
+      const dashboardData = {
+        container: corners,
+        center: {
+          lat: avgLat,
+          lng: avgLng
+        },
+        gcp: [], // GCP points (Ground Control Points) - opzionale
+        png: {
+          url: '', // URL PNG verrà popolato dopo upload manuale
+          metadata: {
+            rotation: plantRotation,
+            scale: plantScale
+          }
+        },
+        stalls: slots.map(slot => ({
+          number: slot.number.toString(),
+          lat: slot.lat,
+          lng: slot.lng,
+          areaMq: parseFloat((slot.width * slot.height).toFixed(2)),
+          category: 'alimentare' // Categoria default
+        })),
+        customMarkers: markers.map(m => ({
+          name: m.name || `Marker ${m.number}`,
+          type: m.type || 'info',
+          lat: m.lat,
+          lng: m.lng,
+          icon: m.type || 'info',
+          color: m.bgColor || '#3b82f6',
+          description: m.description || ''
+        })),
+        customAreas: areas.map(a => ({
+          name: a.name || `Area ${a.number}`,
+          type: a.type || 'zone',
+          geojson: {
+            type: 'Polygon',
+            coordinates: [a.coordinates.map(c => [c[1], c[0]])]
+          },
+          color: a.fillColor || '#10b981',
+          opacity: a.fillOpacity || 0.3,
+          description: a.description || ''
+        }))
+      };
+      
+      // Download JSON
+      const blob = new Blob([JSON.stringify(dashboardData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dashboard-import-${slots.length}-stalls-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      document.getElementById('export-status').textContent = `✅ JSON Dashboard Admin esportato: ${slots.length} posteggi!`;
+      
+      // Mostra istruzioni
+      alert(`✅ JSON esportato con successo!\n\n📋 ISTRUZIONI:\n1. Apri Dashboard Admin\n2. Vai alla tab "Gestione Mercati"\n3. Clicca "Importa da Slot Editor"\n4. Compila nome mercato, città, indirizzo\n5. Incolla il contenuto del file JSON\n6. Clicca "Importa"\n\n📊 Dati esportati:\n- ${slots.length} posteggi\n- ${markers.length} marker custom\n- ${areas.length} aree custom`);
     });
     
     // Salva nel Bus
