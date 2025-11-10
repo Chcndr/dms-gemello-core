@@ -420,6 +420,14 @@
         <div class="info" id="export-status">Pronto per esportare</div>
       </div>
       
+      <!-- 5b. Importa -->
+      <div class="section">
+        <h2>📥 Importa Configurazione</h2>
+        <input type="file" id="import-json-file" accept=".json" style="display: none;">
+        <button id="btn-import-json" class="primary">📥 Carica JSON</button>
+        <div class="info" id="import-status">Seleziona un file JSON da importare</div>
+      </div>
+      
       <!-- 6. Reset Pianta -->
       <div class="section">
         <h2>6️⃣ Reset Pianta</h2>
@@ -2775,6 +2783,196 @@
         document.getElementById('export-status').textContent = `❌ Errore: ${error.message}`;
         alert(`❌ Errore durante l'import automatico!\n\n🔧 Soluzione alternativa:\n1. Scarica il JSON manualmente\n2. Apri Dashboard Admin\n3. Usa "Importa da Slot Editor v3" manuale\n\nErrore: ${error.message}`);
       });
+    });
+    
+    // Import JSON
+    document.getElementById('btn-import-json').addEventListener('click', () => {
+      document.getElementById('import-json-file').click();
+    });
+    
+    document.getElementById('import-json-file').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      DMSConsole.log(`📥 Caricamento file: ${file.name}`, 'info');
+      document.getElementById('import-status').textContent = `🔄 Caricamento ${file.name}...`;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          DMSConsole.log(`✅ JSON parsato: ${JSON.stringify(jsonData).length} caratteri`, 'success');
+          
+          // Verifica formato JSON
+          if (!jsonData.stalls && !jsonData.container) {
+            throw new Error('Formato JSON non valido: mancano stalls o container');
+          }
+          
+          // Reset dati correnti
+          slots = [];
+          markers = [];
+          areas = [];
+          slotLayer.clearLayers();
+          markerLayer.clearLayers();
+          areaLayer.clearLayers();
+          
+          DMSConsole.log('🧹 Dati precedenti cancellati', 'info');
+          
+          // Carica container (pianta)
+          if (jsonData.container && jsonData.container.length === 4) {
+            const [[lat1, lng1], [lat2, lng2], [lat3, lng3], [lat4, lng4]] = jsonData.container;
+            plantBounds = L.latLngBounds(
+              [[lat1, lng1], [lat2, lng2], [lat3, lng3], [lat4, lng4]]
+            );
+            DMSConsole.log(`✅ Container caricato: 4 punti`, 'success');
+          }
+          
+          // Carica plant rotation e scale
+          if (jsonData.plantRotation !== undefined) {
+            plantRotation = jsonData.plantRotation;
+            document.getElementById('rotation-value').textContent = plantRotation.toFixed(1) + '°';
+            DMSConsole.log(`✅ Rotazione: ${plantRotation.toFixed(1)}°`, 'success');
+          }
+          
+          if (jsonData.scale !== undefined) {
+            plantScale = jsonData.scale;
+            document.getElementById('scale-value').textContent = Math.round(plantScale * 100) + '%';
+            DMSConsole.log(`✅ Scala: ${Math.round(plantScale * 100)}%`, 'success');
+          }
+          
+          // Carica posteggi (stalls)
+          if (jsonData.stalls && Array.isArray(jsonData.stalls)) {
+            jsonData.stalls.forEach((stall, index) => {
+              // Estrai dimensioni da properties.dimensions (es: "2.5m × 5.0m")
+              let width = 2.5, height = 5.0;
+              if (stall.properties && stall.properties.dimensions) {
+                const match = stall.properties.dimensions.match(/([\d.]+)m\s*[×x]\s*([\d.]+)m/);
+                if (match) {
+                  width = parseFloat(match[1]);
+                  height = parseFloat(match[2]);
+                }
+              }
+              
+              const slot = {
+                number: stall.properties.number || (index + 1),
+                lat: stall.geometry.coordinates[1],
+                lng: stall.geometry.coordinates[0],
+                width: width,
+                height: height,
+                rotation: stall.properties.orientation || 0
+              };
+              
+              slots.push(slot);
+              
+              // Disegna posteggio sulla mappa
+              const rect = L.rectangle(
+                [[slot.lat - 0.00002, slot.lng - 0.00002], [slot.lat + 0.00002, slot.lng + 0.00002]],
+                {
+                  color: '#14b8a6',
+                  fillColor: '#14b8a6',
+                  fillOpacity: 0.3,
+                  weight: 2
+                }
+              );
+              
+              rect.bindPopup(`<b>Posteggio ${slot.number}</b><br>${slot.width}m × ${slot.height}m`);
+              rect.addTo(slotLayer);
+            });
+            
+            DMSConsole.log(`✅ ${jsonData.stalls.length} posteggi caricati`, 'success');
+          }
+          
+          // Carica marker
+          if (jsonData.markers && Array.isArray(jsonData.markers)) {
+            jsonData.markers.forEach((marker, index) => {
+              const m = {
+                number: index + 1,
+                name: marker.properties.name || `Marker ${index + 1}`,
+                type: marker.properties.type || 'info',
+                lat: marker.geometry.coordinates[1],
+                lng: marker.geometry.coordinates[0],
+                bgColor: marker.properties.color || '#3b82f6',
+                description: marker.properties.description || ''
+              };
+              
+              markers.push(m);
+              
+              // Disegna marker sulla mappa
+              const markerIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: ${m.bgColor}; color: white; padding: 5px; border-radius: 5px;">${m.type.charAt(0).toUpperCase()}</div>`
+              });
+              
+              const leafletMarker = L.marker([m.lat, m.lng], { icon: markerIcon });
+              leafletMarker.bindPopup(`<b>${m.name}</b><br>${m.description}`);
+              leafletMarker.addTo(markerLayer);
+            });
+            
+            DMSConsole.log(`✅ ${jsonData.markers.length} marker caricati`, 'success');
+          }
+          
+          // Carica aree
+          if (jsonData.areas && Array.isArray(jsonData.areas)) {
+            jsonData.areas.forEach((area, index) => {
+              const coords = area.geometry.coordinates[0].map(c => [c[1], c[0]]);
+              
+              const a = {
+                number: index + 1,
+                name: area.properties.name || `Area ${index + 1}`,
+                type: area.properties.type || 'zone',
+                coordinates: coords,
+                fillColor: area.properties.color || '#10b981',
+                fillOpacity: area.properties.opacity || 0.3,
+                description: area.properties.description || ''
+              };
+              
+              areas.push(a);
+              
+              // Disegna area sulla mappa
+              const polygon = L.polygon(coords, {
+                color: a.fillColor,
+                fillColor: a.fillColor,
+                fillOpacity: a.fillOpacity,
+                weight: 2
+              });
+              
+              polygon.bindPopup(`<b>${a.name}</b><br>${a.description}`);
+              polygon.addTo(areaLayer);
+            });
+            
+            DMSConsole.log(`✅ ${jsonData.areas.length} aree caricate`, 'success');
+          }
+          
+          // Aggiorna UI
+          updateStallsList();
+          updateMarkersList();
+          updateAreasList();
+          
+          // Centra mappa sui posteggi caricati
+          if (slots.length > 0) {
+            const avgLat = slots.reduce((sum, s) => sum + s.lat, 0) / slots.length;
+            const avgLng = slots.reduce((sum, s) => sum + s.lng, 0) / slots.length;
+            map.setView([avgLat, avgLng], 18);
+          }
+          
+          document.getElementById('import-status').textContent = `✅ Caricati: ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree`;
+          DMSConsole.log(`🎉 Import completato con successo!`, 'success');
+          alert(`✅ Import completato!\n\n📊 Dati caricati:\n- ${slots.length} posteggi\n- ${markers.length} marker\n- ${areas.length} aree\n\n🗺️ Ora puoi esportare verso Dashboard Admin!`);
+          
+        } catch (error) {
+          console.error('Errore parsing JSON:', error);
+          DMSConsole.log(`❌ Errore import: ${error.message}`, 'error');
+          document.getElementById('import-status').textContent = `❌ Errore: ${error.message}`;
+          alert(`❌ Errore durante l'import!\n\n${error.message}\n\nVerifica che il file JSON sia nel formato corretto.`);
+        }
+      };
+      
+      reader.onerror = () => {
+        DMSConsole.log('❌ Errore lettura file', 'error');
+        document.getElementById('import-status').textContent = '❌ Errore lettura file';
+      };
+      
+      reader.readAsText(file);
     });
     
     // Salva nel Bus
