@@ -2803,9 +2803,9 @@
           const jsonData = JSON.parse(e.target.result);
           DMSConsole.log(`✅ JSON parsato: ${JSON.stringify(jsonData).length} caratteri`, 'success');
           
-          // Verifica formato JSON
-          if (!jsonData.stalls && !jsonData.container) {
-            throw new Error('Formato JSON non valido: mancano stalls o container');
+          // Verifica formato JSON - SUPPORTA SIA stalls CHE stalls_geojson
+          if (!jsonData.stalls && !jsonData.stalls_geojson && !jsonData.container) {
+            throw new Error('Formato JSON non valido: mancano stalls/stalls_geojson o container');
           }
           
           // Reset dati correnti
@@ -2847,21 +2847,72 @@
             DMSConsole.log(`✅ Container caricato: 4 punti`, 'success');
           }
           
-          // Carica plant rotation e scale
-          if (jsonData.plantRotation !== undefined) {
-            plantRotation = jsonData.plantRotation;
+          // Carica plant rotation e scale (supporta entrambi i formati)
+          if (jsonData.plantRotation !== undefined || jsonData.plant_rotation !== undefined) {
+            plantRotation = jsonData.plantRotation || jsonData.plant_rotation;
             document.getElementById('rotation-value').textContent = plantRotation.toFixed(1) + '°';
             DMSConsole.log(`✅ Rotazione: ${plantRotation.toFixed(1)}°`, 'success');
           }
           
-          if (jsonData.scale !== undefined) {
-            plantScale = jsonData.scale;
+          if (jsonData.scale !== undefined || jsonData.plant_scale !== undefined) {
+            plantScale = jsonData.scale || jsonData.plant_scale;
             document.getElementById('scale-value').textContent = Math.round(plantScale * 100) + '%';
             DMSConsole.log(`✅ Scala: ${Math.round(plantScale * 100)}%`, 'success');
           }
           
-          // Carica posteggi (stalls)
-          if (jsonData.stalls && Array.isArray(jsonData.stalls)) {
+          // ===== CARICA POSTEGGI - SUPPORTA DUE FORMATI =====
+          
+          // Formato 1: stalls_geojson (GeoJSON FeatureCollection) - NUOVO!
+          if (jsonData.stalls_geojson && jsonData.stalls_geojson.features) {
+            DMSConsole.log(`📦 Formato GeoJSON rilevato: ${jsonData.stalls_geojson.features.length} features`, 'info');
+            
+            jsonData.stalls_geojson.features.forEach((feature, index) => {
+              const props = feature.properties;
+              const [lng, lat] = feature.geometry.coordinates;
+              
+              // Estrai dimensioni da properties.dimensions (es: "4.0m × 8.0m")
+              let width = 2.5, height = 5.0;
+              if (props.dimensions) {
+                const match = props.dimensions.match(/([\d.]+)m\s*[×x]\s*([\d.]+)m/);
+                if (match) {
+                  width = parseFloat(match[1]);
+                  height = parseFloat(match[2]);
+                }
+              }
+              
+              const slot = {
+                number: props.number || (index + 1),
+                lat: lat,
+                lng: lng,
+                width: width,
+                height: height,
+                rotation: props.orientation || 0
+              };
+              
+              slots.push(slot);
+              
+              // Disegna posteggio sulla mappa
+              const center = { lat, lng };
+              const corners = calculateSlotBounds(center, width, height, slot.rotation);
+              
+              const rect = L.polygon(corners, {
+                color: '#14b8a6',
+                fillColor: '#14b8a6',
+                fillOpacity: 0.3,
+                weight: 2
+              });
+              
+              rect.bindPopup(`<b>Posteggio ${slot.number}</b><br>${slot.width}m × ${slot.height}m<br>Rotazione: ${slot.rotation.toFixed(1)}°`);
+              rect.addTo(map);
+              slot.polygon = rect;
+            });
+            
+            DMSConsole.log(`✅ ${jsonData.stalls_geojson.features.length} posteggi caricati da stalls_geojson`, 'success');
+          }
+          // Formato 2: stalls (array semplice) - VECCHIO
+          else if (jsonData.stalls && Array.isArray(jsonData.stalls)) {
+            DMSConsole.log(`📦 Formato array semplice rilevato: ${jsonData.stalls.length} stalls`, 'info');
+            
             jsonData.stalls.forEach((stall, index) => {
               // Estrai dimensioni da properties.dimensions (es: "2.5m × 5.0m")
               let width = 2.5, height = 5.0;
@@ -2885,26 +2936,81 @@
               slots.push(slot);
               
               // Disegna posteggio sulla mappa
-              const rect = L.rectangle(
-                [[slot.lat - 0.00002, slot.lng - 0.00002], [slot.lat + 0.00002, slot.lng + 0.00002]],
-                {
-                  color: '#14b8a6',
-                  fillColor: '#14b8a6',
-                  fillOpacity: 0.3,
-                  weight: 2
-                }
-              );
+              const center = { lat: slot.lat, lng: slot.lng };
+              const corners = calculateSlotBounds(center, width, height, slot.rotation);
+              
+              const rect = L.polygon(corners, {
+                color: '#14b8a6',
+                fillColor: '#14b8a6',
+                fillOpacity: 0.3,
+                weight: 2
+              });
               
               rect.bindPopup(`<b>Posteggio ${slot.number}</b><br>${slot.width}m × ${slot.height}m`);
               rect.addTo(map);
-              slot.polygon = rect;  // Salva riferimento per rimozione futura
+              slot.polygon = rect;
             });
             
-            DMSConsole.log(`✅ ${jsonData.stalls.length} posteggi caricati`, 'success');
+            DMSConsole.log(`✅ ${jsonData.stalls.length} posteggi caricati da stalls`, 'success');
           }
           
-          // Carica marker
-          if (jsonData.markers && Array.isArray(jsonData.markers)) {
+          // ===== CARICA MARKER - SUPPORTA DUE FORMATI =====
+          
+          // Formato 1: markers_geojson (GeoJSON FeatureCollection) - NUOVO!
+          if (jsonData.markers_geojson && jsonData.markers_geojson.features) {
+            DMSConsole.log(`📍 Formato marker GeoJSON rilevato: ${jsonData.markers_geojson.features.length} features`, 'info');
+            
+            jsonData.markers_geojson.features.forEach((feature, index) => {
+              const props = feature.properties;
+              const [lng, lat] = feature.geometry.coordinates;
+              
+              const m = {
+                number: props.number || (index + 1),
+                letter: props.letter || 'M',
+                name: props.name || `Marker ${index + 1}`,
+                type: props.type || 'shop',
+                lat: lat,
+                lng: lng,
+                size: props.size || 30,
+                bgColor: props.bgColor || '#4caf50',
+                textColor: props.textColor || '#ffffff',
+                borderColor: props.borderColor || '#2e7d32',
+                borderWidth: props.borderWidth || 3,
+                description: props.description || ''
+              };
+              
+              markers.push(m);
+              
+              // Disegna marker sulla mappa
+              const markerIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                  background: ${m.bgColor}; 
+                  color: ${m.textColor}; 
+                  width: ${m.size}px; 
+                  height: ${m.size}px; 
+                  border: ${m.borderWidth}px solid ${m.borderColor};
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: bold;
+                  font-size: ${m.size * 0.5}px;
+                ">${m.letter}</div>`,
+                iconSize: [m.size, m.size]
+              });
+              
+              const leafletMarker = L.marker([m.lat, m.lng], { icon: markerIcon });
+              leafletMarker.bindPopup(`<b>${m.name}</b><br>${m.description}<br><small>Tipo: ${m.type}</small>`);
+              leafletMarker.addTo(map);
+              m.leafletMarker = leafletMarker;
+            });
+            
+            DMSConsole.log(`✅ ${jsonData.markers_geojson.features.length} marker caricati da markers_geojson`, 'success');
+          }
+          // Formato 2: markers (array semplice) - VECCHIO
+          else if (jsonData.markers && Array.isArray(jsonData.markers)) {
+            DMSConsole.log(`📍 Formato marker array semplice rilevato: ${jsonData.markers.length} markers`, 'info');
             jsonData.markers.forEach((marker, index) => {
               const m = {
                 number: index + 1,
@@ -2933,8 +3039,48 @@
             DMSConsole.log(`✅ ${jsonData.markers.length} marker caricati`, 'success');
           }
           
-          // Carica aree
-          if (jsonData.areas && Array.isArray(jsonData.areas)) {
+          // ===== CARICA AREE - SUPPORTA DUE FORMATI =====
+          
+          // Formato 1: areas_geojson (GeoJSON FeatureCollection) - NUOVO!
+          if (jsonData.areas_geojson && jsonData.areas_geojson.features) {
+            DMSConsole.log(`📐 Formato aree GeoJSON rilevato: ${jsonData.areas_geojson.features.length} features`, 'info');
+            
+            jsonData.areas_geojson.features.forEach((feature, index) => {
+              const props = feature.properties;
+              const coords = feature.geometry.coordinates[0].map(c => [c[1], c[0]]);
+              
+              const a = {
+                number: props.number || (index + 1),
+                name: props.name || `Area ${index + 1}`,
+                type: props.type || 'market',
+                coordinates: coords,
+                fillColor: props.fillColor || '#4caf50',
+                fillOpacity: props.fillOpacity || 0.01,
+                borderColor: props.borderColor || '#2e7d32',
+                borderWidth: props.borderWidth || 3,
+                description: props.description || ''
+              };
+              
+              areas.push(a);
+              
+              // Disegna area sulla mappa
+              const polygon = L.polygon(coords, {
+                color: a.borderColor,
+                fillColor: a.fillColor,
+                fillOpacity: a.fillOpacity,
+                weight: a.borderWidth
+              });
+              
+              polygon.bindPopup(`<b>${a.name}</b><br>${a.description}<br><small>Tipo: ${a.type}</small>`);
+              polygon.addTo(map);
+              a.polygon = polygon;
+            });
+            
+            DMSConsole.log(`✅ ${jsonData.areas_geojson.features.length} aree caricate da areas_geojson`, 'success');
+          }
+          // Formato 2: areas (array semplice) - VECCHIO
+          else if (jsonData.areas && Array.isArray(jsonData.areas)) {
+            DMSConsole.log(`📐 Formato aree array semplice rilevato: ${jsonData.areas.length} areas`, 'info');
             jsonData.areas.forEach((area, index) => {
               const coords = area.geometry.coordinates[0].map(c => [c[1], c[0]]);
               
