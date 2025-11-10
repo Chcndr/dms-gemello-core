@@ -2700,20 +2700,34 @@
         container: corners,
         stalls_geojson: {
           type: 'FeatureCollection',
-          features: slots.map(slot => ({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [slot.lng, slot.lat]
-            },
-            properties: {
-              number: slot.number,
-              orientation: slot.rotation || 0,
-              kind: 'slot',
-              status: 'free',
-              dimensions: `${slot.width}m × ${slot.height}m`
-            }
-          }))
+          features: slots.map(slot => {
+            // Calcola i 4 corner del rettangolo usando la funzione esistente
+            const center = { lat: slot.lat, lng: slot.lng };
+            const corners = calculateSlotBounds(center, slot.width, slot.height, slot.rotation || 0);
+            
+            // Converti corners in formato GeoJSON [lng, lat] e chiudi il poligono
+            const coords = corners.map(([lat, lng]) => [lng, lat]);
+            coords.push(coords[0]); // Chiude il poligono (primo punto = ultimo punto)
+            const polygonCoords = [coords];
+            
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: polygonCoords
+              },
+              properties: {
+                number: slot.number,
+                orientation: slot.rotation || 0,
+                kind: 'slot',
+                status: 'free',
+                dimensions: `${slot.width}m × ${slot.height}m`,
+                width: slot.width,
+                height: slot.height,
+                center: [slot.lng, slot.lat]
+              }
+            };
+          })
         },
         markers_geojson: {
           type: 'FeatureCollection',
