@@ -2756,7 +2756,7 @@
       // Invia via REST API
       DMSConsole.log(`Invio ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree alla Dashboard Admin...`, 'info');
       
-      fetch('https://dmshubapp-hkvujnro.manus.space/api/import-from-slot-editor', {
+      fetch('https://dmshubapp-hkvujnro.manus.space/api/dmsHub/markets/importAuto', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
