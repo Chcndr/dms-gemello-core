@@ -2809,12 +2809,32 @@
           }
           
           // Reset dati correnti
+          // Rimuovi posteggi esistenti dalla mappa
+          slots.forEach(slot => {
+            if (slot.polygon) {
+              map.removeLayer(slot.polygon);
+            }
+            if (slot.tooltip) {
+              map.closeTooltip(slot.tooltip);
+            }
+          });
           slots = [];
+          
+          // Rimuovi marker esistenti dalla mappa
+          markers.forEach(marker => {
+            if (marker.leafletMarker) {
+              map.removeLayer(marker.leafletMarker);
+            }
+          });
           markers = [];
+          
+          // Rimuovi aree esistenti dalla mappa
+          areas.forEach(area => {
+            if (area.polygon) {
+              map.removeLayer(area.polygon);
+            }
+          });
           areas = [];
-          slotLayer.clearLayers();
-          markerLayer.clearLayers();
-          areaLayer.clearLayers();
           
           DMSConsole.log('🧹 Dati precedenti cancellati', 'info');
           
@@ -2876,7 +2896,8 @@
               );
               
               rect.bindPopup(`<b>Posteggio ${slot.number}</b><br>${slot.width}m × ${slot.height}m`);
-              rect.addTo(slotLayer);
+              rect.addTo(map);
+              slot.polygon = rect;  // Salva riferimento per rimozione futura
             });
             
             DMSConsole.log(`✅ ${jsonData.stalls.length} posteggi caricati`, 'success');
@@ -2905,7 +2926,8 @@
               
               const leafletMarker = L.marker([m.lat, m.lng], { icon: markerIcon });
               leafletMarker.bindPopup(`<b>${m.name}</b><br>${m.description}`);
-              leafletMarker.addTo(markerLayer);
+              leafletMarker.addTo(map);
+              m.leafletMarker = leafletMarker;  // Salva riferimento per rimozione futura
             });
             
             DMSConsole.log(`✅ ${jsonData.markers.length} marker caricati`, 'success');
@@ -2937,7 +2959,8 @@
               });
               
               polygon.bindPopup(`<b>${a.name}</b><br>${a.description}`);
-              polygon.addTo(areaLayer);
+              polygon.addTo(map);
+              a.polygon = polygon;  // Salva riferimento per rimozione futura
             });
             
             DMSConsole.log(`✅ ${jsonData.areas.length} aree caricate`, 'success');
