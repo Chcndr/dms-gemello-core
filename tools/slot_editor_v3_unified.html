@@ -2850,13 +2850,19 @@
           // Carica plant rotation e scale (supporta entrambi i formati)
           if (jsonData.plantRotation !== undefined || jsonData.plant_rotation !== undefined) {
             plantRotation = jsonData.plantRotation || jsonData.plant_rotation;
-            document.getElementById('rotation-value').textContent = plantRotation.toFixed(1) + '°';
+            const rotationEl = document.getElementById('rotation-value');
+            if (rotationEl) {
+              rotationEl.textContent = plantRotation.toFixed(1) + '°';
+            }
             DMSConsole.log(`✅ Rotazione: ${plantRotation.toFixed(1)}°`, 'success');
           }
           
           if (jsonData.scale !== undefined || jsonData.plant_scale !== undefined) {
             plantScale = jsonData.scale || jsonData.plant_scale;
-            document.getElementById('scale-value').textContent = Math.round(plantScale * 100) + '%';
+            const scaleEl = document.getElementById('scale-value');
+            if (scaleEl) {
+              scaleEl.textContent = Math.round(plantScale * 100) + '%';
+            }
             DMSConsole.log(`✅ Scala: ${Math.round(plantScale * 100)}%`, 'success');
           }
           
