@@ -2684,19 +2684,91 @@
         }))
       };
       
-      // Download JSON
-      const blob = new Blob([JSON.stringify(dashboardData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `dashboard-import-${slots.length}-stalls-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      // Invia JSON automaticamente alla Dashboard Admin via API
+      document.getElementById('export-status').textContent = `🔄 Invio in corso...`;
       
-      document.getElementById('export-status').textContent = `✅ JSON Dashboard Admin esportato: ${slots.length} posteggi!`;
+      // Converti nel formato GeoJSON v3 per l'API
+      const geojsonData = {
+        container: corners,
+        stalls_geojson: {
+          type: 'FeatureCollection',
+          features: slots.map(slot => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [slot.lng, slot.lat]
+            },
+            properties: {
+              number: slot.number,
+              orientation: slot.rotation || 0,
+              kind: 'slot',
+              status: 'free',
+              dimensions: `${slot.width}m × ${slot.height}m`
+            }
+          }))
+        },
+        markers_geojson: {
+          type: 'FeatureCollection',
+          features: markers.map(m => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [m.lng, m.lat]
+            },
+            properties: {
+              name: m.name || `Marker ${m.number}`,
+              type: m.type || 'info',
+              icon: m.type || 'M',
+              color: m.bgColor || '#3b82f6',
+              description: m.description || ''
+            }
+          }))
+        },
+        areas_geojson: {
+          type: 'FeatureCollection',
+          features: areas.map(a => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [a.coordinates.map(c => [c[1], c[0]])]
+            },
+            properties: {
+              name: a.name || `Area ${a.number}`,
+              type: a.type || 'zone',
+              color: a.fillColor || '#10b981',
+              opacity: a.fillOpacity || 0.3,
+              description: a.description || ''
+            }
+          }))
+        },
+        plant_rotation: plantRotation,
+        plant_scale: plantScale
+      };
       
-      // Mostra istruzioni
-      alert(`✅ JSON esportato con successo!\n\n📋 ISTRUZIONI:\n1. Apri Dashboard Admin\n2. Vai alla tab "Gestione Mercati"\n3. Clicca "Importa da Slot Editor"\n4. Compila nome mercato, città, indirizzo\n5. Incolla il contenuto del file JSON\n6. Clicca "Importa"\n\n📊 Dati esportati:\n- ${slots.length} posteggi\n- ${markers.length} marker custom\n- ${areas.length} aree custom`);
+      // Invia via TRPC API
+      fetch('https://3000-iot4ac202gehqh0qqxx5z-ce5d3831.manusvm.computer/api/trpc/dmsHub.markets.importAuto', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          slotEditorData: geojsonData
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.result?.data?.success) {
+          document.getElementById('export-status').textContent = `✅ Importato automaticamente: ${data.result.data.stallsCreated} posteggi!`;
+          alert(`✅ Import completato con successo!\n\n📊 Dati importati:\n- Mercato: ${data.result.data.marketName}\n- ${data.result.data.stallsCreated} posteggi\n- ${data.result.data.markersCreated} marker\n- ${data.result.data.areasCreated} aree\n\n📍 Vai alla Dashboard Admin per vedere il mercato sulla mappa!`);
+        } else {
+          throw new Error('Import fallito');
+        }
+      })
+      .catch(error => {
+        console.error('Errore import:', error);
+        document.getElementById('export-status').textContent = `❌ Errore: ${error.message}`;
+        alert(`❌ Errore durante l'import automatico!\n\n🔧 Soluzione alternativa:\n1. Scarica il JSON manualmente\n2. Apri Dashboard Admin\n3. Usa "Importa da Slot Editor v3" manuale\n\nErrore: ${error.message}`);
+      });
     });
     
     // Salva nel Bus
