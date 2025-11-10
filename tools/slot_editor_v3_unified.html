@@ -2745,30 +2745,24 @@
         plant_scale: plantScale
       };
       
-      // Invia via TRPC API (formato batch TRPC)
-      fetch('https://dmshubapp-hkvujnro.manus.space/api/trpc/dmsHub.markets.importAuto', {
+      // Invia via REST API
+      fetch('https://dmshubapp-hkvujnro.manus.space/api/import-from-slot-editor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          "0": {
-            "json": {
-              slotEditorData: geojsonData
-            }
-          }
+          slotEditorData: geojsonData
         })
       })
       .then(response => response.json())
       .then(data => {
         console.log('Risposta API:', data);
-        // TRPC batch response format: [{ result: { data: {...} } }]
-        const result = data[0]?.result?.data || data.result?.data;
-        if (result?.success) {
-          document.getElementById('export-status').textContent = `✅ Importato automaticamente: ${result.stallsCreated} posteggi!`;
-          alert(`✅ Import completato con successo!\n\n📊 Dati importati:\n- Mercato: ${result.marketName}\n- ${result.stallsCreated} posteggi\n- ${result.markersCreated} marker\n- ${result.areasCreated} aree\n\n📍 Vai alla Dashboard Admin per vedere il mercato sulla mappa!`);
+        if (data.success) {
+          document.getElementById('export-status').textContent = `✅ Importato automaticamente: ${data.stallsCreated} posteggi!`;
+          alert(`✅ Import completato con successo!\n\n📊 Dati importati:\n- Mercato: ${data.marketName}\n- ${data.stallsCreated} posteggi\n- ${data.markersCreated} marker\n- ${data.areasCreated} aree\n\n📍 Vai alla Dashboard Admin per vedere il mercato sulla mappa!`);
         } else {
-          throw new Error(result?.error || 'Import fallito');
+          throw new Error(data.error || 'Import fallito');
         }
       })
       .catch(error => {
