@@ -582,6 +582,12 @@
     // Carica automaticamente PNG dal BUS
     (async () => {
       try {
+        // Verifica se DMSBUS è disponibile
+        if (typeof DMSBUS === 'undefined' || !DMSBUS.getBlob) {
+          DMSConsole.log('⚠️ DMSBUS non disponibile, uso solo localStorage');
+          return; // Salta caricamento BUS, userà localStorage
+        }
+        
         DMSConsole.log('🔍 Cerco PNG nel BUS...');
         
         // Carica PNG trasparente
