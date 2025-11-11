@@ -3599,7 +3599,7 @@
             const heightMeters = tempImg.height * 0.1;
             
             // Salva dimensioni globali
-            window.plantImageSize = {
+            plantImageSize = {
               width: widthMeters,
               height: heightMeters
             };
@@ -3617,17 +3617,19 @@
             ];
             
             // Crea overlay sulla mappa
-            if (window.plantOverlay) {
-              map.removeLayer(window.plantOverlay);
+            if (pdfOverlay) {
+              map.removeLayer(pdfOverlay);
             }
             
-            window.plantOverlay = L.imageOverlay(pngTransparentBase64, bounds, {
+            pdfOverlay = L.imageOverlay(pngTransparentBase64, bounds, {
               opacity: 0.7,
               interactive: false
             }).addTo(map);
             
+            plantBounds = bounds;
+            
             // Crea marker rosso M al centro
-            if (!window.plantMarker) {
+            if (!plantMarker) {
               const redIcon = L.divIcon({
                 className: 'custom-marker-icon',
                 html: '<div style="background: #f44336; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">M</div>',
@@ -3635,28 +3637,24 @@
                 iconAnchor: [20, 20]
               });
               
-              window.plantMarker = L.marker(center, {
+              plantMarker = L.marker(center, {
                 icon: redIcon,
                 draggable: true,
                 zIndexOffset: 1000
               }).addTo(map);
               
               // Aggiorna overlay quando marker viene trascinato
-              window.plantMarker.on('drag', () => {
-                const newCenter = window.plantMarker.getLatLng();
-                const newLatOffset = (heightMeters / 2) / 111320;
-                const newLngOffset = (widthMeters / 2) / (111320 * Math.cos(newCenter.lat * Math.PI / 180));
-                
-                const newBounds = [
-                  [newCenter.lat - newLatOffset, newCenter.lng - newLngOffset],
-                  [newCenter.lat + newLatOffset, newCenter.lng + newLngOffset]
-                ];
-                
-                window.plantOverlay.setBounds(newBounds);
+              plantMarker.on('drag', () => {
+                if (pdfOverlay && !isUpdatingPlant) {
+                  const newCenter = plantMarker.getLatLng();
+                  const corners = calculatePlantBounds(newCenter, plantImageSize.width, plantImageSize.height, plantRotation, plantScale);
+                  const newBounds = L.latLngBounds([corners[0], corners[2]]);
+                  pdfOverlay.setBounds(newBounds);
+                }
               });
               
               // Log quando marker viene rilasciato
-              window.plantMarker.on('dragend', () => {
+              plantMarker.on('dragend', () => {
                 DMSConsole.log('✅ Pianta riposizionata - usa "Salva Posizione Segnaposto" per salvare', 'info');
               });
               
