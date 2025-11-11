@@ -2530,23 +2530,39 @@
         [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
       ];
       
-      // Crea GeoJSON posteggi
+      // Crea GeoJSON posteggi con Polygon
       const stallsGeoJSON = {
         type: 'FeatureCollection',
-        features: slots.map(slot => ({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [slot.lng, slot.lat]
-          },
-          properties: {
-            number: slot.number,
-            orientation: slot.rotation,
-            kind: 'slot',
-            status: 'free',
-            dimensions: `${slot.width}m × ${slot.height}m`
-          }
-        }))
+        features: slots.map(slot => {
+          // Calcola bounds del posteggio come Polygon
+          const bounds = calculateSlotBounds(
+            { lat: slot.lat, lng: slot.lng },
+            slot.width,
+            slot.height,
+            slot.rotation
+          );
+          
+          // Converti bounds in formato GeoJSON Polygon [lng, lat]
+          const coordinates = [
+            bounds.map(([lat, lng]) => [lng, lat]).concat([[bounds[0][1], bounds[0][0]]]) // Chiudi il poligono
+          ];
+          
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: coordinates
+            },
+            properties: {
+              number: slot.number,
+              orientation: slot.rotation,
+              kind: 'slot',
+              status: 'free',
+              dimensions: `${slot.width}m × ${slot.height}m`,
+              center: [slot.lng, slot.lat] // Mantieni centro per compatibilità
+            }
+          };
+        })
       };
       
       // Crea GeoJSON marker personalizzabili
@@ -3172,23 +3188,39 @@
       }
       
       try {
-        // Salva posteggi
+        // Salva posteggi con Polygon
         const stallsGeoJSON = {
           type: 'FeatureCollection',
-          features: slots.map(slot => ({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [slot.lng, slot.lat]
-            },
-            properties: {
-              number: slot.number,
-              orientation: slot.rotation,
-              kind: 'slot',
-              status: 'free',
-              dimensions: `${slot.width}m × ${slot.height}m`
-            }
-          }))
+          features: slots.map(slot => {
+            // Calcola bounds del posteggio come Polygon
+            const bounds = calculateSlotBounds(
+              { lat: slot.lat, lng: slot.lng },
+              slot.width,
+              slot.height,
+              slot.rotation
+            );
+            
+            // Converti bounds in formato GeoJSON Polygon [lng, lat]
+            const coordinates = [
+              bounds.map(([lat, lng]) => [lng, lat]).concat([[bounds[0][1], bounds[0][0]]]) // Chiudi il poligono
+            ];
+            
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: coordinates
+              },
+              properties: {
+                number: slot.number,
+                orientation: slot.rotation,
+                kind: 'slot',
+                status: 'free',
+                dimensions: `${slot.width}m × ${slot.height}m`,
+                center: [slot.lng, slot.lat] // Mantieni centro per compatibilità
+              }
+            };
+          })
         };
         
         await DMSBUS.set('stalls_geojson', JSON.stringify(stallsGeoJSON));
