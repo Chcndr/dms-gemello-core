@@ -1085,6 +1085,29 @@
         
         plantMarker.on('dragend', () => {
           DMSConsole.log('✅ Pianta riposizionata');
+          
+          // Salva GCP in localStorage quando marker viene spostato
+          if (plantBounds && plantImageSize) {
+            const corners = calculatePlantBounds(
+              plantMarker.getLatLng(),
+              plantImageSize.width,
+              plantImageSize.height,
+              plantRotation,
+              plantScale
+            );
+            
+            const gcp = {
+              corners: {
+                nw: corners[0],  // top-left
+                ne: corners[1],  // top-right
+                se: corners[2],  // bottom-right
+                sw: corners[3]   // bottom-left
+              }
+            };
+            
+            localStorage.setItem('plant_gcp', JSON.stringify(gcp));
+            DMSConsole.log('💾 GCP salvato in localStorage', 'success');
+          }
         });
         
         DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
@@ -1495,6 +1518,30 @@
         
         // Salva in localStorage
         localStorage.setItem('plant_marker_position', JSON.stringify(markerPosition));
+        
+        // Calcola e salva GCP (Ground Control Points) per overlay trasparente
+        if (plantImageSize && plantImageSize.width && plantImageSize.height) {
+          const corners = calculatePlantBounds(
+            markerPos,
+            plantImageSize.width,
+            plantImageSize.height,
+            plantRotation,
+            plantScale
+          );
+          
+          const gcp = {
+            corners: {
+              nw: corners[0],  // top-left
+              ne: corners[1],  // top-right
+              se: corners[2],  // bottom-right
+              sw: corners[3]   // bottom-left
+            },
+            timestamp: new Date().toISOString()
+          };
+          
+          localStorage.setItem('plant_gcp', JSON.stringify(gcp));
+          console.log('💾 GCP salvato in localStorage:', gcp);
+        }
         
         console.log('💾 Posizione segnaposto salvata:', markerPosition);
         
@@ -3518,10 +3565,53 @@
       try {
         // Carica PNG trasparente (overlay sulla mappa)
         const pngTransparentBase64 = localStorage.getItem('plant_png_transparent_base64');
-        if (pngTransparentBase64) {
+        const gcpString = localStorage.getItem('plant_gcp');
+        
+        if (pngTransparentBase64 && gcpString) {
           DMSConsole.log(`📥 PNG trasparente trovato in localStorage (💾 ${Math.round(pngTransparentBase64.length / 1024)} KB)`, 'info');
-          // TODO: Carica PNG trasparente sulla mappa come overlay
-          // Questo richiede di avere le coordinate bounds salvate
+          
+          try {
+            const gcp = JSON.parse(gcpString);
+            
+            // Calcola bounds geografici usando min/max di TUTTI i 4 corner
+            const allLats = [
+              gcp.corners.nw[0],
+              gcp.corners.ne[0],
+              gcp.corners.se[0],
+              gcp.corners.sw[0]
+            ];
+            const allLngs = [
+              gcp.corners.nw[1],
+              gcp.corners.ne[1],
+              gcp.corners.se[1],
+              gcp.corners.sw[1]
+            ];
+            
+            const bounds = [
+              [Math.min(...allLats), Math.min(...allLngs)],
+              [Math.max(...allLats), Math.max(...allLngs)]
+            ];
+            
+            // Crea overlay geografico sulla mappa
+            if (window.plantOverlay) {
+              map.removeLayer(window.plantOverlay);
+            }
+            
+            window.plantOverlay = L.imageOverlay(pngTransparentBase64, bounds, {
+              opacity: 0.7,
+              interactive: false
+            }).addTo(map);
+            
+            // Centra mappa sull'overlay
+            map.fitBounds(bounds);
+            
+            DMSConsole.log(`✅ PNG trasparente caricato come overlay sulla mappa!`, 'success');
+          } catch (err) {
+            console.error('❌ Errore parsing GCP:', err);
+            DMSConsole.log(`❌ Errore caricamento overlay: ${err.message}`, 'error');
+          }
+        } else if (pngTransparentBase64 && !gcpString) {
+          DMSConsole.log(`⚠️ PNG trasparente trovato ma GCP mancante. Georeferenzia la pianta per creare l'overlay.`, 'warning');
         }
         
         // Carica PNG originale (finestra "Immagine Riferimento")

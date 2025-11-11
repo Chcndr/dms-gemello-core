@@ -1321,6 +1321,9 @@
 
         // Carica PNG originale dal BUS
         const pngOriginal = await DMSBUS.getBlob('png_original');
+        
+        // Carica GCP (Ground Control Points) per bounds
+        const gcp = await DMSBUS.getJSON('gcp');
 
         // Converti PNG trasparente in Base64
         const readerTransparent = new FileReader();
@@ -1330,6 +1333,12 @@
           // Salva PNG trasparente in localStorage
           localStorage.setItem('plant_png_transparent_base64', base64Transparent);
           localStorage.setItem('plant_png_timestamp', Date.now().toString());
+          
+          // Salva GCP (bounds) in localStorage se disponibile
+          if (gcp) {
+            localStorage.setItem('plant_gcp', JSON.stringify(gcp));
+            console.log('✅ GCP salvato (bounds per overlay)');
+          }
           
           console.log('✅ PNG trasparente salvato (' + Math.round(base64Transparent.length / 1024) + ' KB)');
           
