@@ -3611,7 +3611,99 @@
             DMSConsole.log(`❌ Errore caricamento overlay: ${err.message}`, 'error');
           }
         } else if (pngTransparentBase64 && !gcpString) {
-          DMSConsole.log(`⚠️ PNG trasparente trovato ma GCP mancante. Georeferenzia la pianta per creare l'overlay.`, 'warning');
+          // PNG trasparente presente ma GCP mancante → crea overlay temporaneo + marker M
+          DMSConsole.log(`⚠️ PNG trasparente trovato ma GCP mancante. Creo overlay temporaneo al centro mappa.`, 'warning');
+          
+          // Crea immagine per ottenere dimensioni
+          const tempImg = new Image();
+          tempImg.onload = () => {
+            // Calcola dimensioni in metri (assumendo 1 pixel = 0.1 metri)
+            const widthMeters = tempImg.width * 0.1;
+            const heightMeters = tempImg.height * 0.1;
+            
+            // Salva dimensioni globali
+            window.plantImageSize = {
+              width: widthMeters,
+              height: heightMeters
+            };
+            
+            // Centro mappa attuale
+            const center = map.getCenter();
+            
+            // Calcola bounds iniziali
+            const latOffset = (heightMeters / 2) / 111320;
+            const lngOffset = (widthMeters / 2) / (111320 * Math.cos(center.lat * Math.PI / 180));
+            
+            const bounds = [
+              [center.lat - latOffset, center.lng - lngOffset],
+              [center.lat + latOffset, center.lng + lngOffset]
+            ];
+            
+            // Crea overlay sulla mappa
+            if (window.plantOverlay) {
+              map.removeLayer(window.plantOverlay);
+            }
+            
+            window.plantOverlay = L.imageOverlay(pngTransparentBase64, bounds, {
+              opacity: 0.7,
+              interactive: false
+            }).addTo(map);
+            
+            // Crea marker rosso M al centro
+            if (!window.plantMarker) {
+              const redIcon = L.divIcon({
+                className: 'custom-marker-icon',
+                html: '<div style="background: #f44336; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">M</div>',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+              });
+              
+              window.plantMarker = L.marker(center, {
+                icon: redIcon,
+                draggable: true,
+                zIndexOffset: 1000
+              }).addTo(map);
+              
+              // Aggiorna overlay quando marker viene trascinato
+              window.plantMarker.on('drag', () => {
+                const newCenter = window.plantMarker.getLatLng();
+                const newLatOffset = (heightMeters / 2) / 111320;
+                const newLngOffset = (widthMeters / 2) / (111320 * Math.cos(newCenter.lat * Math.PI / 180));
+                
+                const newBounds = [
+                  [newCenter.lat - newLatOffset, newCenter.lng - newLngOffset],
+                  [newCenter.lat + newLatOffset, newCenter.lng + newLngOffset]
+                ];
+                
+                window.plantOverlay.setBounds(newBounds);
+              });
+              
+              // Salva GCP quando marker viene rilasciato
+              window.plantMarker.on('dragend', () => {
+                DMSConsole.log('✅ Pianta riposizionata');
+                
+                const newCenter = window.plantMarker.getLatLng();
+                const newLatOffset = (heightMeters / 2) / 111320;
+                const newLngOffset = (widthMeters / 2) / (111320 * Math.cos(newCenter.lat * Math.PI / 180));
+                
+                const gcp = {
+                  corners: {
+                    nw: [newCenter.lat + newLatOffset, newCenter.lng - newLngOffset],
+                    ne: [newCenter.lat + newLatOffset, newCenter.lng + newLngOffset],
+                    se: [newCenter.lat - newLatOffset, newCenter.lng + newLngOffset],
+                    sw: [newCenter.lat - newLatOffset, newCenter.lng - newLngOffset]
+                  },
+                  timestamp: new Date().toISOString()
+                };
+                
+                localStorage.setItem('plant_gcp', JSON.stringify(gcp));
+                DMSConsole.log('💾 GCP salvato automaticamente', 'success');
+              });
+              
+              DMSConsole.log('✅ Overlay PNG trasparente + marker M creati! Trascina il marker per georeferenziare.', 'success');
+            }
+          };
+          tempImg.src = pngTransparentBase64;
         }
         
         // Carica PNG originale (finestra "Immagine Riferimento")
