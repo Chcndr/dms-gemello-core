@@ -420,14 +420,6 @@
         <div class="info" id="export-status">Pronto per esportare</div>
       </div>
       
-      <!-- 5b. Importa -->
-      <div class="section">
-        <h2>📥 Importa Configurazione</h2>
-        <input type="file" id="import-json-file" accept=".json" style="display: none;">
-        <button id="btn-import-json" class="primary">📥 Carica JSON</button>
-        <div class="info" id="import-status">Seleziona un file JSON da importare</div>
-      </div>
-      
       <!-- 6. Reset Pianta -->
       <div class="section">
         <h2>6️⃣ Reset Pianta</h2>
@@ -509,7 +501,7 @@
     // Console si auto-inizializza da dms-console.js
     // Aspetta che sia pronta prima di loggare
     setTimeout(() => {
-      DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
+      // DMSConsole.log('🚀 Slot Editor v3 - Sistema Unificato inizializzato');
     }, 100);
     
     // NOTA: Caricamento automatico dal BUS spostato dopo inizializzazione variabili (vedi sotto)
@@ -582,7 +574,7 @@
     // Carica automaticamente PNG dal BUS
     (async () => {
       try {
-        DMSConsole.log('🔍 Cerco PNG nel BUS...');
+        // DMSConsole.log('🔍 Cerco PNG nel BUS...');
         
         // Carica PNG trasparente
         const blobTransparent = await DMSBUS.getBlob('png_transparent');
@@ -595,7 +587,7 @@
           img.src = URL.createObjectURL(blobTransparent);
           img.onload = () => {
             plantImageSize = { width: img.width, height: img.height };
-            DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+            // DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
             URL.revokeObjectURL(img.src);
           };
           
@@ -746,9 +738,9 @@
             console.error('❌ Errore caricamento segnaposto:', err);
           }
           
-          DMSConsole.log('✅ PNG trasparente caricato dal BUS');
+          // DMSConsole.log('✅ PNG trasparente caricato dal BUS');
         } else {
-          DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
+          // DMSConsole.log('⚠️ png_transparent non trovato nel BUS');
         }
         
         // Carica PNG originale
@@ -756,9 +748,9 @@
         if (blobOriginal) {
           const url = URL.createObjectURL(blobOriginal);
           document.getElementById('reference-image').src = url;
-          DMSConsole.log('✅ PNG originale caricato dal BUS');
+          // DMSConsole.log('✅ PNG originale caricato dal BUS');
         } else {
-          DMSConsole.log('⚠️ png_original non trovato nel BUS');
+          // DMSConsole.log('⚠️ png_original non trovato nel BUS');
         }
         
         // Carica posteggi salvati
@@ -849,7 +841,7 @@
         }
       } catch (err) {
         console.error('❌ Errore caricamento BUS:', err);
-        DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
+        // DMSConsole.log('❌ Errore caricamento BUS: ' + err.message);
       }
       
       // Carica posteggi da localStorage (se non caricati dal BUS)
@@ -1078,17 +1070,17 @@
         });
         
         plantMarker.on('dragend', () => {
-          DMSConsole.log('✅ Pianta riposizionata');
+          // DMSConsole.log('✅ Pianta riposizionata');
         });
         
-        DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
+        // DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
       } else {
         plantMarker.setLatLng(center);
       }
       
       plantBounds = bounds;
       isUpdatingPlant = false;
-      DMSConsole.log('✅ Pianta aggiornata');
+      // DMSConsole.log('✅ Pianta aggiornata');
     }
     
     // Toggle pannello riferimento
@@ -1299,7 +1291,7 @@
       img.src = URL.createObjectURL(file);
       img.onload = () => {
         plantImageSize = { width: img.width, height: img.height };
-        DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
+        // DMSConsole.log('✅ Dimensioni immagine: ' + img.width + 'x' + img.height);
         URL.revokeObjectURL(img.src);
         
         const center = map.getCenter();
@@ -1310,7 +1302,7 @@
         
         updatePlantOverlay();
         document.getElementById('png-status').textContent = `✅ ${file.name} caricato`;
-        DMSConsole.log(`✅ PNG caricato: ${file.name}`);
+        // DMSConsole.log(`✅ PNG caricato: ${file.name}`);
       };
     });
     
@@ -1354,7 +1346,7 @@
         
         URL.revokeObjectURL(url);
         updatePlantOverlay();
-        DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation.toFixed(1) + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
+        // DMSConsole.log('✅ Immagine ruotata fisicamente: ' + plantRotation.toFixed(1) + '° (dim: ' + canvas.width + 'x' + canvas.height + ')');
       };
     }
     
@@ -1754,7 +1746,7 @@
       // Mostra pulsante Fissa
       // Pulsante sempre visibile
       
-      DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
+      // DMSConsole.log(`🟡 Posteggio temporaneo ${number} - regola e click Fissa`);
         return; // Evita altri handler
       }
       
@@ -1843,7 +1835,7 @@
       const nextNumber = tempSlot.number + 1;
       document.getElementById('slot-number').value = nextNumber;
       
-      DMSConsole.log(`✅ Posteggio ${tempSlot.number} fissato`);
+      // DMSConsole.log(`✅ Posteggio ${tempSlot.number} fissato`);
       
       // Reset
       tempSlot = null;
@@ -1926,7 +1918,7 @@
         }
         slots.splice(index, 1);
         updateSlotList();
-        DMSConsole.log(`🗑️ Posteggio ${number} rimosso`);
+        // DMSConsole.log(`🗑️ Posteggio ${number} rimosso`);
       }
     };
     
@@ -1952,7 +1944,7 @@
         };
         await DMSBUS.set('stalls_geojson', JSON.stringify(emptyStalls));
         document.getElementById('export-status').textContent = `✅ Posteggi cancellati e salvati nel Bus!`;
-        DMSConsole.log('🗑️ Tutti i posteggi cancellati e salvati nel BUS');
+        // DMSConsole.log('🗑️ Tutti i posteggi cancellati e salvati nel BUS');
       } catch (err) {
         console.error('❌ Errore salvataggio cancellazione:', err);
       }
@@ -1978,9 +1970,9 @@
       map.getContainer().style.cursor = markerMode ? 'crosshair' : '';
       
       if (markerMode) {
-        DMSConsole.log('✅ Modalità marker attiva - click sulla mappa');
+        // DMSConsole.log('✅ Modalità marker attiva - click sulla mappa');
       } else {
-        DMSConsole.log('❌ Modalità marker disattivata');
+        // DMSConsole.log('❌ Modalità marker disattivata');
       }
     });
     
@@ -2040,7 +2032,7 @@
       markerCounter++;
       
       updateMarkerList();
-      DMSConsole.log(`✅ Marker #${markerData.number} aggiunto`);
+      // DMSConsole.log(`✅ Marker #${markerData.number} aggiunto`);
     }
     
     // Form configurazione marker
@@ -2192,7 +2184,7 @@
       marker.marker.bindPopup(finalPopup);
       
       updateMarkerList();
-      DMSConsole.log(`✅ Marker #${number} aggiornato`);
+      // DMSConsole.log(`✅ Marker #${number} aggiornato`);
     };
     
     // Aggiorna lista marker
@@ -2221,7 +2213,7 @@
         map.removeLayer(marker.marker);
         markers = markers.filter(m => m.number !== number);
         updateMarkerList();
-        DMSConsole.log(`🗑️ Marker ${number} rimosso`);
+        // DMSConsole.log(`🗑️ Marker ${number} rimosso`);
       }
     };
     
@@ -2258,7 +2250,7 @@
       document.getElementById('area-drawing-info').style.display = 'block';
       
       map.getContainer().style.cursor = 'crosshair';
-      DMSConsole.log('✅ Modalità disegno area attiva - click per aggiungere vertici, doppio-click per chiudere');
+      // DMSConsole.log('✅ Modalità disegno area attiva - click per aggiungere vertici, doppio-click per chiudere');
     }
     
     // Aggiungi vertice area
@@ -2287,7 +2279,7 @@
         }).addTo(map);
       }
       
-      DMSConsole.log(`🔵 Vertice ${currentAreaVertices.length} aggiunto`);
+      // DMSConsole.log(`🔵 Vertice ${currentAreaVertices.length} aggiunto`);
     }
     
     // Doppio click per completare area
@@ -2355,7 +2347,7 @@
       map.getContainer().style.cursor = '';
       
       updateAreaList();
-      DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
+      // DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
     }
     
     // Pulsante Annulla Area
@@ -2377,7 +2369,7 @@
       document.getElementById('area-drawing-info').style.display = 'none';
       map.getContainer().style.cursor = '';
       
-      DMSConsole.log('❌ Disegno area annullato');
+      // DMSConsole.log('❌ Disegno area annullato');
     }
     
     // Form configurazione area
@@ -2476,7 +2468,7 @@
       area.polygon.bindPopup(finalPopup);
       
       updateAreaList();
-      DMSConsole.log(`✅ Area #${number} aggiornata`);
+      // DMSConsole.log(`✅ Area #${number} aggiornata`);
     };
     
     // Aggiorna lista aree
@@ -2505,7 +2497,7 @@
         map.removeLayer(area.polygon);
         areas = areas.filter(a => a.number !== number);
         updateAreaList();
-        DMSConsole.log(`🗑️ Area ${number} rimossa`);
+        // DMSConsole.log(`🗑️ Area ${number} rimossa`);
       }
     };
     
@@ -2621,7 +2613,7 @@
       URL.revokeObjectURL(url);
       
       document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree esportati!`;
-      DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
+      // DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
     });
     
     // Esporta per Dashboard Admin
@@ -2754,8 +2746,6 @@
       };
       
       // Invia via REST API
-      DMSConsole.log(`Invio ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree alla Dashboard Admin...`, 'info');
-      
       fetch('https://dmshubapp-hkvujnro.manus.space/api/import-from-slot-editor', {
         method: 'POST',
         headers: {
@@ -2769,233 +2759,17 @@
       .then(data => {
         console.log('Risposta API:', data);
         if (data.success) {
-          DMSConsole.log(`✅ Import completato: ${data.marketName} - ${data.stallsCreated} posteggi, ${data.markersCreated} marker, ${data.areasCreated} aree`, 'success');
           document.getElementById('export-status').textContent = `✅ Importato automaticamente: ${data.stallsCreated} posteggi!`;
           alert(`✅ Import completato con successo!\n\n📊 Dati importati:\n- Mercato: ${data.marketName}\n- ${data.stallsCreated} posteggi\n- ${data.markersCreated} marker\n- ${data.areasCreated} aree\n\n📍 Vai alla Dashboard Admin per vedere il mercato sulla mappa!`);
         } else {
-          DMSConsole.log(`❌ Import fallito: ${data.error}`, 'error');
           throw new Error(data.error || 'Import fallito');
         }
       })
       .catch(error => {
         console.error('Errore import:', error);
-        DMSConsole.log(`❌ Errore import: ${error.message}`, 'error');
         document.getElementById('export-status').textContent = `❌ Errore: ${error.message}`;
         alert(`❌ Errore durante l'import automatico!\n\n🔧 Soluzione alternativa:\n1. Scarica il JSON manualmente\n2. Apri Dashboard Admin\n3. Usa "Importa da Slot Editor v3" manuale\n\nErrore: ${error.message}`);
       });
-    });
-    
-    // Import JSON
-    document.getElementById('btn-import-json').addEventListener('click', () => {
-      document.getElementById('import-json-file').click();
-    });
-    
-    document.getElementById('import-json-file').addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      DMSConsole.log(`📥 Caricamento file: ${file.name}`, 'info');
-      document.getElementById('import-status').textContent = `🔄 Caricamento ${file.name}...`;
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const jsonData = JSON.parse(e.target.result);
-          DMSConsole.log(`✅ JSON parsato: ${JSON.stringify(jsonData).length} caratteri`, 'success');
-          
-          // Verifica formato JSON
-          if (!jsonData.stalls && !jsonData.container) {
-            throw new Error('Formato JSON non valido: mancano stalls o container');
-          }
-          
-          // Reset dati correnti
-          // Rimuovi posteggi esistenti dalla mappa
-          slots.forEach(slot => {
-            if (slot.polygon) {
-              map.removeLayer(slot.polygon);
-            }
-            if (slot.tooltip) {
-              map.closeTooltip(slot.tooltip);
-            }
-          });
-          slots = [];
-          
-          // Rimuovi marker esistenti dalla mappa
-          markers.forEach(marker => {
-            if (marker.leafletMarker) {
-              map.removeLayer(marker.leafletMarker);
-            }
-          });
-          markers = [];
-          
-          // Rimuovi aree esistenti dalla mappa
-          areas.forEach(area => {
-            if (area.polygon) {
-              map.removeLayer(area.polygon);
-            }
-          });
-          areas = [];
-          
-          DMSConsole.log('🧹 Dati precedenti cancellati', 'info');
-          
-          // Carica container (pianta)
-          if (jsonData.container && jsonData.container.length === 4) {
-            const [[lat1, lng1], [lat2, lng2], [lat3, lng3], [lat4, lng4]] = jsonData.container;
-            plantBounds = L.latLngBounds(
-              [[lat1, lng1], [lat2, lng2], [lat3, lng3], [lat4, lng4]]
-            );
-            DMSConsole.log(`✅ Container caricato: 4 punti`, 'success');
-          }
-          
-          // Carica plant rotation e scale
-          if (jsonData.plantRotation !== undefined) {
-            plantRotation = jsonData.plantRotation;
-            document.getElementById('rotation-value').textContent = plantRotation.toFixed(1) + '°';
-            DMSConsole.log(`✅ Rotazione: ${plantRotation.toFixed(1)}°`, 'success');
-          }
-          
-          if (jsonData.scale !== undefined) {
-            plantScale = jsonData.scale;
-            document.getElementById('scale-value').textContent = Math.round(plantScale * 100) + '%';
-            DMSConsole.log(`✅ Scala: ${Math.round(plantScale * 100)}%`, 'success');
-          }
-          
-          // Carica posteggi (stalls)
-          if (jsonData.stalls && Array.isArray(jsonData.stalls)) {
-            jsonData.stalls.forEach((stall, index) => {
-              // Estrai dimensioni da properties.dimensions (es: "2.5m × 5.0m")
-              let width = 2.5, height = 5.0;
-              if (stall.properties && stall.properties.dimensions) {
-                const match = stall.properties.dimensions.match(/([\d.]+)m\s*[×x]\s*([\d.]+)m/);
-                if (match) {
-                  width = parseFloat(match[1]);
-                  height = parseFloat(match[2]);
-                }
-              }
-              
-              const slot = {
-                number: stall.properties.number || (index + 1),
-                lat: stall.geometry.coordinates[1],
-                lng: stall.geometry.coordinates[0],
-                width: width,
-                height: height,
-                rotation: stall.properties.orientation || 0
-              };
-              
-              slots.push(slot);
-              
-              // Disegna posteggio sulla mappa
-              const rect = L.rectangle(
-                [[slot.lat - 0.00002, slot.lng - 0.00002], [slot.lat + 0.00002, slot.lng + 0.00002]],
-                {
-                  color: '#14b8a6',
-                  fillColor: '#14b8a6',
-                  fillOpacity: 0.3,
-                  weight: 2
-                }
-              );
-              
-              rect.bindPopup(`<b>Posteggio ${slot.number}</b><br>${slot.width}m × ${slot.height}m`);
-              rect.addTo(map);
-              slot.polygon = rect;  // Salva riferimento per rimozione futura
-            });
-            
-            DMSConsole.log(`✅ ${jsonData.stalls.length} posteggi caricati`, 'success');
-          }
-          
-          // Carica marker
-          if (jsonData.markers && Array.isArray(jsonData.markers)) {
-            jsonData.markers.forEach((marker, index) => {
-              const m = {
-                number: index + 1,
-                name: marker.properties.name || `Marker ${index + 1}`,
-                type: marker.properties.type || 'info',
-                lat: marker.geometry.coordinates[1],
-                lng: marker.geometry.coordinates[0],
-                bgColor: marker.properties.color || '#3b82f6',
-                description: marker.properties.description || ''
-              };
-              
-              markers.push(m);
-              
-              // Disegna marker sulla mappa
-              const markerIcon = L.divIcon({
-                className: 'custom-marker',
-                html: `<div style="background: ${m.bgColor}; color: white; padding: 5px; border-radius: 5px;">${m.type.charAt(0).toUpperCase()}</div>`
-              });
-              
-              const leafletMarker = L.marker([m.lat, m.lng], { icon: markerIcon });
-              leafletMarker.bindPopup(`<b>${m.name}</b><br>${m.description}`);
-              leafletMarker.addTo(map);
-              m.leafletMarker = leafletMarker;  // Salva riferimento per rimozione futura
-            });
-            
-            DMSConsole.log(`✅ ${jsonData.markers.length} marker caricati`, 'success');
-          }
-          
-          // Carica aree
-          if (jsonData.areas && Array.isArray(jsonData.areas)) {
-            jsonData.areas.forEach((area, index) => {
-              const coords = area.geometry.coordinates[0].map(c => [c[1], c[0]]);
-              
-              const a = {
-                number: index + 1,
-                name: area.properties.name || `Area ${index + 1}`,
-                type: area.properties.type || 'zone',
-                coordinates: coords,
-                fillColor: area.properties.color || '#10b981',
-                fillOpacity: area.properties.opacity || 0.3,
-                description: area.properties.description || ''
-              };
-              
-              areas.push(a);
-              
-              // Disegna area sulla mappa
-              const polygon = L.polygon(coords, {
-                color: a.fillColor,
-                fillColor: a.fillColor,
-                fillOpacity: a.fillOpacity,
-                weight: 2
-              });
-              
-              polygon.bindPopup(`<b>${a.name}</b><br>${a.description}`);
-              polygon.addTo(map);
-              a.polygon = polygon;  // Salva riferimento per rimozione futura
-            });
-            
-            DMSConsole.log(`✅ ${jsonData.areas.length} aree caricate`, 'success');
-          }
-          
-          // Aggiorna UI
-          updateSlotList();
-          updateMarkerList();
-          updateAreaList();
-          
-          // Centra mappa sui posteggi caricati
-          if (slots.length > 0) {
-            const avgLat = slots.reduce((sum, s) => sum + s.lat, 0) / slots.length;
-            const avgLng = slots.reduce((sum, s) => sum + s.lng, 0) / slots.length;
-            map.setView([avgLat, avgLng], 18);
-          }
-          
-          document.getElementById('import-status').textContent = `✅ Caricati: ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree`;
-          DMSConsole.log(`🎉 Import completato con successo!`, 'success');
-          alert(`✅ Import completato!\n\n📊 Dati caricati:\n- ${slots.length} posteggi\n- ${markers.length} marker\n- ${areas.length} aree\n\n🗺️ Ora puoi esportare verso Dashboard Admin!`);
-          
-        } catch (error) {
-          console.error('Errore parsing JSON:', error);
-          DMSConsole.log(`❌ Errore import: ${error.message}`, 'error');
-          document.getElementById('import-status').textContent = `❌ Errore: ${error.message}`;
-          alert(`❌ Errore durante l'import!\n\n${error.message}\n\nVerifica che il file JSON sia nel formato corretto.`);
-        }
-      };
-      
-      reader.onerror = () => {
-        DMSConsole.log('❌ Errore lettura file', 'error');
-        document.getElementById('import-status').textContent = '❌ Errore lettura file';
-      };
-      
-      reader.readAsText(file);
     });
     
     // Salva nel Bus
@@ -3044,11 +2818,11 @@
         }
         
         document.getElementById('export-status').textContent = `✅ Salvato nel Bus!`;
-        DMSConsole.log(`✅ ${slots.length} posteggi salvati nel BUS`);
+        // DMSConsole.log(`✅ ${slots.length} posteggi salvati nel BUS`);
         alert(`✅ ${slots.length} posteggi salvati nel BUS!`);
       } catch (err) {
         alert('❌ Errore salvataggio: ' + err.message);
-        DMSConsole.log('❌ Errore: ' + err.message);
+        // DMSConsole.log('❌ Errore: ' + err.message);
       }
     });
     
@@ -3113,112 +2887,6 @@
         alert('❌ Errore durante il reset: ' + err.message);
         console.error('Errore reset:', err);
       }
-    });
-  </script>
-  
-  <!-- Console Log Panel -->
-  <div id="console-panel" style="position: fixed; bottom: 20px; right: 20px; width: 400px; max-height: 300px; background: rgba(30, 41, 59, 0.95); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-family: 'Courier New', monospace; display: flex; flex-direction: column;">
-    <div id="console-header" style="padding: 10px 15px; background: rgba(15, 23, 42, 0.9); border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
-      <span style="color: #10b981; font-weight: bold; font-size: 13px;">📟 Console Log</span>
-      <div style="display: flex; gap: 8px;">
-        <button id="btn-console-minimize" style="background: #fbbf24; color: #000; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 10px; padding: 0; line-height: 1;">−</button>
-        <button id="btn-console-close" style="background: #ef4444; color: #fff; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 10px; padding: 0; line-height: 1;">✕</button>
-      </div>
-    </div>
-    <div id="console-content" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 11px; line-height: 1.5; color: #e2e8f0; max-height: 250px;">
-      <!-- Log messages will appear here -->
-    </div>
-  </div>
-  
-  <script>
-    // DMSConsole object for logging
-    const DMSConsole = {
-      panel: null,
-      content: null,
-      minimized: false,
-      
-      init() {
-        this.panel = document.getElementById('console-panel');
-        this.content = document.getElementById('console-content');
-        
-        // Minimize/Maximize
-        document.getElementById('btn-console-minimize').addEventListener('click', () => {
-          this.minimized = !this.minimized;
-          this.content.style.display = this.minimized ? 'none' : 'block';
-          document.getElementById('btn-console-minimize').textContent = this.minimized ? '+' : '−';
-        });
-        
-        // Close
-        document.getElementById('btn-console-close').addEventListener('click', () => {
-          this.panel.style.display = 'none';
-        });
-        
-        // Make draggable
-        const header = document.getElementById('console-header');
-        let isDragging = false;
-        let currentX, currentY, initialX, initialY;
-        
-        header.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          initialX = e.clientX - this.panel.offsetLeft;
-          initialY = e.clientY - this.panel.offsetTop;
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
-            this.panel.style.left = currentX + 'px';
-            this.panel.style.top = currentY + 'px';
-            this.panel.style.right = 'auto';
-            this.panel.style.bottom = 'auto';
-          }
-        });
-        
-        document.addEventListener('mouseup', () => {
-          isDragging = false;
-        });
-      },
-      
-      log(message, type = 'info') {
-        if (!this.content) return;
-        
-        const timestamp = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const icons = {
-          info: '🔵',
-          success: '✅',
-          error: '❌',
-          warning: '⚠️',
-          search: '🔍',
-          save: '💾'
-        };
-        const icon = icons[type] || '🔵';
-        
-        const logEntry = document.createElement('div');
-        logEntry.style.marginBottom = '4px';
-        logEntry.style.paddingBottom = '4px';
-        logEntry.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-        logEntry.innerHTML = `
-          <span style="color: #94a3b8; font-size: 10px;">${timestamp}</span>
-          <span style="margin: 0 5px;">${icon}</span>
-          <span style="color: ${type === 'error' ? '#fca5a5' : type === 'warning' ? '#fde047' : type === 'success' ? '#86efac' : '#e2e8f0'};">${message}</span>
-        `;
-        
-        this.content.appendChild(logEntry);
-        this.content.scrollTop = this.content.scrollHeight;
-        
-        // Limit to 50 messages
-        while (this.content.children.length > 50) {
-          this.content.removeChild(this.content.firstChild);
-        }
-      }
-    };
-    
-    // Initialize console on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      DMSConsole.init();
-      DMSConsole.log('Slot Editor v3 inizializzato', 'success');
     });
   </script>
 </body>
