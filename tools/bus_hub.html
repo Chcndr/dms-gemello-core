@@ -337,6 +337,17 @@
 
       <div class="section">
         <h2>🎯 Workflow Tools</h2>
+        <div style="margin-bottom: 16px;">
+          <label for="market-name-input" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">
+            🏪 Nome Mercato:
+          </label>
+          <input 
+            type="text" 
+            id="market-name-input" 
+            placeholder="Es: Mercato Settimanale Grosseto" 
+            style="width: 100%; padding: 10px; border: 1px solid rgba(213, 240, 230, 0.3); border-radius: 4px; background: #0b1c26; color: #d5f0e6; font-size: 14px;"
+          />
+        </div>
         <a href="stalls_alpha_tool.html" class="btn" id="btn-png-tool">
           🎨 PNG Transparent Tool
         </a>
@@ -1056,7 +1067,19 @@
     
     async function saveToBancaMappe() {
       try {
-        const name = prompt('💾 Nome configurazione mappa:', 'Mercato ' + new Date().toLocaleDateString('it-IT'));
+        // Leggi nome mercato dal DMSBUS
+        let name = await DMSBUS.getJSON('market_name');
+        
+        // Se non c'è, usa il nome dal campo input
+        if (!name) {
+          name = document.getElementById('market-name-input')?.value.trim();
+        }
+        
+        // Se ancora non c'è, chiedi all'utente
+        if (!name) {
+          name = prompt('💾 Nome configurazione mappa:', 'Mercato ' + new Date().toLocaleDateString('it-IT'));
+        }
+        
         if (!name) return;
         
         const timestamp = new Date().toISOString();
@@ -1367,6 +1390,43 @@
         alert('❌ Errore durante il caricamento del PNG: ' + err.message);
       }
     }
+    
+    // Salva nome mercato nel DMSBUS quando si clicca sui tool
+    document.getElementById('btn-png-tool').addEventListener('click', async (e) => {
+      const marketName = document.getElementById('market-name-input').value.trim();
+      if (marketName) {
+        try {
+          await DMSBUS.putJSON('market_name', marketName);
+          console.log('✅ Nome mercato salvato:', marketName);
+        } catch (err) {
+          console.error('❌ Errore salvataggio nome mercato:', err);
+        }
+      }
+    });
+    
+    document.getElementById('btn-slot-editor').addEventListener('click', async (e) => {
+      const marketName = document.getElementById('market-name-input').value.trim();
+      if (marketName) {
+        try {
+          await DMSBUS.putJSON('market_name', marketName);
+          console.log('✅ Nome mercato salvato:', marketName);
+        } catch (err) {
+          console.error('❌ Errore salvataggio nome mercato:', err);
+        }
+      }
+    });
+    
+    // Carica nome mercato dal DMSBUS all'avvio
+    (async () => {
+      try {
+        const savedName = await DMSBUS.getJSON('market_name');
+        if (savedName) {
+          document.getElementById('market-name-input').value = savedName;
+        }
+      } catch (err) {
+        console.error('Errore caricamento nome mercato:', err);
+      }
+    })();
   </script>
 </body>
 </html>
