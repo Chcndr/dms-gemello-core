@@ -2818,7 +2818,7 @@
       }
       
       // Verifica se DMSBUS è disponibile
-      if (typeof DMSBUS === 'undefined' || !DMSBUS.set) {
+      if (typeof DMSBUS === 'undefined' || !DMSBUS.putJSON) {
         alert('❌ DMSBUS non disponibile!\n\nConnettiti al BUS Hub prima di salvare.');
         return;
       }
@@ -2862,7 +2862,7 @@
           })
         };
         
-        await DMSBUS.set('stalls_geojson', JSON.stringify(stallsGeoJSON));
+        await DMSBUS.putJSON('stalls_geojson', stallsGeoJSON);
         
         // Salva container se disponibile
         if (plantBounds) {
@@ -2872,12 +2872,12 @@
             [plantBounds.getSouthEast().lat, plantBounds.getSouthEast().lng],
             [plantBounds.getSouthWest().lat, plantBounds.getSouthWest().lng]
           ];
-          await DMSBUS.set('container', JSON.stringify(corners));
+          await DMSBUS.putJSON('container', { corners });
         }
         
         // Salva PNG se disponibile
         if (pdfBlob) {
-          await DMSBUS.setBlob('png_transparent', pdfBlob);
+          await DMSBUS.putBlob('png_transparent', pdfBlob);
         }
         
         document.getElementById('export-status').textContent = `✅ Salvato nel Bus!`;
