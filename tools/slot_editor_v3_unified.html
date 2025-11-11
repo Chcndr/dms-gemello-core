@@ -1084,30 +1084,7 @@
         });
         
         plantMarker.on('dragend', () => {
-          DMSConsole.log('✅ Pianta riposizionata');
-          
-          // Salva GCP in localStorage quando marker viene spostato
-          if (plantBounds && plantImageSize) {
-            const corners = calculatePlantBounds(
-              plantMarker.getLatLng(),
-              plantImageSize.width,
-              plantImageSize.height,
-              plantRotation,
-              plantScale
-            );
-            
-            const gcp = {
-              corners: {
-                nw: corners[0],  // top-left
-                ne: corners[1],  // top-right
-                se: corners[2],  // bottom-right
-                sw: corners[3]   // bottom-left
-              }
-            };
-            
-            localStorage.setItem('plant_gcp', JSON.stringify(gcp));
-            DMSConsole.log('💾 GCP salvato in localStorage', 'success');
-          }
+          DMSConsole.log('✅ Pianta riposizionata - usa "Salva Posizione Segnaposto" per salvare', 'info');
         });
         
         DMSConsole.log('✅ Marker pianta aggiunto - trascina per posizionare');
@@ -3678,26 +3655,9 @@
                 window.plantOverlay.setBounds(newBounds);
               });
               
-              // Salva GCP quando marker viene rilasciato
+              // Log quando marker viene rilasciato
               window.plantMarker.on('dragend', () => {
-                DMSConsole.log('✅ Pianta riposizionata');
-                
-                const newCenter = window.plantMarker.getLatLng();
-                const newLatOffset = (heightMeters / 2) / 111320;
-                const newLngOffset = (widthMeters / 2) / (111320 * Math.cos(newCenter.lat * Math.PI / 180));
-                
-                const gcp = {
-                  corners: {
-                    nw: [newCenter.lat + newLatOffset, newCenter.lng - newLngOffset],
-                    ne: [newCenter.lat + newLatOffset, newCenter.lng + newLngOffset],
-                    se: [newCenter.lat - newLatOffset, newCenter.lng + newLngOffset],
-                    sw: [newCenter.lat - newLatOffset, newCenter.lng - newLngOffset]
-                  },
-                  timestamp: new Date().toISOString()
-                };
-                
-                localStorage.setItem('plant_gcp', JSON.stringify(gcp));
-                DMSConsole.log('💾 GCP salvato automaticamente', 'success');
+                DMSConsole.log('✅ Pianta riposizionata - usa "Salva Posizione Segnaposto" per salvare', 'info');
               });
               
               DMSConsole.log('✅ Overlay PNG trasparente + marker M creati! Trascina il marker per georeferenziare.', 'success');
