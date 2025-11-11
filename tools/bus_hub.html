@@ -419,7 +419,7 @@
             <div class="workflow-step-status" id="status-slot">⏸️ In attesa</div>
           </div>
           <div class="workflow-step-desc">Georeferenzia pianta, crea posteggi, marker personalizzati e aree mercato</div>
-          <a href="slot_editor_v3_unified.html" class="btn secondary" style="margin-top: 8px;">Vai al Tool →</a>
+          <button onclick="goToSlotEditorV3()" class="btn secondary" style="margin-top: 8px;">Vai al Tool →</button>
         </div>
 
 
@@ -1302,6 +1302,62 @@
       updateWorkflowStatus();
       autoSaveCheckpoint();
     }, 30000);
+
+    // Funzione per aprire Slot Editor v3 con PNG in localStorage
+    async function goToSlotEditorV3() {
+      try {
+        // Verifica se DMSBUS è disponibile
+        if (typeof DMSBUS === 'undefined' || !DMSBUS.getBlob) {
+          alert('⚠️ DMSBUS non disponibile. Carica prima un PNG nel PNG Transparent Tool.');
+          return;
+        }
+
+        // Carica PNG trasparente dal BUS
+        const pngTransparent = await DMSBUS.getBlob('png_transparent');
+        if (!pngTransparent) {
+          alert('⚠️ Nessun PNG trasparente trovato nel BUS. Usa prima il PNG Transparent Tool.');
+          return;
+        }
+
+        // Carica PNG originale dal BUS
+        const pngOriginal = await DMSBUS.getBlob('png_original');
+
+        // Converti PNG trasparente in Base64
+        const readerTransparent = new FileReader();
+        readerTransparent.onloadend = async () => {
+          const base64Transparent = readerTransparent.result;
+          
+          // Salva PNG trasparente in localStorage
+          localStorage.setItem('plant_png_transparent_base64', base64Transparent);
+          localStorage.setItem('plant_png_timestamp', Date.now().toString());
+          
+          console.log('✅ PNG trasparente salvato (' + Math.round(base64Transparent.length / 1024) + ' KB)');
+          
+          // Se c'è anche l'originale, salvalo
+          if (pngOriginal) {
+            const readerOriginal = new FileReader();
+            readerOriginal.onloadend = () => {
+              const base64Original = readerOriginal.result;
+              localStorage.setItem('plant_png_original_base64', base64Original);
+              console.log('✅ PNG originale salvato (' + Math.round(base64Original.length / 1024) + ' KB)');
+              
+              // Apri Slot Editor v3
+              window.location.href = 'slot_editor_v3_unified.html';
+            };
+            readerOriginal.readAsDataURL(pngOriginal);
+          } else {
+            console.log('⚠️ PNG originale non trovato nel BUS');
+            // Apri comunque Slot Editor v3
+            window.location.href = 'slot_editor_v3_unified.html';
+          }
+        };
+        readerTransparent.readAsDataURL(pngTransparent);
+        
+      } catch (err) {
+        console.error('❌ Errore:', err);
+        alert('❌ Errore durante il caricamento del PNG: ' + err.message);
+      }
+    }
   </script>
 </body>
 </html>

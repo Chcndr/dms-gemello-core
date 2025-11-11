@@ -3516,6 +3516,29 @@
     // Funzione per caricare posizione pianta da localStorage
     function loadPlantFromLocalStorage() {
       try {
+        // Carica PNG trasparente (overlay sulla mappa)
+        const pngTransparentBase64 = localStorage.getItem('plant_png_transparent_base64');
+        if (pngTransparentBase64) {
+          DMSConsole.log(`📥 PNG trasparente trovato in localStorage (💾 ${Math.round(pngTransparentBase64.length / 1024)} KB)`, 'info');
+          // TODO: Carica PNG trasparente sulla mappa come overlay
+          // Questo richiede di avere le coordinate bounds salvate
+        }
+        
+        // Carica PNG originale (finestra "Immagine Riferimento")
+        const pngOriginalBase64 = localStorage.getItem('plant_png_original_base64');
+        if (pngOriginalBase64) {
+          DMSConsole.log(`📥 PNG originale trovato in localStorage (💾 ${Math.round(pngOriginalBase64.length / 1024)} KB)`, 'info');
+          
+          // Mostra PNG originale nella finestra di riferimento
+          const refImage = document.getElementById('reference-image');
+          if (refImage) {
+            refImage.src = pngOriginalBase64;
+            refImage.style.display = 'block';
+            DMSConsole.log(`✅ PNG originale caricato nella finestra riferimento!`, 'success');
+          }
+        }
+        
+        // Carica posizione marker pianta
         const savedPosition = localStorage.getItem('plant_marker_position');
         if (!savedPosition) {
           return;
