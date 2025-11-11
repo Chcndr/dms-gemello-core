@@ -3223,6 +3223,11 @@
           })
         };
         
+        // Verifica se DMSBUS è disponibile
+        if (typeof DMSBUS === 'undefined' || !DMSBUS.set) {
+          throw new Error('DMSBUS non è disponibile. Usa "Esporta GeoJSON" per salvare i dati.');
+        }
+        
         await DMSBUS.set('stalls_geojson', JSON.stringify(stallsGeoJSON));
         
         // Salva container se disponibile
@@ -3246,7 +3251,7 @@
         alert(`✅ ${slots.length} posteggi salvati nel BUS!`);
       } catch (err) {
         alert('❌ Errore salvataggio: ' + err.message);
-        DMSConsole.log('❌ Errore: ' + err.message);
+        DMSConsole.log('❌ Errore: ' + err.message, 'error');
       }
     });
     
@@ -3414,9 +3419,142 @@
     };
     
     // Initialize console on page load
+    // Funzione per caricare posteggi da localStorage
+    function loadSlotsFromLocalStorage() {
+      try {
+        const savedSlots = localStorage.getItem('slots_positions');
+        if (!savedSlots) {
+          DMSConsole.log('ℹ️ Nessun posteggio salvato da caricare');
+          return;
+        }
+        
+        const slotsData = JSON.parse(savedSlots);
+        DMSConsole.log(`📥 Caricamento ${slotsData.length} posteggi da localStorage...`);
+        
+        slotsData.forEach(slotData => {
+          // Calcola bounds del posteggio
+          const bounds = calculateSlotBounds(
+            { lat: slotData.lat, lng: slotData.lng },
+            slotData.width,
+            slotData.height,
+            slotData.rotation
+          );
+          
+          // Crea polygon verde
+          const greenPolygon = L.polygon(bounds, {
+            color: '#4CAF50',
+            fillColor: '#4CAF50',
+            fillOpacity: 0.4,
+            weight: 2
+          }).addTo(map);
+          
+          // Aggiungi tooltip con numero
+          const greenTooltip = L.tooltip({
+            permanent: true,
+            direction: 'center',
+            className: 'slot-number-label',
+            offset: [0, 0]
+          })
+          .setContent(`<div style="font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${slotData.number}</div>`)
+          .setLatLng([slotData.lat, slotData.lng]);
+          
+          greenPolygon.bindTooltip(greenTooltip).openTooltip();
+          
+          // Aggiungi popup
+          const popupContent = `
+            <div style="font-family: sans-serif; min-width: 200px;">
+              <h3 style="margin: 0 0 10px 0; color: #4CAF50;">🅿️ Posteggio #${slotData.number}</h3>
+              <p style="margin: 5px 0;"><strong>📏 Dimensioni:</strong> ${slotData.width.toFixed(1)}m × ${slotData.height.toFixed(1)}m</p>
+              <p style="margin: 5px 0;"><strong>🔄 Rotazione:</strong> ${slotData.rotation.toFixed(1)}°</p>
+              <p style="margin: 5px 0;"><strong>📍 Coordinate:</strong></p>
+              <p style="margin: 0 0 10px 15px; font-size: 11px; color: #666;">
+                Lat: ${slotData.lat.toFixed(8)}<br>
+                Lng: ${slotData.lng.toFixed(8)}
+              </p>
+            </div>
+          `;
+          greenPolygon.bindPopup(popupContent);
+          
+          // Aggiungi a lista slots
+          slots.push({
+            number: slotData.number,
+            lat: slotData.lat,
+            lng: slotData.lng,
+            width: slotData.width,
+            height: slotData.height,
+            rotation: slotData.rotation,
+            polygon: greenPolygon,
+            tooltip: greenTooltip
+          });
+        });
+        
+        // Aggiorna UI
+        updateSlotList();
+        
+        // Aggiorna numero prossimo posteggio
+        const maxNumber = Math.max(...slots.map(s => s.number), 0);
+        document.getElementById('slot-number').value = maxNumber + 1;
+        
+        DMSConsole.log(`✅ ${slotsData.length} posteggi caricati con successo!`, 'success');
+        
+        // Aggiorna font-size tooltip
+        setTimeout(() => {
+          updateTooltipFontSize();
+        }, 100);
+      } catch (err) {
+        console.error('❌ Errore caricamento posteggi:', err);
+        DMSConsole.log('❌ Errore caricamento posteggi: ' + err.message, 'error');
+      }
+    }
+    
+    // Funzione per caricare posizione pianta da localStorage
+    function loadPlantFromLocalStorage() {
+      try {
+        const savedPosition = localStorage.getItem('plant_marker_position');
+        if (!savedPosition) {
+          return;
+        }
+        
+        const markerPosition = JSON.parse(savedPosition);
+        DMSConsole.log(`📥 Caricamento posizione pianta salvata...`);
+        
+        // Ricrea marker pianta
+        if (plantMarker) {
+          map.removeLayer(plantMarker);
+        }
+        
+        plantMarker = L.marker([markerPosition.lat, markerPosition.lng], {
+          draggable: true,
+          icon: L.divIcon({
+            className: 'plant-marker',
+            html: '<div style="background: #FF5722; color: white; padding: 8px; border-radius: 50%; font-size: 20px; text-align: center; width: 40px; height: 40px; line-height: 24px;">📍</div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+          })
+        }).addTo(map);
+        
+        // Riattiva drag event
+        plantMarker.on('dragend', function(e) {
+          const pos = e.target.getLatLng();
+          localStorage.setItem('plant_marker_position', JSON.stringify({lat: pos.lat, lng: pos.lng}));
+          DMSConsole.log(`📍 Posizione pianta aggiornata: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`);
+        });
+        
+        DMSConsole.log(`✅ Posizione pianta caricata!`, 'success');
+      } catch (err) {
+        console.error('❌ Errore caricamento pianta:', err);
+      }
+    }
+    
     document.addEventListener('DOMContentLoaded', () => {
       DMSConsole.init();
       DMSConsole.log('Slot Editor v3 inizializzato', 'success');
+      
+      // Carica automaticamente da localStorage
+      setTimeout(() => {
+        loadPlantFromLocalStorage();
+        loadSlotsFromLocalStorage();
+      }, 500); // Aspetta che la mappa sia pronta
     });
   </script>
 </body>
