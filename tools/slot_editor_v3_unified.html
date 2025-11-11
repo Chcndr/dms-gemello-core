@@ -297,9 +297,9 @@
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button id="btn-scale-minus" class="secondary" style="width: 40px; padding: 8px;">−</button>
-            <input type="range" id="plant-scale" min="10" max="400" value="100" step="1" style="flex: 1;" />
+            <input type="range" id="plant-scale" min="0" max="40" value="10" step="0.1" style="flex: 1;" />
             <button id="btn-scale-plus" class="secondary" style="width: 40px; padding: 8px;">+</button>
-            <input type="number" id="plant-scale-input" min="10" max="400" value="100" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
+            <input type="number" id="plant-scale-input" min="0" max="40" value="10" step="0.1" style="width: 80px; padding: 4px; text-align: center;" />
           </div>
         </div>
         
@@ -1371,8 +1371,8 @@
     
     // Funzione per aggiornare scala
     function updateScale(value) {
-      plantScale = parseFloat(value) / 100; // Converti da percentuale (10-400) a scala (0.1-4.0)
-      const displayValue = parseFloat(value).toFixed(1); // Mostra come percentuale con 1 decimale
+      plantScale = parseFloat(value) / 100; // Converti da 0-40 a 0%-40% (0.0-0.4)
+      const displayValue = parseFloat(value).toFixed(1); // Mostra con 1 decimale
       document.getElementById('plant-scale-value').textContent = displayValue + '%';
       document.getElementById('plant-scale').value = value;
       document.getElementById('plant-scale-input').value = value;
@@ -1389,16 +1389,16 @@
       updateScale(e.target.value);
     });
     
-    // Pulsanti +/- scala (0.1% alla volta per precisione)
+    // Pulsanti +/- scala (0.1 alla volta per precisione)
     document.getElementById('btn-scale-minus').addEventListener('click', () => {
       const currentValue = parseFloat(document.getElementById('plant-scale').value);
-      const newValue = Math.max(10, Math.round((currentValue - 0.1) * 10) / 10);
+      const newValue = Math.max(0, Math.round((currentValue - 0.1) * 10) / 10);
       updateScale(newValue);
     });
     
     document.getElementById('btn-scale-plus').addEventListener('click', () => {
       const currentValue = parseFloat(document.getElementById('plant-scale').value);
-      const newValue = Math.min(400, Math.round((currentValue + 0.1) * 10) / 10);
+      const newValue = Math.min(40, Math.round((currentValue + 0.1) * 10) / 10);
       updateScale(newValue);
     });
     
@@ -2525,20 +2525,39 @@
       // Crea GeoJSON posteggi
       const stallsGeoJSON = {
         type: 'FeatureCollection',
-        features: slots.map(slot => ({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [slot.lng, slot.lat]
-          },
-          properties: {
-            number: slot.number,
-            orientation: slot.rotation,
-            kind: 'slot',
-            status: 'free',
-            dimensions: `${slot.width}m × ${slot.height}m`
-          }
-        }))
+        features: slots.map(slot => {
+          // Calcola 4 corners del posteggio rettangolare
+          const corners = calculateSlotBounds(
+            { lat: slot.lat, lng: slot.lng },
+            slot.width,
+            slot.height,
+            slot.rotation
+          );
+          
+          // Converti corners in formato GeoJSON Polygon [lng, lat]
+          const polygonCoords = [
+            [corners[0][1], corners[0][0]], // top-left
+            [corners[1][1], corners[1][0]], // top-right
+            [corners[2][1], corners[2][0]], // bottom-right
+            [corners[3][1], corners[3][0]], // bottom-left
+            [corners[0][1], corners[0][0]]  // chiusura
+          ];
+          
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [polygonCoords]
+            },
+            properties: {
+              number: slot.number,
+              orientation: slot.rotation,
+              kind: 'slot',
+              status: 'free',
+              dimensions: `${slot.width}m × ${slot.height}m`
+            }
+          };
+        })
       };
       
       // Crea GeoJSON marker personalizzabili
@@ -2692,20 +2711,39 @@
         container: corners,
         stalls_geojson: {
           type: 'FeatureCollection',
-          features: slots.map(slot => ({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [slot.lng, slot.lat]
-            },
-            properties: {
-              number: slot.number,
-              orientation: slot.rotation || 0,
-              kind: 'slot',
-              status: 'free',
-              dimensions: `${slot.width}m × ${slot.height}m`
-            }
-          }))
+          features: slots.map(slot => {
+            // Calcola 4 corners del posteggio rettangolare
+            const corners = calculateSlotBounds(
+              { lat: slot.lat, lng: slot.lng },
+              slot.width,
+              slot.height,
+              slot.rotation
+            );
+            
+            // Converti corners in formato GeoJSON Polygon [lng, lat]
+            const polygonCoords = [
+              [corners[0][1], corners[0][0]], // top-left
+              [corners[1][1], corners[1][0]], // top-right
+              [corners[2][1], corners[2][0]], // bottom-right
+              [corners[3][1], corners[3][0]], // bottom-left
+              [corners[0][1], corners[0][0]]  // chiusura
+            ];
+            
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [polygonCoords]
+              },
+              properties: {
+                number: slot.number,
+                orientation: slot.rotation || 0,
+                kind: 'slot',
+                status: 'free',
+                dimensions: `${slot.width}m × ${slot.height}m`
+              }
+            };
+          })
         },
         markers_geojson: {
           type: 'FeatureCollection',
@@ -2779,24 +2817,49 @@
         return;
       }
       
+      // Verifica se DMSBUS è disponibile
+      if (typeof DMSBUS === 'undefined' || !DMSBUS.set) {
+        alert('❌ DMSBUS non disponibile!\n\nConnettiti al BUS Hub prima di salvare.');
+        return;
+      }
+      
       try {
         // Salva posteggi
         const stallsGeoJSON = {
           type: 'FeatureCollection',
-          features: slots.map(slot => ({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [slot.lng, slot.lat]
-            },
-            properties: {
-              number: slot.number,
-              orientation: slot.rotation,
-              kind: 'slot',
-              status: 'free',
-              dimensions: `${slot.width}m × ${slot.height}m`
-            }
-          }))
+          features: slots.map(slot => {
+            // Calcola 4 corners del posteggio rettangolare
+            const corners = calculateSlotBounds(
+              { lat: slot.lat, lng: slot.lng },
+              slot.width,
+              slot.height,
+              slot.rotation
+            );
+            
+            // Converti corners in formato GeoJSON Polygon [lng, lat]
+            const polygonCoords = [
+              [corners[0][1], corners[0][0]], // top-left
+              [corners[1][1], corners[1][0]], // top-right
+              [corners[2][1], corners[2][0]], // bottom-right
+              [corners[3][1], corners[3][0]], // bottom-left
+              [corners[0][1], corners[0][0]]  // chiusura
+            ];
+            
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [polygonCoords]
+              },
+              properties: {
+                number: slot.number,
+                orientation: slot.rotation,
+                kind: 'slot',
+                status: 'free',
+                dimensions: `${slot.width}m × ${slot.height}m`
+              }
+            };
+          })
         };
         
         await DMSBUS.set('stalls_geojson', JSON.stringify(stallsGeoJSON));
