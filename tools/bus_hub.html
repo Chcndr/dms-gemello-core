@@ -459,6 +459,28 @@
       </div>
 
       <div class="card">
+        <h3>🗄️ Database Sync</h3>
+        <div class="workflow-step-desc" style="margin-bottom: 12px;">
+          Sincronizza con il database centrale (Neon PostgreSQL)
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button id="btn-save-to-db" class="btn success" style="flex: 1;">
+            💾 Salva nel Database
+          </button>
+          <button id="btn-load-from-db" class="btn secondary" style="flex: 1;">
+            📂 Carica dal Database
+          </button>
+        </div>
+        
+        <div id="db-status" style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 12px;">
+          <span style="color: #888;">⏳ Non connesso al database</span>
+        </div>
+        
+        <div id="db-markets-list" style="max-height: 200px; overflow-y: auto; margin-top: 12px;"></div>
+      </div>
+
+      <div class="card">
         <h3>🗺️ Preview Mappa</h3>
         <div id="preview-map"></div>
       </div>
@@ -1427,6 +1449,158 @@
         console.error('Errore caricamento nome mercato:', err);
       }
     })();
+    
+    // ========== DATABASE SYNC ==========
+    const API_BASE = 'https://dms-hub-app-new.vercel.app/api/trpc';
+    
+    // Funzione per chiamare API TRPC
+    async function trpcCall(procedure, input) {
+      const response = await fetch(`${API_BASE}/${procedure}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ json: input })
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message || 'Errore API');
+      return data.result?.data?.json || data.result?.data;
+    }
+    
+    // Salva nel Database
+    async function saveToDatabase() {
+      const statusEl = document.getElementById('db-status');
+      statusEl.innerHTML = '<span style="color: #ffc107;">⏳ Salvataggio in corso...</span>';
+      
+      try {
+        // Raccogli dati dal BUS
+        const marketName = document.getElementById('market-name-input').value.trim() || 'Mercato_' + Date.now();
+        const location = await DMSBUS.getJSON('market_location') || 'Da specificare';
+        
+        // Raccogli tutti i dati GeoJSON dal localStorage
+        const slotEditorData = {
+          container: JSON.parse(localStorage.getItem('hub_container') || '[]'),
+          center: JSON.parse(localStorage.getItem('hub_center') || '{"lat":42.7633,"lng":11.1117}'),
+          stalls: [],
+          customMarkers: [],
+          customAreas: [],
+          gcp: [],
+          png: { url: '', metadata: {} }
+        };
+        
+        // Cerca dati salvati dall'Editor V3
+        const autoSave = localStorage.getItem('editor_v3_autosave');
+        if (autoSave) {
+          const saved = JSON.parse(autoSave);
+          if (saved.stalls) slotEditorData.stalls = saved.stalls;
+          if (saved.markers) slotEditorData.customMarkers = saved.markers.map(m => ({
+            name: m.name || 'Marker',
+            type: m.type || 'marker',
+            lat: m.lat,
+            lng: m.lng,
+            color: m.color,
+            icon: m.letter
+          }));
+          if (saved.areas) slotEditorData.customAreas = saved.areas.map(a => ({
+            name: a.name || 'Area',
+            type: a.type || 'area',
+            geojson: a.geojson,
+            color: a.color
+          }));
+          if (saved.hubCenter) slotEditorData.center = saved.hubCenter;
+        }
+        
+        // Chiama API
+        const result = await trpcCall('dmsHub.markets.importAuto', {
+          name: marketName,
+          location: location,
+          slotEditorData: slotEditorData
+        });
+        
+        statusEl.innerHTML = `<span style="color: #4CAF50;">✅ Salvato! ID: ${result.marketId} - ${result.stallsCreated} posteggi, ${result.markersCreated} marker</span>`;
+        
+        // Aggiorna lista mercati
+        loadMarketsFromDatabase();
+        
+      } catch (err) {
+        console.error('❌ Errore salvataggio DB:', err);
+        statusEl.innerHTML = `<span style="color: #f44336;">❌ Errore: ${err.message}</span>`;
+      }
+    }
+    
+    // Carica lista mercati dal Database
+    async function loadMarketsFromDatabase() {
+      const statusEl = document.getElementById('db-status');
+      const listEl = document.getElementById('db-markets-list');
+      
+      statusEl.innerHTML = '<span style="color: #ffc107;">⏳ Caricamento...</span>';
+      
+      try {
+        const response = await fetch(`${API_BASE}/dmsHub.markets.list`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        const markets = data.result?.data?.json || [];
+        
+        statusEl.innerHTML = `<span style="color: #4CAF50;">✅ Connesso - ${markets.length} mercati</span>`;
+        
+        if (markets.length === 0) {
+          listEl.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 20px; font-size: 13px;">Nessun mercato nel database</div>';
+          return;
+        }
+        
+        listEl.innerHTML = markets.map(m => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 4px;">
+            <div>
+              <strong>${m.name}</strong><br>
+              <small style="opacity: 0.7;">${m.city || ''} - ${m.stallsCount || 0} posteggi</small>
+            </div>
+            <button onclick="loadMarketFromDb(${m.id})" class="btn secondary" style="padding: 6px 12px; width: auto; margin: 0;">
+              📂 Carica
+            </button>
+          </div>
+        `).join('');
+        
+      } catch (err) {
+        console.error('❌ Errore caricamento DB:', err);
+        statusEl.innerHTML = `<span style="color: #f44336;">❌ Errore connessione: ${err.message}</span>`;
+      }
+    }
+    
+    // Carica singolo mercato dal Database
+    async function loadMarketFromDb(marketId) {
+      try {
+        const result = await trpcCall('dmsHub.markets.getById', { marketId: marketId });
+        
+        if (result) {
+          // Salva nel BUS locale
+          document.getElementById('market-name-input').value = result.name;
+          await DMSBUS.putJSON('market_name', result.name);
+          
+          if (result.geometry) {
+            localStorage.setItem('hub_center', JSON.stringify({
+              lat: parseFloat(result.geometry.centerLat),
+              lng: parseFloat(result.geometry.centerLng)
+            }));
+            if (result.geometry.containerGeojson) {
+              localStorage.setItem('hub_container', result.geometry.containerGeojson);
+            }
+          }
+          
+          alert(`✅ Mercato "${result.name}" caricato!\n\nOra puoi aprire l'Editor V3 per modificarlo.`);
+          updateWorkflowStatus();
+        }
+      } catch (err) {
+        console.error('❌ Errore caricamento mercato:', err);
+        alert('❌ Errore: ' + err.message);
+      }
+    }
+    
+    // Event listeners Database
+    document.getElementById('btn-save-to-db').addEventListener('click', saveToDatabase);
+    document.getElementById('btn-load-from-db').addEventListener('click', loadMarketsFromDatabase);
+    
+    // Carica lista mercati all'avvio
+    loadMarketsFromDatabase();
   </script>
 </body>
 </html>
