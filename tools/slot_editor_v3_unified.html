@@ -417,6 +417,7 @@
         <button id="btn-export-json" class="secondary">💾 Esporta GeoJSON</button>
         <button id="btn-export-dashboard" class="success">📊 Esporta per Dashboard Admin</button>
         <button id="btn-save-bus">🚌 Salva nel Bus</button>
+        <button id="btn-save-database" style="background: #9C27B0;">🗄️ Salva nel Database (Pepe GIS)</button>
         <div class="info" id="export-status">Pronto per esportare</div>
       </div>
       
@@ -2244,6 +2245,9 @@
       currentAreaVertices = [];
       currentAreaMarkers = [];
       
+      // Disabilita drag mappa durante il disegno
+      map.dragging.disable();
+      
       document.getElementById('btn-draw-area').style.display = 'none';
       document.getElementById('btn-finish-area').style.display = 'block';
       document.getElementById('btn-cancel-area').style.display = 'block';
@@ -2346,6 +2350,9 @@
       document.getElementById('area-drawing-info').style.display = 'none';
       map.getContainer().style.cursor = '';
       
+      // Riabilita drag mappa
+      map.dragging.enable();
+      
       updateAreaList();
       // DMSConsole.log(`✅ Area #${areaData.number} creata con ${areaData.coordinates.length} vertici`);
     }
@@ -2368,6 +2375,9 @@
       document.getElementById('btn-cancel-area').style.display = 'none';
       document.getElementById('area-drawing-info').style.display = 'none';
       map.getContainer().style.cursor = '';
+      
+      // Riabilita drag mappa
+      map.dragging.enable();
       
       // DMSConsole.log('❌ Disegno area annullato');
     }
@@ -2886,6 +2896,123 @@
       } catch (err) {
         alert('❌ Errore salvataggio: ' + err.message);
         // DMSConsole.log('❌ Errore: ' + err.message);
+      }
+    });
+    
+    // Salva nel Database (Pepe GIS)
+    document.getElementById('btn-save-database').addEventListener('click', async () => {
+      if (slots.length === 0 && markers.length === 0 && areas.length === 0) {
+        alert('⚠️ Aggiungi almeno un elemento prima di salvare!');
+        return;
+      }
+      
+      try {
+        document.getElementById('export-status').textContent = '🔄 Salvataggio nel database...';
+        
+        // Prepara dati GeoJSON
+        const stallsGeoJSON = {
+          type: 'FeatureCollection',
+          features: slots.map(slot => ({
+            type: 'Feature',
+            properties: {
+              id: slot.id,
+              number: slot.number,
+              width: slot.width,
+              height: slot.height,
+              rotation: slot.rotation,
+              kind: slot.kind || 'standard',
+              status: slot.status || 'free'
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [slot.lng, slot.lat]
+            }
+          }))
+        };
+        
+        const markersGeoJSON = {
+          type: 'FeatureCollection',
+          features: markers.map(m => ({
+            type: 'Feature',
+            properties: {
+              id: m.id,
+              letter: m.letter,
+              name: m.name || '',
+              type: m.type || 'shop',
+              description: m.description || ''
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [m.lng, m.lat]
+            }
+          }))
+        };
+        
+        const areasGeoJSON = {
+          type: 'FeatureCollection',
+          features: areas.map(a => ({
+            type: 'Feature',
+            properties: {
+              id: a.number,
+              name: a.name || `Area ${a.number}`,
+              type: a.type || 'market',
+              fillColor: a.fillColor,
+              fillOpacity: a.fillOpacity,
+              borderColor: a.borderColor,
+              borderWidth: a.borderWidth,
+              description: a.description || ''
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [a.coordinates.map(c => [c[1], c[0]])]
+            }
+          }))
+        };
+        
+        // Calcola centro e bounds
+        let centerLat = 42.7589, centerLng = 11.1135;
+        if (plantMarker) {
+          const pos = plantMarker.getLatLng();
+          centerLat = pos.lat;
+          centerLng = pos.lng;
+        } else if (slots.length > 0) {
+          centerLat = slots.reduce((sum, s) => sum + s.lat, 0) / slots.length;
+          centerLng = slots.reduce((sum, s) => sum + s.lng, 0) / slots.length;
+        }
+        
+        const exportData = {
+          hub_name: prompt('Nome Hub:', 'Hub Centro') || 'Hub Centro',
+          center: { lat: centerLat, lng: centerLng },
+          stalls_geojson: stallsGeoJSON,
+          markers_geojson: markersGeoJSON,
+          areas_geojson: areasGeoJSON,
+          plant_rotation: plantRotation,
+          plant_scale: plantScale,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Invia al backend Pepe GIS
+        const response = await fetch('https://mihub-backend-rest.onrender.com/api/gis/hub', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(exportData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        document.getElementById('export-status').textContent = `✅ Salvato nel Database! ID: ${result.id || 'OK'}`;
+        alert(`✅ Hub salvato nel Database Pepe GIS!\n\n📍 Centro: ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}\n📍 Posteggi: ${slots.length}\n📍 Marker: ${markers.length}\n📍 Aree: ${areas.length}`);
+        
+      } catch (err) {
+        console.error('❌ Errore salvataggio database:', err);
+        document.getElementById('export-status').textContent = `❌ Errore: ${err.message}`;
+        alert(`❌ Errore salvataggio nel database!\n\n${err.message}\n\nProva a usare "Esporta GeoJSON" per salvare localmente.`);
       }
     });
     
