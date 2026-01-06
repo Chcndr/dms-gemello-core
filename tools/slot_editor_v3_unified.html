@@ -389,6 +389,16 @@
         </div>
       </div>
       
+      <!-- 4b. Negozi/Shop Point -->
+      <div class="section">
+        <h2>🏪 Negozi (Point Scalabili)</h2>
+        <button id="btn-add-shop" class="active" style="background: #9C27B0;">🏪 Aggiungi Negozio</button>
+        <div class="info" id="shop-count">0 negozi aggiunti</div>
+        <div class="slot-list" id="shop-list" style="max-height: 150px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Nessun negozio</div>
+        </div>
+      </div>
+      
       <!-- 5. Aree Personalizzabili -->
       <div class="section">
         <h2>📐 Aree Personalizzabili</h2>
@@ -559,15 +569,18 @@
     let slotRotation = 0;
     let slots = [];
     let markers = [];
+    let shops = [];  // Negozi come Point scalabili
     let areas = [];
     let addMode = false;
     let markerMode = false;
+    let shopMode = false;  // Modalità aggiunta negozi
     let areaDrawingMode = false;
     let currentAreaVertices = [];
     let currentAreaMarkers = [];
     let currentAreaPolyline = null;
     let slotCounter = 1;
     let markerCounter = 1;
+    let shopCounter = 1;  // Counter per negozi
     let areaCounter = 1;
     let plantMarker = null; // Marker per trascinare pianta
     let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
@@ -2218,6 +2231,276 @@
       }
     };
     
+    // ===== NEGOZI/SHOP POINT SCALABILI =====
+    
+    // Pulsante Aggiungi Negozio
+    document.getElementById('btn-add-shop').addEventListener('click', function() {
+      // Disattiva altre modalità
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (markerMode) {
+        markerMode = false;
+        document.getElementById('btn-add-marker').textContent = '📍 Aggiungi Marker';
+        document.getElementById('btn-add-marker').className = 'active';
+      }
+      if (areaDrawingMode) {
+        cancelAreaDrawing();
+      }
+      
+      shopMode = !shopMode;
+      this.textContent = shopMode ? '🛑 Disattiva Modalità' : '🏪 Aggiungi Negozio';
+      this.className = shopMode ? 'danger' : 'active';
+      this.style.background = shopMode ? '#f44336' : '#9C27B0';
+      map.getContainer().style.cursor = shopMode ? 'crosshair' : '';
+    });
+    
+    // Click mappa per aggiungere negozio
+    map.on('click', function(e) {
+      if (shopMode) {
+        addShopPoint(e.latlng);
+      }
+    });
+    
+    // Funzione per ottenere colore in base allo stato
+    function getShopStatusColor(status) {
+      return {
+        'open': '#4CAF50',      // Verde - Aperto
+        'closed': '#f44336',   // Rosso - Chiuso
+        'inactive': '#9E9E9E'  // Grigio - Inattivo
+      }[status] || '#9C27B0';
+    }
+    
+    // Funzione per aggiungere negozio come Point scalabile
+    function addShopPoint(latlng) {
+      const shopData = {
+        number: shopCounter,
+        lat: latlng.lat,
+        lng: latlng.lng,
+        letter: 'N',
+        name: '',
+        status: 'open',  // open, closed, inactive
+        category: 'shop',
+        description: '',
+        vetrinaUrl: '',
+        openingHours: '',
+        phone: '',
+        email: ''
+      };
+      
+      // Crea Circle scalabile (si ridimensiona con lo zoom!)
+      const circle = L.circle(latlng, {
+        radius: 8,  // Raggio in metri - si scala con lo zoom!
+        color: getShopStatusColor(shopData.status),
+        fillColor: getShopStatusColor(shopData.status),
+        fillOpacity: 0.8,
+        weight: 3
+      }).addTo(map);
+      
+      // Aggiungi label con lettera
+      const label = L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'shop-label',
+          html: `<div style="
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+          ">${shopData.letter}</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        }),
+        interactive: false
+      }).addTo(map);
+      
+      shopData.circle = circle;
+      shopData.label = label;
+      
+      // Popup configurazione
+      const popupContent = createShopConfigForm(shopData);
+      circle.bindPopup(popupContent, { maxWidth: 400, minWidth: 320 }).openPopup();
+      
+      // Salva negozio
+      shops.push(shopData);
+      shopCounter++;
+      
+      updateShopList();
+    }
+    
+    // Form configurazione negozio
+    function createShopConfigForm(shop) {
+      return `
+        <div style="min-width: 300px;">
+          <h3 style="margin: 0 0 12px 0;">🏪 Negozio #${shop.number}</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Lettera:</label>
+              <input type="text" id="shop-letter-${shop.number}" value="${shop.letter}" maxlength="2" style="width: 100%; padding: 6px; font-size: 14px; text-align: center;" />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Stato:</label>
+              <select id="shop-status-${shop.number}" style="width: 100%; padding: 6px;">
+                <option value="open" ${shop.status === 'open' ? 'selected' : ''}>🟢 Aperto</option>
+                <option value="closed" ${shop.status === 'closed' ? 'selected' : ''}>🔴 Chiuso</option>
+                <option value="inactive" ${shop.status === 'inactive' ? 'selected' : ''}>⚪ Inattivo</option>
+              </select>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Nome Negozio:</label>
+            <input type="text" id="shop-name-${shop.number}" value="${shop.name}" style="width: 100%; padding: 6px;" placeholder="Es: Pizzeria Da Mario" />
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Categoria:</label>
+            <select id="shop-category-${shop.number}" style="width: 100%; padding: 6px;">
+              <option value="shop" ${shop.category === 'shop' ? 'selected' : ''}>🏪 Negozio</option>
+              <option value="food" ${shop.category === 'food' ? 'selected' : ''}>🍕 Alimentari</option>
+              <option value="restaurant" ${shop.category === 'restaurant' ? 'selected' : ''}>🍽️ Ristorante</option>
+              <option value="bar" ${shop.category === 'bar' ? 'selected' : ''}>☕ Bar/Caffè</option>
+              <option value="clothing" ${shop.category === 'clothing' ? 'selected' : ''}>👕 Abbigliamento</option>
+              <option value="service" ${shop.category === 'service' ? 'selected' : ''}>🛠️ Servizi</option>
+              <option value="other" ${shop.category === 'other' ? 'selected' : ''}>📌 Altro</option>
+            </select>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Descrizione:</label>
+            <textarea id="shop-desc-${shop.number}" style="width: 100%; padding: 6px; min-height: 50px; resize: vertical;" placeholder="Descrizione...">${shop.description}</textarea>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Orari Apertura:</label>
+            <input type="text" id="shop-hours-${shop.number}" value="${shop.openingHours}" style="width: 100%; padding: 6px;" placeholder="Es: Lun-Ven 9:00-18:00" />
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Telefono:</label>
+              <input type="text" id="shop-phone-${shop.number}" value="${shop.phone}" style="width: 100%; padding: 6px;" placeholder="+39..." />
+            </div>
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Email:</label>
+              <input type="email" id="shop-email-${shop.number}" value="${shop.email}" style="width: 100%; padding: 6px;" placeholder="email@..." />
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;">Link Vetrina:</label>
+            <input type="url" id="shop-vetrina-${shop.number}" value="${shop.vetrinaUrl}" style="width: 100%; padding: 6px;" placeholder="https://..." />
+          </div>
+          
+          <button onclick="updateShopFromForm(${shop.number})" style="width: 100%; padding: 10px; background: #9C27B0; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✅ Salva Negozio</button>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+            <strong>Coordinate:</strong> Lat: ${shop.lat.toFixed(6)}, Lng: ${shop.lng.toFixed(6)}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Aggiorna negozio da form
+    window.updateShopFromForm = function(number) {
+      const shop = shops.find(s => s.number === number);
+      if (!shop) return;
+      
+      // Leggi valori dal form
+      shop.letter = document.getElementById(`shop-letter-${number}`).value || 'N';
+      shop.status = document.getElementById(`shop-status-${number}`).value;
+      shop.name = document.getElementById(`shop-name-${number}`).value;
+      shop.category = document.getElementById(`shop-category-${number}`).value;
+      shop.description = document.getElementById(`shop-desc-${number}`).value;
+      shop.openingHours = document.getElementById(`shop-hours-${number}`).value;
+      shop.phone = document.getElementById(`shop-phone-${number}`).value;
+      shop.email = document.getElementById(`shop-email-${number}`).value;
+      shop.vetrinaUrl = document.getElementById(`shop-vetrina-${number}`).value;
+      
+      // Aggiorna colore in base allo stato
+      const newColor = getShopStatusColor(shop.status);
+      shop.circle.setStyle({
+        color: newColor,
+        fillColor: newColor
+      });
+      
+      // Aggiorna label
+      map.removeLayer(shop.label);
+      shop.label = L.marker([shop.lat, shop.lng], {
+        icon: L.divIcon({
+          className: 'shop-label',
+          html: `<div style="
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+          ">${shop.letter}</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        }),
+        interactive: false
+      }).addTo(map);
+      
+      // Popup finale con info e link vetrina
+      const statusEmoji = { 'open': '🟢', 'closed': '🔴', 'inactive': '⚪' };
+      const statusText = { 'open': 'Aperto', 'closed': 'Chiuso', 'inactive': 'Inattivo' };
+      const vetrinaButton = shop.vetrinaUrl ? 
+        `<a href="${shop.vetrinaUrl}" target="_blank" style="display: block; margin-top: 8px; padding: 8px; background: #9C27B0; color: white; text-align: center; border-radius: 4px; text-decoration: none;">🛍️ Vai alla Vetrina</a>` : '';
+      
+      const finalPopup = `
+        <div style="min-width: 220px;">
+          <h3 style="margin: 0 0 8px 0;">${shop.letter} ${shop.name || 'Negozio #' + shop.number}</h3>
+          <p style="margin: 4px 0;"><strong>Stato:</strong> ${statusEmoji[shop.status]} ${statusText[shop.status]}</p>
+          <p style="margin: 4px 0;"><strong>Categoria:</strong> ${shop.category}</p>
+          ${shop.description ? `<p style="margin: 4px 0;">${shop.description}</p>` : ''}
+          ${shop.openingHours ? `<p style="margin: 4px 0;"><strong>Orari:</strong> ${shop.openingHours}</p>` : ''}
+          ${shop.phone ? `<p style="margin: 4px 0;"><strong>Tel:</strong> ${shop.phone}</p>` : ''}
+          ${vetrinaButton}
+          <p style="font-size: 10px; color: #666; margin-top: 8px;">Lat: ${shop.lat.toFixed(6)}, Lng: ${shop.lng.toFixed(6)}</p>
+        </div>
+      `;
+      shop.circle.bindPopup(finalPopup);
+      
+      // Chiudi popup e mostra messaggio
+      shop.circle.closePopup();
+      updateShopList();
+    };
+    
+    // Aggiorna lista negozi
+    function updateShopList() {
+      const list = document.getElementById('shop-list');
+      const count = document.getElementById('shop-count');
+      
+      if (shops.length === 0) {
+        list.innerHTML = '<div style="opacity: 0.6;">Nessun negozio</div>';
+      } else {
+        const statusEmoji = { 'open': '🟢', 'closed': '🔴', 'inactive': '⚪' };
+        list.innerHTML = shops.map(s => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); margin-bottom: 4px; border-radius: 4px;">
+            <span>${statusEmoji[s.status]} ${s.letter} ${s.name || 'Negozio #' + s.number}</span>
+            <button onclick="removeShop(${s.number})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+          </div>
+        `).join('');
+      }
+      
+      count.textContent = `${shops.length} negozi aggiunti`;
+    }
+    
+    // Rimuovi negozio
+    window.removeShop = function(number) {
+      const shop = shops.find(s => s.number === number);
+      if (shop) {
+        map.removeLayer(shop.circle);
+        map.removeLayer(shop.label);
+        shops = shops.filter(s => s.number !== number);
+        updateShopList();
+      }
+    };
+    
     // ===== AREE PERSONALIZZABILI =====
     
     // Pulsante Disegna Area
@@ -2234,6 +2517,12 @@
         markerMode = false;
         document.getElementById('btn-add-marker').textContent = '📍 Aggiungi Marker';
         document.getElementById('btn-add-marker').className = 'active';
+      }
+      if (shopMode) {
+        shopMode = false;
+        document.getElementById('btn-add-shop').textContent = '🏪 Aggiungi Negozio';
+        document.getElementById('btn-add-shop').className = 'active';
+        document.getElementById('btn-add-shop').style.background = '#9C27B0';
       }
       
       startAreaDrawing();
@@ -2597,6 +2886,31 @@
         }))
       };
       
+      // Crea GeoJSON negozi/shop
+      const shopsGeoJSON = {
+        type: 'FeatureCollection',
+        features: shops.map(s => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [s.lng, s.lat]
+          },
+          properties: {
+            number: s.number,
+            letter: s.letter,
+            name: s.name,
+            status: s.status,
+            category: s.category,
+            description: s.description,
+            vetrinaUrl: s.vetrinaUrl,
+            openingHours: s.openingHours,
+            phone: s.phone,
+            email: s.email,
+            kind: 'shop'
+          }
+        }))
+      };
+      
       // Crea GeoJSON aree personalizzabili
       const areasGeoJSON = {
         type: 'FeatureCollection',
@@ -2625,6 +2939,7 @@
         container: corners,
         stalls_geojson: stallsGeoJSON,
         markers_geojson: markersGeoJSON,
+        shops_geojson: shopsGeoJSON,
         areas_geojson: areasGeoJSON,
         plant_rotation: plantRotation,
         plant_scale: plantScale,
@@ -2636,12 +2951,12 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const totalItems = slots.length + markers.length + areas.length;
+      const totalItems = slots.length + markers.length + shops.length + areas.length;
       a.download = `mercato-esperanto-${totalItems}-items-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       
-      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${areas.length} aree esportati!`;
+      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${shops.length} negozi, ${areas.length} aree esportati!`;
       // DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
     });
     
