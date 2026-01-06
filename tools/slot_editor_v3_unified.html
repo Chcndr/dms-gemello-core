@@ -399,7 +399,27 @@
         </div>
       </div>
       
-      <!-- 5. Aree Personalizzabili -->
+      <!-- 5. HUB - Centro e Area -->
+      <div class="section" style="background: linear-gradient(135deg, #1a237e 0%, #311b92 100%); border: 2px solid #7c4dff;">
+        <h2>🏢 HUB (Indipendente)</h2>
+        <div class="info" style="background: rgba(124, 77, 255, 0.2); margin-bottom: 10px;">Crea HUB senza dipendenza dal mercato</div>
+        
+        <button id="btn-set-hub-center" class="active" style="background: #7c4dff;">📍 Imposta Centro HUB</button>
+        <button id="btn-fix-hub-center" class="success" style="display: none;">✅ Fissa Centro HUB</button>
+        <div class="info" id="hub-center-status" style="display: none;">Centro HUB: Non impostato</div>
+        
+        <button id="btn-draw-hub-area" class="active" style="background: #7c4dff; margin-top: 8px;">🔷 Disegna Area HUB</button>
+        <button id="btn-finish-hub-area" class="success" style="display: none;">✅ Completa Area HUB</button>
+        <button id="btn-cancel-hub-area" class="danger" style="display: none;">❌ Annulla</button>
+        <div class="info" id="hub-area-status" style="display: none;">Area HUB: Non disegnata</div>
+        
+        <button id="btn-fix-hub-corner" class="active" style="background: #7c4dff; margin-top: 8px;">📐 Fissa Corner Pianta</button>
+        <div class="info" id="hub-corner-status" style="display: none;">Corner: Non fissati</div>
+        
+        <div class="info" id="hub-saved-status" style="background: #4CAF50; display: none; margin-top: 10px;">✅ HUB Salvato!</div>
+      </div>
+      
+      <!-- 6. Aree Personalizzabili -->
       <div class="section">
         <h2>📐 Aree Personalizzabili</h2>
         <button id="btn-draw-area" class="active">📐 Disegna Area</button>
@@ -518,7 +538,13 @@
     // NOTA: Caricamento automatico dal BUS spostato dopo inizializzazione variabili (vedi sotto)
     
     // Inizializza mappa su Grosseto
-    const map = L.map('map').setView([42.7589, 11.1135], 17);
+    // NOTA: boxZoom disabilitato per evitare zoom accidentale con trascinamento
+    const map = L.map('map', {
+      boxZoom: false,           // Disabilita zoom con rettangolo (shift+drag)
+      doubleClickZoom: false,   // Disabilita zoom con doppio click
+      scrollWheelZoom: true,    // Mantieni zoom con rotella
+      zoomControl: true         // Mantieni pulsanti +/-
+    }).setView([42.7589, 11.1135], 17);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 20
@@ -582,6 +608,15 @@
     let markerCounter = 1;
     let shopCounter = 1;  // Counter per negozi
     let areaCounter = 1;
+    
+    // === HUB INDIPENDENTE ===
+    let hubCenter = null;           // {lat, lng, marker}
+    let hubArea = null;             // {coordinates, polygon}
+    let hubCorner = null;           // {bounds, fixed}
+    let hubCenterMode = false;      // Modalità impostazione centro
+    let hubAreaMode = false;        // Modalità disegno area HUB
+    let hubAreaVertices = [];       // Vertici temporanei area HUB
+    let hubAreaMarkers = [];        // Marker temporanei vertici
     let plantMarker = null; // Marker per trascinare pianta
     let plantImageSize = { width: 500, height: 400 }; // Dimensioni immagine corrente
     
@@ -1770,6 +1805,18 @@
         return;
       }
       
+      // Gestione HUB - Centro
+      if (hubCenterMode) {
+        setHubCenter(e.latlng);
+        return;
+      }
+      
+      // Gestione HUB - Area
+      if (hubAreaMode) {
+        addHubAreaVertex(e.latlng);
+        return;
+      }
+      
       // Gestione aree
       if (areaDrawingMode) {
         addAreaVertex(e.latlng);
@@ -2501,6 +2548,536 @@
       }
     };
     
+    // ===== HUB INDIPENDENTE =====
+    
+    // Pulsante Imposta Centro HUB
+    document.getElementById('btn-set-hub-center').addEventListener('click', function() {
+      // Disattiva altre modalità
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (markerMode) {
+        markerMode = false;
+        document.getElementById('btn-add-marker').textContent = '📍 Aggiungi Marker';
+        document.getElementById('btn-add-marker').className = 'active';
+      }
+      if (shopMode) {
+        shopMode = false;
+        document.getElementById('btn-add-shop').textContent = '🏪 Aggiungi Negozio';
+        document.getElementById('btn-add-shop').className = 'active';
+        document.getElementById('btn-add-shop').style.background = '#9C27B0';
+      }
+      
+      hubCenterMode = !hubCenterMode;
+      
+      if (hubCenterMode) {
+        this.textContent = '📍 Click sulla mappa...';
+        this.style.background = '#FF9800';
+        map.getContainer().style.cursor = 'crosshair';
+      } else {
+        this.textContent = '📍 Imposta Centro HUB';
+        this.style.background = '#7c4dff';
+        map.getContainer().style.cursor = '';
+      }
+    });
+    
+    // Pulsante Fissa Centro HUB
+    document.getElementById('btn-fix-hub-center').addEventListener('click', function() {
+      if (hubCenter && hubCenter.marker) {
+        // Fissa il centro - rendi il marker non trascinabile
+        hubCenter.marker.dragging.disable();
+        hubCenter.fixed = true;
+        
+        this.style.display = 'none';
+        document.getElementById('hub-center-status').textContent = `✅ Centro HUB Fissato: ${hubCenter.lat.toFixed(6)}, ${hubCenter.lng.toFixed(6)}`;
+        document.getElementById('hub-center-status').style.display = 'block';
+        document.getElementById('hub-center-status').style.background = '#4CAF50';
+        
+        // Salva in localStorage
+        saveHubToLocalStorage();
+        
+        console.log('✅ Centro HUB fissato:', hubCenter);
+      }
+    });
+    
+    // Funzione per impostare centro HUB
+    function setHubCenter(latlng) {
+      // Rimuovi centro precedente se esiste
+      if (hubCenter && hubCenter.marker) {
+        map.removeLayer(hubCenter.marker);
+      }
+      
+      // Crea marker centro HUB
+      const centerIcon = L.divIcon({
+        className: 'hub-center-icon',
+        html: `<div style="
+          width: 40px;
+          height: 40px;
+          background: #7c4dff;
+          border: 4px solid white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          font-size: 18px;
+          box-shadow: 0 4px 12px rgba(124,77,255,0.5);
+        ">🏢</div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      });
+      
+      const marker = L.marker(latlng, {
+        icon: centerIcon,
+        draggable: true
+      }).addTo(map);
+      
+      marker.bindPopup(`
+        <div style="min-width: 200px;">
+          <h3 style="margin: 0 0 10px 0;">🏢 Centro HUB</h3>
+          <p><strong>Lat:</strong> ${latlng.lat.toFixed(6)}</p>
+          <p><strong>Lng:</strong> ${latlng.lng.toFixed(6)}</p>
+          <p style="color: #7c4dff;">Trascina per spostare, poi clicca "Fissa Centro HUB"</p>
+        </div>
+      `);
+      
+      marker.on('dragend', function(e) {
+        const newPos = e.target.getLatLng();
+        hubCenter.lat = newPos.lat;
+        hubCenter.lng = newPos.lng;
+        document.getElementById('hub-center-status').textContent = `Centro HUB: ${newPos.lat.toFixed(6)}, ${newPos.lng.toFixed(6)}`;
+      });
+      
+      hubCenter = {
+        lat: latlng.lat,
+        lng: latlng.lng,
+        marker: marker,
+        fixed: false
+      };
+      
+      // Mostra pulsante Fissa e status
+      document.getElementById('btn-fix-hub-center').style.display = 'block';
+      document.getElementById('hub-center-status').textContent = `Centro HUB: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+      document.getElementById('hub-center-status').style.display = 'block';
+      document.getElementById('hub-center-status').style.background = '#FF9800';
+      
+      // Disattiva modalità
+      hubCenterMode = false;
+      document.getElementById('btn-set-hub-center').textContent = '📍 Imposta Centro HUB';
+      document.getElementById('btn-set-hub-center').style.background = '#7c4dff';
+      map.getContainer().style.cursor = '';
+      
+      console.log('🏢 Centro HUB impostato:', hubCenter);
+    }
+    
+    // Pulsante Disegna Area HUB
+    document.getElementById('btn-draw-hub-area').addEventListener('click', function() {
+      if (hubAreaMode) return;
+      
+      // Disattiva altre modalità
+      if (addMode) {
+        addMode = false;
+        document.getElementById('btn-add-mode').textContent = '📍 Modalità Aggiungi Posteggio';
+        document.getElementById('btn-add-mode').className = 'active';
+      }
+      if (markerMode) {
+        markerMode = false;
+        document.getElementById('btn-add-marker').textContent = '📍 Aggiungi Marker';
+        document.getElementById('btn-add-marker').className = 'active';
+      }
+      if (shopMode) {
+        shopMode = false;
+        document.getElementById('btn-add-shop').textContent = '🏪 Aggiungi Negozio';
+        document.getElementById('btn-add-shop').className = 'active';
+        document.getElementById('btn-add-shop').style.background = '#9C27B0';
+      }
+      if (hubCenterMode) {
+        hubCenterMode = false;
+        document.getElementById('btn-set-hub-center').textContent = '📍 Imposta Centro HUB';
+        document.getElementById('btn-set-hub-center').style.background = '#7c4dff';
+      }
+      
+      startHubAreaDrawing();
+    });
+    
+    // Inizia disegno area HUB
+    function startHubAreaDrawing() {
+      hubAreaMode = true;
+      hubAreaVertices = [];
+      hubAreaMarkers = [];
+      
+      map.dragging.disable();
+      
+      document.getElementById('btn-draw-hub-area').style.display = 'none';
+      document.getElementById('btn-finish-hub-area').style.display = 'block';
+      document.getElementById('btn-cancel-hub-area').style.display = 'block';
+      document.getElementById('hub-area-status').textContent = 'Click per aggiungere vertici area HUB...';
+      document.getElementById('hub-area-status').style.display = 'block';
+      document.getElementById('hub-area-status').style.background = '#FF9800';
+      
+      map.getContainer().style.cursor = 'crosshair';
+      console.log('🔷 Modalità disegno Area HUB attiva');
+    }
+    
+    // Aggiungi vertice area HUB
+    function addHubAreaVertex(latlng) {
+      hubAreaVertices.push([latlng.lat, latlng.lng]);
+      
+      const vertexMarker = L.circleMarker(latlng, {
+        radius: 8,
+        color: '#7c4dff',
+        fillColor: '#7c4dff',
+        fillOpacity: 1
+      }).addTo(map);
+      hubAreaMarkers.push(vertexMarker);
+      
+      document.getElementById('hub-area-status').textContent = `Area HUB: ${hubAreaVertices.length} vertici (doppio-click per chiudere)`;
+      
+      // Aggiorna polyline temporanea
+      if (hubAreaVertices.length > 1) {
+        if (window.hubAreaPolyline) {
+          map.removeLayer(window.hubAreaPolyline);
+        }
+        window.hubAreaPolyline = L.polyline(hubAreaVertices, {
+          color: '#7c4dff',
+          weight: 3,
+          dashArray: '10, 5'
+        }).addTo(map);
+      }
+    }
+    
+    // Completa area HUB
+    document.getElementById('btn-finish-hub-area').addEventListener('click', finishHubAreaDrawing);
+    
+    function finishHubAreaDrawing() {
+      if (hubAreaVertices.length < 3) {
+        alert('Servono almeno 3 vertici per creare un\'area!');
+        return;
+      }
+      
+      // Rimuovi marker temporanei e polyline
+      hubAreaMarkers.forEach(m => map.removeLayer(m));
+      if (window.hubAreaPolyline) {
+        map.removeLayer(window.hubAreaPolyline);
+      }
+      
+      // Rimuovi area HUB precedente se esiste
+      if (hubArea && hubArea.polygon) {
+        map.removeLayer(hubArea.polygon);
+      }
+      
+      // Crea poligono area HUB con trasparenza
+      const polygon = L.polygon(hubAreaVertices, {
+        color: '#7c4dff',
+        weight: 3,
+        fillColor: '#7c4dff',
+        fillOpacity: 0.2
+      }).addTo(map);
+      
+      polygon.bindPopup(`
+        <div style="min-width: 200px;">
+          <h3 style="margin: 0 0 10px 0;">🔷 Area HUB</h3>
+          <p><strong>Vertici:</strong> ${hubAreaVertices.length}</p>
+          <p><strong>Area:</strong> ~${calculatePolygonArea(hubAreaVertices).toFixed(0)} m²</p>
+        </div>
+      `);
+      
+      hubArea = {
+        coordinates: hubAreaVertices,
+        polygon: polygon,
+        fixed: true
+      };
+      
+      // Reset UI
+      hubAreaMode = false;
+      hubAreaVertices = [];
+      hubAreaMarkers = [];
+      
+      document.getElementById('btn-draw-hub-area').style.display = 'block';
+      document.getElementById('btn-finish-hub-area').style.display = 'none';
+      document.getElementById('btn-cancel-hub-area').style.display = 'none';
+      document.getElementById('hub-area-status').textContent = `✅ Area HUB Fissata (${hubArea.coordinates.length} vertici)`;
+      document.getElementById('hub-area-status').style.background = '#4CAF50';
+      map.getContainer().style.cursor = '';
+      map.dragging.enable();
+      
+      // Salva in localStorage
+      saveHubToLocalStorage();
+      
+      console.log('✅ Area HUB completata:', hubArea);
+    }
+    
+    // Annulla disegno area HUB
+    document.getElementById('btn-cancel-hub-area').addEventListener('click', function() {
+      hubAreaMarkers.forEach(m => map.removeLayer(m));
+      if (window.hubAreaPolyline) {
+        map.removeLayer(window.hubAreaPolyline);
+      }
+      
+      hubAreaMode = false;
+      hubAreaVertices = [];
+      hubAreaMarkers = [];
+      
+      document.getElementById('btn-draw-hub-area').style.display = 'block';
+      document.getElementById('btn-finish-hub-area').style.display = 'none';
+      document.getElementById('btn-cancel-hub-area').style.display = 'none';
+      document.getElementById('hub-area-status').style.display = 'none';
+      map.getContainer().style.cursor = '';
+      map.dragging.enable();
+      
+      console.log('❌ Disegno Area HUB annullato');
+    });
+    
+    // Pulsante Fissa Corner Pianta
+    document.getElementById('btn-fix-hub-corner').addEventListener('click', function() {
+      if (plantOverlay) {
+        const bounds = plantOverlay.getBounds();
+        hubCorner = {
+          bounds: [
+            [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+            [bounds.getNorthEast().lat, bounds.getNorthEast().lng]
+          ],
+          rotation: plantRotation,
+          scale: plantScale,
+          fixed: true
+        };
+        
+        document.getElementById('hub-corner-status').textContent = '✅ Corner Pianta Fissati';
+        document.getElementById('hub-corner-status').style.display = 'block';
+        document.getElementById('hub-corner-status').style.background = '#4CAF50';
+        
+        // Salva in localStorage
+        saveHubToLocalStorage();
+        
+        console.log('✅ Corner pianta fissati:', hubCorner);
+      } else {
+        alert('Carica prima una pianta PNG!');
+      }
+    });
+    
+    // Salva HUB in localStorage
+    function saveHubToLocalStorage() {
+      const hubData = {
+        center: hubCenter ? { lat: hubCenter.lat, lng: hubCenter.lng, fixed: hubCenter.fixed } : null,
+        area: hubArea ? { coordinates: hubArea.coordinates, fixed: hubArea.fixed } : null,
+        corner: hubCorner,
+        shops: shops.map(s => ({
+          number: s.number,
+          lat: s.lat,
+          lng: s.lng,
+          letter: s.letter,
+          name: s.name,
+          status: s.status,
+          category: s.category,
+          description: s.description,
+          vetrinaUrl: s.vetrinaUrl,
+          openingHours: s.openingHours,
+          phone: s.phone,
+          email: s.email
+        })),
+        timestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem('dms_hub_data', JSON.stringify(hubData));
+      
+      document.getElementById('hub-saved-status').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('hub-saved-status').style.display = 'none';
+      }, 3000);
+      
+      console.log('💾 HUB salvato in localStorage:', hubData);
+    }
+    
+    // ===== AUTO-SAVE COMPLETO =====
+    
+    // Salva TUTTO in localStorage (posteggi, marker, aree, HUB)
+    function autoSaveAll() {
+      const allData = {
+        // HUB
+        hub: {
+          center: hubCenter ? { lat: hubCenter.lat, lng: hubCenter.lng, fixed: hubCenter.fixed } : null,
+          area: hubArea ? { coordinates: hubArea.coordinates, fixed: hubArea.fixed } : null,
+          corner: hubCorner
+        },
+        // Negozi
+        shops: shops.map(s => ({
+          number: s.number, lat: s.lat, lng: s.lng, letter: s.letter, name: s.name,
+          status: s.status, category: s.category, description: s.description,
+          vetrinaUrl: s.vetrinaUrl, openingHours: s.openingHours, phone: s.phone, email: s.email
+        })),
+        // Posteggi
+        slots: slots.map(s => ({
+          number: s.number, lat: s.lat, lng: s.lng, width: s.width, height: s.height,
+          rotation: s.rotation, label: s.label, category: s.category, status: s.status
+        })),
+        // Marker
+        markers: markers.map(m => ({
+          number: m.number, lat: m.lat, lng: m.lng, letter: m.letter, size: m.size,
+          bgColor: m.bgColor, textColor: m.textColor, borderColor: m.borderColor,
+          borderWidth: m.borderWidth, name: m.name, type: m.type, description: m.description,
+          extra: m.extra, status: m.status
+        })),
+        // Aree
+        areas: areas.map(a => ({
+          number: a.number, name: a.name, type: a.type, coordinates: a.coordinates,
+          fillColor: a.fillColor, fillOpacity: a.fillOpacity, borderColor: a.borderColor,
+          borderWidth: a.borderWidth, description: a.description
+        })),
+        // Pianta
+        plant: {
+          rotation: plantRotation,
+          scale: plantScale,
+          position: plantMarker ? { lat: plantMarker.getLatLng().lat, lng: plantMarker.getLatLng().lng } : null
+        },
+        // Contatori
+        counters: {
+          slot: slotCounter,
+          marker: markerCounter,
+          shop: shopCounter,
+          area: areaCounter
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem('dms_editor_autosave', JSON.stringify(allData));
+      console.log('💾 Auto-save completato:', new Date().toLocaleTimeString());
+    }
+    
+    // Carica TUTTO da localStorage
+    function loadAutoSave() {
+      const saved = localStorage.getItem('dms_editor_autosave');
+      if (!saved) return false;
+      
+      try {
+        const data = JSON.parse(saved);
+        console.log('📥 Caricamento auto-save da:', data.timestamp);
+        
+        // Ripristina contatori
+        if (data.counters) {
+          slotCounter = data.counters.slot || 1;
+          markerCounter = data.counters.marker || 1;
+          shopCounter = data.counters.shop || 1;
+          areaCounter = data.counters.area || 1;
+        }
+        
+        // Ripristina HUB
+        if (data.hub) {
+          if (data.hub.center) {
+            setHubCenter(L.latLng(data.hub.center.lat, data.hub.center.lng));
+            if (data.hub.center.fixed) {
+              setTimeout(() => document.getElementById('btn-fix-hub-center').click(), 500);
+            }
+          }
+          if (data.hub.area && data.hub.area.coordinates) {
+            hubAreaVertices = data.hub.area.coordinates;
+            setTimeout(finishHubAreaDrawing, 600);
+          }
+          if (data.hub.corner) {
+            hubCorner = data.hub.corner;
+            document.getElementById('hub-corner-status').textContent = '✅ Corner Pianta Fissati';
+            document.getElementById('hub-corner-status').style.display = 'block';
+            document.getElementById('hub-corner-status').style.background = '#4CAF50';
+          }
+        }
+        
+        // Ripristina negozi
+        if (data.shops && data.shops.length > 0) {
+          data.shops.forEach(s => {
+            // Ricrea il negozio sulla mappa
+            const latlng = L.latLng(s.lat, s.lng);
+            const color = getShopStatusColor(s.status);
+            
+            const circle = L.circle(latlng, {
+              radius: 8,
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.8,
+              weight: 3
+            }).addTo(map);
+            
+            const label = L.marker(latlng, {
+              icon: L.divIcon({
+                className: 'shop-label',
+                html: `<div style="background:${color};color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${s.letter}</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              })
+            }).addTo(map);
+            
+            shops.push({ ...s, circle, label });
+          });
+          updateShopList();
+        }
+        
+        // Nota: posteggi, marker e aree richiedono logica più complessa
+        // Per ora salviamo solo i dati, il ripristino completo sarà implementato dopo
+        
+        console.log('✅ Auto-save caricato con successo');
+        return true;
+      } catch (e) {
+        console.error('Errore caricamento auto-save:', e);
+        return false;
+      }
+    }
+    
+    // Auto-save ogni 30 secondi
+    setInterval(autoSaveAll, 30000);
+    
+    // Salva prima di chiudere la pagina
+    window.addEventListener('beforeunload', autoSaveAll);
+    
+    // Carica auto-save all'avvio (dopo 1.5 secondi per dare tempo alla mappa)
+    setTimeout(() => {
+      if (loadAutoSave()) {
+        document.getElementById('export-status').textContent = '📥 Dati precedenti ripristinati!';
+        setTimeout(() => {
+          document.getElementById('export-status').textContent = 'Pronto per esportare';
+        }, 3000);
+      }
+    }, 1500);
+    
+    // Carica HUB da localStorage
+    function loadHubFromLocalStorage() {
+      const saved = localStorage.getItem('dms_hub_data');
+      if (saved) {
+        try {
+          const hubData = JSON.parse(saved);
+          
+          // Ripristina centro
+          if (hubData.center) {
+            setHubCenter(L.latLng(hubData.center.lat, hubData.center.lng));
+            if (hubData.center.fixed) {
+              document.getElementById('btn-fix-hub-center').click();
+            }
+          }
+          
+          // Ripristina area
+          if (hubData.area && hubData.area.coordinates) {
+            hubAreaVertices = hubData.area.coordinates;
+            finishHubAreaDrawing();
+          }
+          
+          // Ripristina corner
+          if (hubData.corner) {
+            hubCorner = hubData.corner;
+            document.getElementById('hub-corner-status').textContent = '✅ Corner Pianta Fissati';
+            document.getElementById('hub-corner-status').style.display = 'block';
+            document.getElementById('hub-corner-status').style.background = '#4CAF50';
+          }
+          
+          console.log('📥 HUB caricato da localStorage:', hubData);
+        } catch (e) {
+          console.error('Errore caricamento HUB:', e);
+        }
+      }
+    }
+    
+    // Carica HUB all'avvio
+    setTimeout(loadHubFromLocalStorage, 1000);
+    
     // ===== AREE PERSONALIZZABILI =====
     
     // Pulsante Disegna Area
@@ -2911,6 +3488,33 @@
         }))
       };
       
+      // Crea GeoJSON HUB (centro + area)
+      const hubGeoJSON = {
+        center: hubCenter ? {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [hubCenter.lng, hubCenter.lat]
+          },
+          properties: {
+            kind: 'hub_center',
+            fixed: hubCenter.fixed
+          }
+        } : null,
+        area: hubArea ? {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [hubArea.coordinates.map(c => [c[1], c[0]])]
+          },
+          properties: {
+            kind: 'hub_area',
+            fixed: hubArea.fixed
+          }
+        } : null,
+        corner: hubCorner
+      };
+      
       // Crea GeoJSON aree personalizzabili
       const areasGeoJSON = {
         type: 'FeatureCollection',
@@ -2937,6 +3541,7 @@
       // Crea JSON completo
       const exportData = {
         container: corners,
+        hub_geojson: hubGeoJSON,
         stalls_geojson: stallsGeoJSON,
         markers_geojson: markersGeoJSON,
         shops_geojson: shopsGeoJSON,
@@ -2951,12 +3556,14 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const totalItems = slots.length + markers.length + shops.length + areas.length;
-      a.download = `mercato-esperanto-${totalItems}-items-${new Date().toISOString().split('T')[0]}.json`;
+      const hasHub = hubCenter || hubArea ? 1 : 0;
+      const totalItems = slots.length + markers.length + shops.length + areas.length + hasHub;
+      a.download = `hub-mercato-${totalItems}-items-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       
-      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${shops.length} negozi, ${areas.length} aree esportati!`;
+      const hubStatus = (hubCenter || hubArea) ? ', 1 HUB' : '';
+      document.getElementById('export-status').textContent = `✅ ${slots.length} posteggi, ${markers.length} marker, ${shops.length} negozi, ${areas.length} aree${hubStatus} esportati!`;
       // DMSConsole.log(`✅ JSON esportato con ${slots.length} posteggi e 4 corner`);
     });
     
